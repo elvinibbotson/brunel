@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>A4|2D|DigitalDrawing</title>
+	<link rel="stylesheet" type="text/css" href="ddStyle.css">
+  	<link rel="manifest" href="manifest.json">
+  	<meta name="application-name" content="A4|2D|DigitalDrawing">
+  	<meta name="msapplication-square150x150logo" content="icons/icon150.png">
+  	<meta name="msapplication-square70x70logo" content="icons/icon75.png">
+</head>
+<body>
+    <div id='graphic'>
+		<!--svg id='dwgSVG' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1122 793'-->
+		<svg id='dwgSVG' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
+		    <line id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue'/>
+		    <polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
+		    <rect id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
+		</svg>
+	</div>
+	<div id='symbol'>
+	    <svg id='symbolSVG' xmlns='http://www.w3.org/2000/svg' width='100mm' height='100mm' viewBox='0 0 100 100'>
+	    </svg>
+	</div>
+    <div id='tools'>
+        <button id='fileButton' class='iconButton'></button>
+        <button id='layersButton' class='iconButton'></button>
+        <button id='lineButton' class='iconButton'></button>
+        <button id='boxButton' class='iconButton'></button>
+    </div>
+    <div id='info'>
+        <span id='prompt'>prompt text</span>
+        <div id='size-style'>
+            <input id='first' type='number'/><span id='between'>x</span><input id='second' type='number'/><span id='after'>mm</span>
+            <input id='stroke' type='text'/>
+            <input id='fill' type='text'/> layer:
+            <select id='layer'>
+                <option value='ref'>ref</option>
+                <option value='dwg'>dwg</option>
+                <option value='nts'>nts</option>
+            </select>
+            <
+        </div>
+    </div>
+    
+    
+    <div id='aspect' class='dialog'>
+        <p>new A4 drawing - aspect</p>
+        <button id='landscapeButton' class='iconButton'></button> landscape
+        <button id='portraitButton' class='iconButton'></button>portrait
+        <select id='scaleSelect'>
+            <option value='1:1'>1:1</option>
+            <option value='1:2'>1:2</option>
+            <option value='1:5'>1:5</option>
+            <option value='1:10'>1:10</option>
+            <option value='1:20'>1:20</option>
+            <option value='1:50'>1:50</option>
+            <option value='1:100'>1:100</option>
+            <option value='1:200'>1:200</option>
+            <option value='1:500'>1:500</option>
+            <option value='1:1000'>1:1000</option>
+        </select>
+    </div>
+	<!--h id="header"><span id='element'>drawing</span> <span id='dialog'>shape</span></h-->
+	<div id='shapeDialog' class='dialog'>
+		<div>
+			<button id='squareButton' class='menuButton'></button>
+			<button id='lozengeButton' class='menuButton'></button>
+			<button id='circleButton' class='menuButton'></button>
+			<button id='diamondButton' class='menuButton'></button>
+			<button id='shieldButton' class='menuButton'></button>
+		</div>
+	</div>
+	<div id='colourDialog' class='dialog'>
+		<div>
+			<button id='redButton' class='menuButton'></button>
+			<button id='orangeButton' class='menuButton'></button>
+			<button id='yellowButton' class='menuButton'></button>
+			<button id='limeButton' class='menuButton'></button>
+			<button id='greenButton' class='menuButton'></button>
+			<button id='blueButton' class='menuButton'></button>
+			<button id='purpleButton' class='menuButton'></button>
+			<button id='whiteButton' class='menuButton'></button>
+			<button id='grayButton' class='menuButton'></button>
+			<button id='blackButton' class='menuButton'></button>
+		</div>
+	</div>
+	<div id='patternDialog' class='dialog'>
+		<div>
+			<button id='noPatternButton' class='menuButton'></button>
+			<button id='dotsButton' class='menuButton'></button>
+			<button id='checksButton' class='menuButton'></button>
+			<button id='VstripesButton' class='menuButton'></button>
+			<button id='HstripesButton' class='menuButton'></button>
+			<button id='diamondsButton' class='menuButton'></button>
+			<button id='RdiagonalsButton' class='menuButton'></button>
+			<button id='LdiagonalsButton' class='menuButton'></button>
+			<button id='crossesButton' class='menuButton'></button>
+			<button id='starsButton' class='menuButton'></button>
+			<button id='chevronsButton' class='menuButton'></button>
+		</div>
+	</div>
+	<div id='borderDialog' class='dialog'>
+		<div>
+			<button id='noBorderButton' class='menuButton'></button>
+			<button id='outlineButton' class='menuButton'></button>
+			<button id='borderButton' class='menuButton'></button>
+		</div>
+	</div>
+	<div id='divisionDialog' class='dialog'>
+		<div>
+			<button id='noDivisionButton' class='menuButton'></button>
+			<button id='VdivButton' class='menuButton'></button>
+			<button id='HdivButton' class='menuButton'></button>
+			<button id='SEdivButton' class='menuButton'></button>
+			<button id='SWdivButton' class='menuButton'></button>
+			<button id='quartersButton' class='menuButton'></button>
+			<button id='diagonalQuartersButton' class='menuButton'></button>
+			<button id='cantonButton' class='menuButton'></button>
+		</div>
+	</div>
+	<div id='bandDialog' class='dialog'>
+		<div>
+			<button id='noBandButton' class='menuButton'></button>
+			<button id='chiefButton' class='menuButton'></button>
+			<button id='paleButton' class='menuButton'></button>
+			<button id='fessButton' class='menuButton'></button>
+			<button id='RbendButton' class='menuButton'></button>
+			<button id='LbendButton' class='menuButton'></button>
+			<button id='crossedButton' class='menuButton'></button>
+			<button id='saltireButton' class='menuButton'></button>
+			<button id='chevronUpButton' class='menuButton'></button>
+			<button id='chevronDownButton' class='menuButton'></button>
+		</div>
+	</div>
+	<div id='symbolDialog' class='dialog'>
+		<div>
+			<button id='noSymbolButton' class='menuButton'></button>
+			<button id='ballButton' class='menuButton'></button>
+			<button id='ringButton' class='menuButton'></button>
+			<button id='boxButton' class='menuButton'></button>
+			<button id='dmndButton' class='menuButton'></button>
+			<button id='crossButton' class='menuButton'></button>
+			<button id='starButton' class='menuButton'></button>
+		</div>
+	</div>
+	<div id='saveDialog' class='dialog'>
+		save as...<br/>
+		<input id='saveName' type='text'>.svg<br/>
+		<button id='saveButton'>SAVE</button>
+		<button onclick='history.go(0);'>RE-START</button>
+		<p>The saved <i>scalable vector graphics</i> file will appear in your downloads folder.</p>
+	</div>
+	<script src="ddScript.js" async></script>
+</body>
+</html>

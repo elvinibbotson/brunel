@@ -1,0 +1,337 @@
+body {
+	font-family: sans-serif;
+	background: silver;
+}
+
+h {
+	font-size: 1.2em;
+	/*font-family: sans-serif;*/
+}
+
+#header {
+	position: fixed;
+	left: 0;
+	top: 0;
+	height: 25px;
+	padding: 5px;
+	z-index: 100;
+}
+
+#graphic {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+}
+#dwgSVG {
+    background: white;
+    z-index: 1000;
+}
+#symbol {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 110mm;
+    height: 110mm;
+    background: yellow;
+    display: none;
+}
+#symbolSVG {
+    background: #CCCCFF;
+    z-index: 2000;
+}
+#tools {
+    position: fixed;
+    left: 4px;
+    top: 4px;
+    width: 32px;
+    display: block;
+    z-index: 20;
+}
+#info {
+    position: fixed;
+    left:0;
+    bottom: 0;
+    width: 100%;
+    height: 40px;
+    color: white;
+    background-color: black;
+    z-index: 10;
+    display: none;
+}
+#size-style {
+    position: absolute;
+    top: 0;
+    left: 30%;
+    right: 0;
+}
+.dialog {
+	position: absolute;
+	display: none;
+	left: 0;
+	top: 0;
+	padding: 5px;
+	color: white;
+	background-color: black;
+	z-index: 100;
+}
+input {
+    width: 14%;
+	height: 32px;
+	margin: 4px;
+	color: white;
+	background-color: black;
+	border: 1px solid white;
+	font-size: 1.2em;
+}
+select {
+    color: white;
+    background-color: black;
+    height: 32px;
+    border: 1px solid white;
+    font-size: 1.2em;
+}
+
+button {
+	height: 50px;
+	border: 1px solid silver;
+	background-color: white;
+	font-size: 1.2em;
+}
+
+.iconButton {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 3px;
+    color: white;
+    background-color: blue;
+}
+
+.menuButton {
+	width: 25px;
+	height: 25px;
+	border: 1px solid silver;
+	background-color: white;
+}
+
+#fileButton {
+    background: url(svg/file.svg) center center no-repeat;
+}
+
+#layersButton {
+    background: url(svg/layers.svg) center center no-repeat;
+}
+
+#lineButton {
+    background: url(svg/line.svg) center center no-repeat;
+}
+
+#boxButton {
+    background: url(svg/box.svg) center center no-repeat;
+}
+
+#landscapeButton {
+    background: url(svg/landscape.svg) center center no-repeat;
+}
+
+#portraitButton {
+    background: url(svg/portrait.svg) center center no-repeat;
+}
+
+#squareButton {
+	background: url(square.svg) center center no-repeat;
+}
+
+#lozengeButton {
+	background: url(lozenge.svg) center center no-repeat;
+}
+
+#circleButton {
+	background: url(circle.svg) center center no-repeat;
+}
+
+#diamondButton {
+	background: url(diamond.svg) center center no-repeat;
+}
+
+#shieldButton {
+	background: url(shield.svg) center center no-repeat;
+}
+
+#redButton {
+	background: red;
+}
+
+#orangeButton {
+	background: orange;
+}
+
+#yellowButton {
+	background: yellow;
+}
+
+#limeButton {
+	background: lime;
+}
+
+#greenButton {
+	background: green;
+}
+
+#blueButton {
+	background: blue;
+}
+
+#purpleButton {
+	background: purple;
+}
+
+#whiteButton {
+	background: white;
+}
+
+#grayButton {
+	background: gray;
+}
+
+#blackButton {
+	background: black;
+}
+
+#dotsButton {
+	background: url(dots.svg) center center no-repeat;
+}
+
+#checksButton {
+	background: url(checks.svg) center center no-repeat;
+}
+
+#HstripesButton {
+	background: url(stripesH.svg) center center no-repeat;
+}
+
+#VstripesButton {
+	background: url(stripesV.svg) center center no-repeat;
+}
+
+#diamondsButton {
+	background: url(diamonds.svg) center center no-repeat;
+}
+
+#RdiagonalsButton {
+	background: url(diagonalsR.svg) center center no-repeat;
+}
+
+#LdiagonalsButton {
+	background: url(diagonalsL.svg) center center no-repeat;
+}
+
+#crossesButton {
+	background: url(crosses.svg) center center no-repeat;
+}
+
+#starsButton {
+	background: url(stars.svg) center center no-repeat;
+}
+
+#chevronsButton {
+	background: url(chevrons.svg) center center no-repeat;
+}
+
+#outlineButton {
+	background: url(outline.svg) center center no-repeat;
+}
+
+#borderButton {
+	background: url(border.svg) center center no-repeat;
+}
+
+#chiefButton {
+	background: url(chief.svg) center center no-repeat;
+}
+
+#paleButton {
+	background: url(pale.svg) center center no-repeat;
+}
+
+#fessButton {
+	background: url(fess.svg) center center no-repeat;
+}
+
+#RbendButton {
+	background: url(bendR.svg) center center no-repeat;
+}
+
+#LbendButton {
+	background: url(bendL.svg) center center no-repeat;
+}
+
+#crossedButton {
+	background: url(crossed.svg) center center no-repeat;
+}
+
+#saltireButton {
+	background: url(saltire.svg) center center no-repeat;
+}
+
+#chevronUpButton {
+	background: url(chevronUp.svg) center center no-repeat;
+}
+
+#chevronDownButton {
+	background: url(chevronDown.svg) center center no-repeat;
+}
+
+#VdivButton {
+	background: url(divV.svg) center center no-repeat;
+}
+
+#HdivButton {
+	background: url(divH.svg) center center no-repeat;
+}
+
+#SEdivButton {
+	background: url(divSE.svg) center center no-repeat;
+}
+
+#SWdivButton {
+	background: url(divSW.svg) center center no-repeat;
+}
+
+#quartersButton {
+	background: url(quarters.svg) center center no-repeat;
+}
+
+#diagonalQuartersButton {
+	background: url(diagonalQuarters.svg) center center no-repeat;
+}
+
+#cantonButton {
+	background: url(canton.svg) center center no-repeat;
+}
+
+#ballButton {
+	background: url(ball.svg) center center no-repeat;
+}
+
+#ringButton {
+	background: url(ring.svg) center center no-repeat;
+}
+
+#dmndButton {
+	background: url(dmnd.svg) center center no-repeat;
+}
+
+#crossButton {
+	background: url(cross.svg) center center no-repeat;
+}
+
+#starButton {
+	background: url(star.svg) center center no-repeat;
+}
+
+
+
+

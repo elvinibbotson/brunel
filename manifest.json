@@ -1,0 +1,21 @@
+{
+  "name": "Badger PWA",
+  "short_name": "Badger",
+  "icons": [
+	{
+		"src": "icons/icon192.png",
+		"sizes": "192x192",
+		"type": "image/png"
+	},
+	{
+		"src": "icons/icon512.png",
+		"sizes": "512x512",
+		"type": "image/png"
+	}
+  ],
+  "start_url": "/Badger/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#333333",
+  "theme_color": "#333333"
+}
