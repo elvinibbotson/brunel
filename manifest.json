@@ -1,6 +1,6 @@
 {
-  "name": "Badger PWA",
-  "short_name": "Badger",
+  "name": "A42D PWA",
+  "short_name": "A42D",
   "icons": [
 	{
 		"src": "icons/icon192.png",
@@ -13,9 +13,9 @@
 		"type": "image/png"
 	}
   ],
-  "start_url": "/Badger/",
+  "start_url": "/A42D/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#333333",
   "theme_color": "#333333"
 }
