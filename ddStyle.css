@@ -51,45 +51,68 @@ h {
 }
 #info {
     position: fixed;
-    left:0;
+    left: 0;
     bottom: 0;
-    width: 100%;
+    width: 50%;
     height: 40px;
     color: white;
     background-color: black;
     z-index: 10;
     display: none;
 }
-#size-style {
+#prompt {
+    padding: 4px;
+}
+#sizes {
     position: absolute;
     top: 0;
-    left: 30%;
+    /*left: 30%;*/
     right: 0;
+    padding: 4px;
+}
+#logo {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 96px;
+    height: 32px;
+    background-image: url('logo.png');
+    background-repeat: repeat-x;
+    z-index: 11;
+}
+#styles {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: 96px;
+    height: 32px;
+    background: gray;
+    opacity: 0.5;
+    border-style: solid none none solid;
+    border-width: 0.25mm 0 0 0.25mm;
+    border-color: black;
+    z-index: 12;
 }
 .dialog {
 	position: absolute;
 	display: none;
-	left: 0;
-	top: 0;
-	padding: 5px;
 	color: white;
 	background-color: black;
 	z-index: 100;
 }
 input {
-    width: 14%;
-	height: 32px;
-	margin: 4px;
+    width: 50px;
+	height: 24px;
 	color: white;
 	background-color: black;
-	border: 1px solid white;
+	border: 1px solid #CCCCCC;
 	font-size: 1.2em;
 }
 select {
     color: white;
     background-color: black;
     height: 32px;
-    border: 1px solid white;
+    border: 1px solid #CCCCCC;
     font-size: 1.2em;
 }
 
@@ -131,6 +154,9 @@ button {
 #boxButton {
     background: url(svg/box.svg) center center no-repeat;
 }
+#ovalButton {
+    background: url(svg/oval.svg) center center no-repeat;
+}
 
 #landscapeButton {
     background: url(svg/landscape.svg) center center no-repeat;
@@ -138,6 +164,19 @@ button {
 
 #portraitButton {
     background: url(svg/portrait.svg) center center no-repeat;
+}
+#fileMenu {
+    left: 0;
+    top: 0;
+}
+#newDrawing {
+    left: 0;
+    top: 0;
+}
+#stylesDialog {
+    bottom: 0;
+    right: 0;
+    display: none;
 }
 
 #squareButton {

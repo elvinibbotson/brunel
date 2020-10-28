@@ -11,11 +11,21 @@
 </head>
 <body>
     <div id='graphic'>
-		<!--svg id='dwgSVG' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1122 793'-->
 		<svg id='dwgSVG' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
-		    <line id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue'/>
+		    <g id='handles'></g>
+		    <defs>
+		        <marker id='startArrow' markerWidth='20' markerHeight='10' refX='0' refY='5' orient='auto'>
+		            <path d='M0,5 L20,0 L20,10 L0,5' stroke='none' fill='gray'/>
+		        </marker>
+		        <marker id='endArrow' markerWidth='20' markerHeight='10' refX='20' refY='5' orient='auto'>
+		            <path d='M20,5 L0,0 L0,10 L20,5' stroke='none' fill='gray'/>
+		        </marker>
+		    </defs>
+		    <!--line id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue'/-->
 		    <polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
 		    <rect id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
+		    <ellipse id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/> 
+		    <!-- TEST DIMENSION line x1='100' y1='100' x2='200' y2='150' marker-start='url(#startArrow)' marker-end='url(#endArrow)' stroke='gray' stroke-width='0.25' fill='none'/-->
 		</svg>
 	</div>
 	<div id='symbol'>
@@ -27,27 +37,32 @@
         <button id='layersButton' class='iconButton'></button>
         <button id='lineButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
+        <button id='ovalButton' class='iconButton'></button>
     </div>
+    <div id='fileMenu' class='dialog'>
+        <p id='new'>new drawing</p>
+        <p id='load'>load drawing</p>
+        <p id='save'>save drawing</p>
+    </div>
+    <div id='logo'></div>
+    <div id='styles'></div>
     <div id='info'>
         <span id='prompt'>prompt text</span>
-        <div id='size-style'>
-            <input id='first' type='number'/><span id='between'>x</span><input id='second' type='number'/><span id='after'>mm</span>
-            <input id='stroke' type='text'/>
-            <input id='fill' type='text'/> layer:
+        <div id='sizes'>
+            <input id='first' type='number'/><span id='between'>x</span>
+            <input id='second' type='number'/><span id='after'>mm</span>
+             @<input id='rotation' type='number'/>&deg; layer
             <select id='layer'>
                 <option value='ref'>ref</option>
-                <option value='dwg'>dwg</option>
+                <option value='dwg' selected>dwg</option>
                 <option value='nts'>nts</option>
             </select>
-            <
         </div>
     </div>
-    
-    
-    <div id='aspect' class='dialog'>
-        <p>new A4 drawing - aspect</p>
-        <button id='landscapeButton' class='iconButton'></button> landscape
-        <button id='portraitButton' class='iconButton'></button>portrait
+    <div id='newDrawing' class='dialog'>
+        <p>new drawing</p>
+        <p>size: A4</p>
+        <p>scale:
         <select id='scaleSelect'>
             <option value='1:1'>1:1</option>
             <option value='1:2'>1:2</option>
@@ -60,6 +75,64 @@
             <option value='1:500'>1:500</option>
             <option value='1:1000'>1:1000</option>
         </select>
+        </p>
+        <p>aspect:<br><button id='landscapeButton' class='iconButton'></button> landscape
+        <button id='portraitButton' class='iconButton'></button>portrait</p>
+    </div>
+    <div id='stylesDialog' class='dialog'>
+        <div id='lineStyle'>
+            <p>line style 
+            <select id='lineType'>
+                <option value='solid' selected>solid</option>
+                <option value='dashed'>dashed</option>
+                <option value='dotted'>dotted</option>
+            </select>
+            width<input id='penWidth' type='number' value='0.25'/>mm
+            <select id='penSelect'>
+                <option value='0.25' selected>0.25mm</option>
+                <option value='0.5'>0.5mm</option>
+                <option value='1.0'>1.0mm</option>
+                <option value='1.4'>1.4mm</option>
+                <option value='2.0'>2.0mm</option>
+            </select>
+            shade<select id='lineShade'>
+                <option value='black' selected>black</option>
+                <option value='dimgray'>dark</option>
+                <option value='gray'>medium</option>
+                <option value='silver'>light</option>
+            </select>
+            </p>
+        </div>
+        <div id='fillStyle'>
+            <p>fill style
+            <select id='fillType'>
+                <option value=0 selected>none</option>
+                <option value=1>solid</option>
+                <option value=-1>pattern</option>
+            </select>
+            shade<select id='fillShade'>
+                <option value='black'>black</option>
+                <option value='dimgray'>dark</option>
+                <option value='gray' selected>mid</option>
+                <option value='silver'>light</option>
+            </select>
+            opacity<select id='opacity'>
+                <option value=1 selected>solid</option>
+                <option value=0.75>high</option>
+                <option value=0.5>mid</option>
+                <option value=0.25>low</option>
+            </select>
+            text size<select id='textSize'>
+                <option value=3.5>10pt</option>
+                <option value=5>14pt</option>
+                <option value=7>20pt</option>
+                <option value=10>28pt</option>
+                <option value=14>40pt</option>
+                <option value=20>58pt</option>
+                <option value=25>72pt</option>
+            </select>
+            </p>
+        </div>
     </div>
 	<!--h id="header"><span id='element'>drawing</span> <span id='dialog'>shape</span></h-->
 	<div id='shapeDialog' class='dialog'>

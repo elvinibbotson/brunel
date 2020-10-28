@@ -1,4 +1,4 @@
-
+// GLOBAL VARIABLES
 var aspect=null;
 var zoom=1;
 var mode=null;
@@ -15,124 +15,48 @@ var h=0;
 var elID=0;
 var selection=[];
 var timer=null;
-var polyline=false;
-var square=false;
 var element=null; // current element
+var elementID=null; // id of current element 
+var lineType='solid'; // default styles
+var lineShade='black';
 var penW=0.25; // 0.25mm at 1:1 scale - increase for smaller scales (eg.12.5 at 1:50 scale)
-var nodeR=2; // 2mm node radius at 1:1 scale - increase for smaller scales (eg. 100 at 1:50)
+var fillType=0;
+var fillShade='gray';
+var opacity='1';
+var handleR=2; // 2mm handle radius at 1:1 scale - increase for smaller scales (eg. 100 at 1:50)
 var snap=5; // 5mm snap distance at 1:1 scale - increase for smaller scales (eg. 250 at 1:50)
-/*
-var badge={};
-var border={};
-var band={};
-var division={};
-var symbol={};
-var pattern=false;
-var mid=250;
-var shape='square';
-var element='badge';
 var currentDialog=null;
-*/
-
-
 var sw=screen.width;
 var sh=screen.height;
 console.log("screen size "+sw+"x"+sh);
 
-// DRAW TOOLS
+// TOOLS
 // file
 id('fileButton').addEventListener('click',function() { // SHOULD SHOW FILE MENU BUT FOR NOW...
-    /*
-    report("show aspect dialog");
-    showDialog('aspect',true);
-    */
+    showDialog('fileMenu',true);
+})
+id('new').addEventListener('click',function() {
+    report("show New Drawing dialog");
+    showDialog('fileMenu',false);
+    showDialog('newDrawing',true);
+})
+id('save').addEventListener('click',function() {
     saveSVG();
-})
-// line/polyline
-id('lineButton').addEventListener('touchstart',function() {
-    event.preventDefault();
-    x=x0=event.touches[0].clientX;
-    if(!timer) timer=window.setTimeout(showLineDialog,2000);
-})
-id('lineButton').addEventListener('touchmove',function() {
-    x=event.touches[0].clientX;
-})
-id('lineButton').addEventListener('touchend',function() {
-    if(Math.abs(x-x0)>20) {
-        id('lineButton').style.background=(polyline)?'url(svg/line.svg)':'url(svg/polyline.svg)';
-        polyline=!polyline;
-        console.log('polyline mode is '+polyline);
-    }
-    else {
-        mode=(polyline)?'polyline':'line';
-        console.log('click lineButton - mode is '+mode);
-        if(mode=='polyline') {
-            console.log('begin/end polyline');
-            if(id('bluePolyline').points.length>1) { // terminating polyline
-                console.log('end polyline');
-                id('bluePolyline').setAttribute('stroke','black');
-                id('bluePolyline').setAttribute('stroke-width',penW);
-                id('bluePolyline').setAttribute('id','~'+elID);
-                elID++;
-                var el="<polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>";
-                id('dwgSVG').innerHTML+=el;
-                showInfo(false);
-                mode='select'
-            }
-            else {
-                showInfo(true,'POLYLINE: press at start');
-            }
-        }
-        else { // start drawing line
-            showInfo(true,'LINE: press at start');
-        }
-    }
-    if(timer) {
-        window.clearTimeout(timer);
-        timer=null;
-    }
-})
-function showLineDialog() { // CODE THIS
-    alert('open line dialog');
-}
-// box/square
-id('boxButton').addEventListener('touchstart',function() {
-    event.preventDefault();
-    x=x0=event.touches[0].clientX;
-    if(!timer) timer=window.setTimeout(showBoxDialog,2000);
-})
-id('boxButton').addEventListener('touchmove',function() {
-    x=event.touches[0].clientX;
-})
-id('boxButton').addEventListener('touchend',function() {
-    if(Math.abs(x-x0)>20) {
-        id('boxButton').style.background=(square)?'url(svg/box.svg)':'url(svg/square.svg)';
-        square=!square;
-        console.log('square mode is '+square);
-    }
-    else {
-        mode='box';
-        report('draw box');
-        showInfo(true,(square)?'SQUARE':'BOX'+': press at start');
-    }
-    if(timer) {
-        window.clearTimeout(timer);
-        timer=null;
-    }
+    showDialog('fileMenu',false);
 })
 // SET DRAWING ASPECT
 aspect=window.localStorage.getItem('aspect');
-if(!aspect) showDialog('aspect',true);
+if(!aspect) showDialog('newDrawing',true);
 else console.log('aspect is '+aspect);
 id('landscapeButton').addEventListener('click',function() {
     aspect='landscape';
     window.localStorage.setItem('aspect','landscape');
-    showDialog('aspect',false);
+    showDialog('newDrawing',false);
 })
 id('portraitButton').addEventListener('click',function() {
     aspect='portrait';
     window.localStorage.setItem('aspect','portrait');
-    showDialog('aspect',false);
+    showDialog('newDrawing',false);
 })
 // id('scaleSelect').addEventListener('') {} SET SCALE
 scale=1; // FOR NOW
@@ -158,49 +82,174 @@ if(zoom<0.5) {
 }
 */
 console.log('zoom; '+zoom+' w: '+w+' h: '+h);
-// id('graphic').style.width=w*zoom+'px';
-// id('graphic').style.height=h*zoom+'px';
-// drawingX=(sw-w*zoom)/2;
-// drawingY =(sh-h*zoom)/2;
-// drawingX/=3.78; // convert to mm
-// drawingY/=3.78;
-// id('graphic').style.left=drawingX+'mm';
-// id('graphic').style.top=drawingY+'mm';
-
+id('lineButton').addEventListener('click', function() { // (POLY)LINE: JUST CLICK - NO HOLD OR DRAG
+    mode='line';
+    showInfo(true,'LINE: press at start');
+})
+id('boxButton').addEventListener('click',function() { // BOX(& SQUARE): JUST CLICK - NO HOLD OR DRAG
+    mode='box';
+    showInfo(true,'BOX: press at start');
+})
+id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
+    mode='oval';
+    showInfo(true,'OVAL: press at centre');
+})
+// STYLES
+id('styles').addEventListener('click',function() {
+    showDialog('stylesDialog',true);
+    // SET STYLES TO CURRENT DEFAULTS OR SELECTED element
+})
+id('lineType').addEventListener('change',function() {
+    var type=event.target.value;
+    console.log('line type: '+type);
+    // ADJUST SELECTED ELEMENT(S) OR DEFAULT
+    if(elementID) { // change selected element
+        element=id(elementID);
+        switch(type) {
+            case 'solid':
+                element.setAttribute('stroke-dasharray',null);
+                break;
+            case 'dashed':
+                element.setAttribute('stroke-dasharray','3 3');
+                break;
+            case 'dotted':
+                element.setAttribute('stroke-dasharray','1 1');
+        }
+        console.log('set element '+element.id+' line style to '+type);
+    }
+    else { // change default line type
+        lineType=type;
+        console.log('line type is '+type);
+        id('styles').style.borderStyle=type;
+    }
+})
+id('penSelect').addEventListener('change',function() {
+    var pen=event.target.value;
+    console.log('pen width: '+pen+'mm');
+    id('penWidth').value=pen;
+    if(elementID) { // change selected element
+        element=id(elementID);
+        element.setAttribute('stroke-width',pen);
+        console.log('set element '+element.id+' pen to '+pen);
+    }
+    else { // change default pen width
+        penW=pen;
+        console.log('pen is '+penW);
+        id('styles').style.borderWidth=pen+'mm 0 0 '+pen+'mm';
+    }
+})
+id('lineShade').addEventListener('change',function() {
+    var shade=event.target.value;
+    if(elementID) { // change selected element
+        element=id(elementID);
+        element.setAttribute('stroke',shade);
+        console.log('set element '+element.id+' line shade to '+shade);
+    }
+    else { // change default line shade
+        console.log('line shade: '+shade);
+        lineShade=shade;
+        id('styles').style.borderColor=shade;
+    }
+})
+id('fillType').addEventListener('change',function() {
+    var fill=event.target.value;
+    console.log('fill type: '+fill);
+    if(elementID) { // change selected element
+        element=id(elementID);
+        if(fill<0) { // PATTERN!!!
+        // display fill pattern grid to choose a fill pattern (from patterns in <defs>)
+        }
+        else if(fill>0) { // solid fill
+            var val=element.getAttribute('fill');
+            console.log('set element fill to '+val);
+            element.setAttribute('fill',val);
+            val=element.getAttribute('fill-opacity');
+            id('styles').style.opacity=val;
+        }
+        else {  // no fill
+            element.setAttribute('fill','none');
+            id('styles').style.opacity=0;
+        }
+    }
+    else { // change default fill pattern
+        fillType=fill;
+        console.log('fillType set to '+fill);
+        if(fill==0) {
+            console.log('set fill to none');
+            id('styles').style.opacity=0;
+        }
+        else {
+            console.log('set fill to '+fillShade);
+            id('styles').style.opacity=opacity;
+        }
+    }
+})
+id('fillShade').addEventListener('change',function() {
+    var val=event.target.value;
+    console.log('fill shade: '+val);
+    if(elementID) { // change selected element
+        element=id(elementID);
+        element.setAttribute('fill',val);
+        console.log('set element '+element.id+' fill shade to '+val);
+        id('styles').style.background=val;
+    }
+    else { // change default fill shade
+        console.log('fill shade: '+val);
+        fillShade=val;
+        if(fillType>0) id('styles').style.background=val;
+    }
+    // ADJUST SELECTED ELEMENT(S) OR DEFAULT
+})
+id('opacity').addEventListener('change',function() {
+    var val=event.target.value;
+    console.log('opacity: '+val);
+    if(elementID) { // change selected element
+        element=id(elementID);
+        element.setAttribute('stroke-opacity',val);
+        element.setAttribute('fill-opacity',val);
+    }
+    else opacity=val; // change default opacity
+    id('styles').style.opacity=val;
+})
+// TOUCH - START
 id('graphic').addEventListener('touchstart',function() {
     event.preventDefault();
+    console.log('dialog: '+currentDialog);
+    if(currentDialog) showDialog(currentDialog,false);
     console.log('touch at '+event.touches[0].clientX/3.78+','+event.touches[0].clientY/3.78);
-    console.log('drawing at '+drawingX+','+drawingY);
     x=x0=Math.round(event.touches[0].clientX/3.78-drawingX);
     y=y0=Math.round(event.touches[0].clientY/3.78-drawingY);
     switch(mode) {
         case 'line':
-            console.log('line starts at '+x+','+y);
-            id('blueLine').setAttribute('x1',x0);
-            id('blueLine').setAttribute('y1',y0);
-            id('blueLine').setAttribute('x2',x);
-            id('blueLine').setAttribute('y2',y);
-            showInfo(true,'LINE: drag to end-point');
-            break;
-        case 'polyline':
             element=id('bluePolyline');
             var point=id('dwgSVG').createSVGPoint();
                 point.x=x;
                 point.y=y;
-            if(id('bluePolyline').points.length<2) { // start polyline - create first (null-length) segment
-                id('bluePolyline').points[0]=point;
+            if(element.points.length<2) { // start polyline...
+                element.points[0]=point;
             }
-            id('bluePolyline').points.appendItem(point); // create null-length segment
+            else {
+                point=element.points[element.points.length-1];
+                x0=point.x;
+                y0=point.y;
+            }
+            id('bluePolyline').points.appendItem(point); // ...create first (zero-length) segment
             console.log(id('bluePolyline').points.length+' points');
-            showInfo(true,'POLYLINE: drag to next point; click polyline button to end');
+            showInfo(true,'LINES: drag to next point; tap twice to end');
             break;
         case 'box':
-        // case 'select':
             console.log('box starts at '+x0+','+y0);
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
             console.log('sizing box initiated');
-            showInfo(true,(square)?'SQUARE':'BOX'+': drag to size');
+            showInfo(true,'BOX: drag to size');
+            break;
+        case 'oval':
+            console.log('oval centre at '+x0+','+y0);
+            id('blueOval').setAttribute('cx',x0);
+            id('blueOval').setAttribute('cy',y0);
+            console.log('sizing oval initiated');
+            showInfo('true','OVAL: drag to size');
             break;
         case 'select':
             var el=event.target.id;
@@ -224,81 +273,126 @@ id('graphic').addEventListener('touchstart',function() {
     }
     event.stopPropagation();
 })
-
+// TOUCH - MOVE
 id('graphic').addEventListener('touchmove',function() {
     event.preventDefault();
     x=Math.round(event.touches[0].clientX/3.78);
     y=Math.round(event.touches[0].clientY/3.78);
     switch(mode) {
         case 'line':
-            if(Math.abs(x-x0)<snap) x=x0;
-            if(Math.abs(y-y0)<snap) y=y0;
-            id('blueLine').setAttribute('x2',x);
-            id('blueLine').setAttribute('y2',y);
-            setSizes(true);
-            break;
-        case 'polyline':
-            if(Math.abs(x-x0)<snap) x=x0;
-            if(Math.abs(y-y0)<snap) y=y0;
+            if(Math.abs(x-x0)<snap) x=x0; // snap to vertical
+            if(Math.abs(y-y0)<snap) y=y0; // snap to horizontal
             var n=element.points.length;
             var point=element.points[n-1];
-            // var point=id('dwgSVG').createSVGPoint();
             point.x=x;
             point.y=y;
-            // var pts=id('bluePolyline').points.length;
             element.points[n-1]=point;
-            // id('bluePolyline').points[pts-1]=point;
             setSizes(true);
             break;
         case 'box':
-        // case 'select':
             var boxX=(x<x0)?x:x0;
             var boxY=(y<y0)?y:y0;
             w=Math.abs(x-x0);
             h=Math.abs(y-y0);
-            if(square) {
-                console.log('square');
-                if(w>h) h=w;
-                else w=h;
-            }
+            if(Math.abs(w-h)<snap*2) w=h; // snap to square
             id('blueBox').setAttribute('x',boxX);
             id('blueBox').setAttribute('y',boxY);
             id('blueBox').setAttribute('width',w);
             id('blueBox').setAttribute('height',h);
             setSizes(false);
             break;
+        case 'oval':
+            w=Math.abs(x-x0);
+            h=Math.abs(y-y0);
+            if(Math.abs(w-h)<snap*2) w=h; // snap to circle
+            id('blueOval').setAttribute('rx',w);
+            id('blueOval').setAttribute('ry',h);
+            w=Math.abs(w*2);
+            h=Math.abs(h*2);
+            setSizes(false);
     }
     event.stopPropagation();
 })
-
+// TOUCH - END
 id('graphic').addEventListener('touchend',function() {
     switch(mode) {
         case 'line':
-            var html="<line id='~"+elID+"' x1="+x0+" y1="+y0+" x2="+x+" y2="+y+" stroke='black' stroke-width='"+penW+"'/>";
-            id('dwgSVG').innerHTML+=html;
-            element=id('~'+elID);
-            console.log('line drawn');
-            elID++;
-            id('blueLine').setAttribute('x1',x);
-            id('blueLine').setAttribute('y1',y);
-            id('blueLine').setAttribute('x2',x);
-            id('blueLine').setAttribute('y2',y);
-            // showInfo(false);
-            mode='select';
-            break;
-        case 'polyline':
-            x0=x; // set up for subsequent segments
-            y0=y;
+            var d=Math.sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
+            if(d<snap) { // click/tap to finish polyline
+                console.log('end polyline');
+                switch(lineType) {
+                    case 'solid':
+                        id('bluePolyline').setAttribute('stroke-dasharray',null);
+                        break;
+                    case 'dashed':
+                        id('bluePolyline').setAttribute('stroke-dasharray','3 3');
+                        break;
+                    case 'dotted':
+                        id('bluePolyline').setAttribute('stroke-dasharray','1 1');
+                }
+                id('bluePolyline').setAttribute('stroke','black');
+                id('bluePolyline').setAttribute('stroke-width',penW);
+                id('bluePolyline').setAttribute('stroke-opacity',opacity);
+                id('bluePolyline').setAttribute('id','~'+elID);
+                elID++;
+                var el="<polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>";
+                id('dwgSVG').innerHTML+=el;
+                showInfo(false);
+                mode='select';
+            }
             break;
         case 'box':
-            var el="<rect id='~"+elID+"' x='"+((x<x0)?x:x0)+"' y='"+((y<y0)?y:y0)+"' width='"+w+"' height='"+h+"' stroke='black' stroke-width='"+penW+"' fill='none'/>";
-            elID++;
-            console.log('box svg: '+el);
-            id('dwgSVG').innerHTML+=el;
+            var html="<rect id='~"+elID+"' x='"+((x<x0)?x:x0)+"' y='"+((y<y0)?y:y0)+"' width='"+w+"' height='"+h+"' stroke=";
+            switch(lineType) {
+                case 'solid':
+                    html+=lineShade;
+                    break;
+                case 'dashed':
+                    html+=lineShade+" stroke-dasharray='3 3'";
+                    break;
+                case 'dotted':
+                    html+=lineShade+" stroke-dasharray='1 1'";
+            }
+            html+=" stroke-width="+penW+" stroke-opacity='"+opacity+"' fill='";
+            console.log('fillType: '+fillType+' fillShade: '+fillShade);
+            if(fillType>0) html+=fillShade;
+            else if(fillType==0) html+="none";
+            // PATTERN FILL?
+            html+="' fill-opacity='"+opacity+"'>";
+            console.log('box svg: '+html);
+            id('dwgSVG').innerHTML+=html;
 	        console.log("box svg drawn: "+x0+','+y0+' to '+(x0+w)+','+(y0+h));
+	        elID++;
 	        id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
-            // showInfo(false);
+            element=elementID=null;
+            mode='select';
+            break;
+        case 'oval':
+            var html="<ellipse id='~"+elID+"' cx='"+x0+"' cy='"+y0+"' rx='"+(w/2)+"' ry='"+(h/2)+"' stroke=";
+            switch(lineType) {
+                case 'solid':
+                    html+=lineShade;
+                    break;
+                case 'dashed':
+                    html+=lineShade+" stroke-dasharray='3 3'";
+                    break;
+                case 'dotted':
+                    html+=lineShade+" stroke-dasharray='1 1'";
+            }
+            html+=" stroke-width="+penW+" stroke-opacity='"+opacity+"' fill='";
+            console.log('fillType: '+fillType+' fillShade: '+fillShade);
+            if(fillType>0) html+=fillShade;
+            else if(fillType==0) html+="none";
+            // PATTERN FILL?
+            html+="' fill-opacity='"+opacity+"'>";
+            console.log('oval svg: '+html);
+            id('dwgSVG').innerHTML+=html;
+            console.log("oval svg drawn: "+w+" x "+h+" at "+x0+","+y0);
+            elID++;
+            id('blueOval').setAttribute('rx',0);
+            id('blueOval').setAttribute('ry',0);
+            element=elementID=null;
             mode='select';
             break;
         case 'select':
@@ -321,50 +415,79 @@ id('graphic').addEventListener('touchend',function() {
                 }
             }
             console.log('hit: '+el);
-            if(el!='dwgSVG') {
-                // ADD TO 'selections' ARRAY - LIST OF ELEMENT IDs
+            if(el.charAt(0)=='~') { // IDENTIFIES ELEMENTS - WAS if(el!='dwgSVG') {
+                // IF BOX-SELECT ADD TO 'selections' ARRAY - LIST OF ELEMENT IDs
+                // OTHERWISE (CLICK-SELECT) JUST SELECT AN ElEMENT IN snap RANGE
                 var el=id(el);
-                // el.setAttribute('stroke','red');
+                var val=el.getAttribute('stroke-dasharray');
+                console.log('element lineType (dasharray): '+val);
+                switch(val) {
+                    case null:
+                        console.log('set lineType to solid');
+                        id('lineType').value='solid';
+                        id('styles').style.borderStyle='solid';
+                        break;
+                    case '3 3':
+                        console.log('set lineType to dashed');
+                        id('lineType').value='dashed';
+                        id('styles').style.borderStyle='dashed';
+                        break;
+                    case '1 1':
+                        console.log('set lineType to dotted');
+                        id('lineType').value='dotted';
+                        id('styles').style.borderStyle='dotted';
+                }
+                val=el.getAttribute('stroke-width');
+                console.log('element line width: '+val);
+                id('penWidth').value=id('penSelect').value=val;
+                id('styles').style.borderWidth=val+'mm 0 0 '+val+'mm';
+                val=el.getAttribute('stroke');
+                console.log('set lineShade to '+val);
+                id('lineShade').value=val;
+                id('styles').style.borderColor=val;
+                val=el.getAttribute('strokeOpacity');
+                console.log('stroke opacity: '+val);
+                id('opacity').value=val;
+                id('styles').style.opacity=val;
+                val=el.getAttribute('fill');
+                console.log('element fill: '+val);
+                if(val=='none') {
+                    id('fillType').value=0;
+                    id('styles').style.background='#00000000';
+                }
+                else { // MODIFY THIS TO ACCOMMODATE PATTERN FILL
+                    console.log('set fill to '+val);
+                    id('fillType').value=1;
+                    id('fillShade').value=val;
+                    id('styles').style.background=val;
+                    val=el.getAttribute('fill-opacity');
+                    console.log('element opacity: '+val);
+                    id('styles').style.opacity=val;
+                }
+                /*
+                console.log('set fillShade to '+val);
+                id('fillShade').value=val;
+                id('styles').style.opacity=opacity;
+                // SIMILAR FOR OPACITY
+                */
+                id('handles').innerHTML=''; // clear any handles then add handles for selected element 
                 switch(type(el)) {
                     case 'line':
-                        x0=el.getAttribute('x1');
-                        y0=el.getAttribute('y1');
-                        x=el.getAttribute('x2');
-                        y=el.getAttribute('y2');
-                        /* long-winded approach...
-                        var node=document.createElementNS("http://www.w3.org/2000/svg",'circle');
-                        node.setAttribute('id','nodeStart');
-                        node.setAttribute('cx',x0);
-                        node.setAttribute('cy',y0);
-                        node.setAttribute('r',2);
-                        node.setAttribute('stroke','blue');
-                        node.setAttribute('fill','none');
-                        id('dwgSVG').appendChild(node)
-                        */ // quick and dirty...
-                        var html="<circle id='nodeStart' cx="+x0+" cy="+y0+" r='"+nodeR+"' stroke='none' fill='#0000FF88'/>";
-                        id('dwgSVG').innerHTML+=html; // can move either end of line
-                        html="<circle id='nodeEnd' cx="+x+" cy="+y+" r='"+nodeR+"' stroke='none' fill='#0000FF88'/>";
-                        id('dwgSVG').innerHTML+=html;
-                        /* no line midpoint
-                        x=Math.round((parseFloat(x0)+parseFloat(x))/2);
-                        y=Math.round((parseFloat(y0)+parseFloat(y))/2);
-                        console.log('midpoint: '+x+','+y);
-                        html="<circle id='nodeMid' cx="+x+" cy="+y+" r='2' stroke='blue' fill='none'/>"
-                        id('dwgSVG').innerHTML+=html;
-                        */
-                        setSizes(true);
-                        showInfo(true,'LINE');
-                        mode='edit';
-                        element=el;
-                        break;
-                    case 'polyline':
-                        var bounds=el.getBBox(); // NO -  DRAW CIRCLE AT START AND DISCS AT FOLLOWING NODES
-                        console.log('bounds: '+bounds.x+','+bounds.y+' '+bounds.width+'x'+bounds.height);
+                        var bounds=el.getBBox();
                         w=bounds.width;
                         h=bounds.height;
-                        setSizes(false);
-                        showInfo(true,'POLYLINE');
-                        element=el;
+                        var points=el.points;
+                        var n=points.length;
+                        console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
+                        setSizes(false); // size of bounding box
+                        var html="<circle id='handle0' cx="+points[0].x+" cy="+points[0].y+" r='"+handleR+"' stroke='blue' fill='none'/>";
+                        id('handles').innerHTML+=html; // start handle moves whole poly
+                        for(var i=1;i<n;i++) {
+                            html="<circle id='handle"+i+"' cx="+points[i].x+" cy="+points[i].y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                            id('handles').innerHTML+=html; // remaining handles move nodes
+                        }
+                        showInfo(true,'LINE');
+                        elementID=el.id;
                         mode='edit';
                         break;
                     case 'box':
@@ -373,34 +496,56 @@ id('graphic').addEventListener('touchend',function() {
                         y=parseFloat(el.getAttribute('y'));
                         w=parseFloat(el.getAttribute('width'));
                         h=parseFloat(el.getAttribute('height'));
-                        element=el;
-                        var html="<circle id='nodeNW' cx="+x+" cy="+y+" r='"+nodeR+"' stroke='#0000FF88' fill='none'/>"
-                        id('dwgSVG').innerHTML+=html; // hollow circle at top-left used to move whole box
-                        html="<circle id='nodeNE' cx="+(x+w)+" cy="+y+" r='"+nodeR+"' stroke='none' fill='#0000FF88'/>"
-                        id('dwgSVG').innerHTML+=html; // top-right node adjusts box width
-                        html="<circle id='nodeSE' cx="+(x+w)+" cy="+(y+h)+" r='"+nodeR+"' stroke='none' fill='#0000FF88'/>"
-                        id('dwgSVG').innerHTML+=html; // bottom-right node adjusts box size keeping aspect ratio
-                        html="<circle id='nodeSW' cx="+x+" cy="+(y+h)+" r='"+nodeR+"' stroke='none' fill='#0000FF88'/>"
-                        id('dwgSVG').innerHTML+=html; // bottom-left node adjusts box height
-                        // ADD N, E, S, W & MID NODES
+                        elementID=el.id;
+                        var html="<circle id='handleNW' cx="+x+" cy="+y+" r='"+handleR+"' stroke='#0000FF88' fill='none'/>"
+                        id('handles').innerHTML+=html; // hollow circle handle at top-left used to move whole box
+                        html="<circle id='handleNE' cx="+(x+w)+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // top-right disc handle adjusts box width
+                        html="<circle id='handleSE' cx="+(x+w)+" cy="+(y+h)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // bottom-right handle adjusts box size keeping aspect ratio
+                        html="<circle id='handleSW' cx="+x+" cy="+(y+h)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // bottom-left handle adjusts box height
                         setSizes(false);
-                        showInfo(true,'BOX'); // OR SQUARE?
+                        showInfo(true,(w==h)?'SQUARE':'BOX');
                         mode='edit';
                         break;
+                    case 'oval':
+                        console.log('oval '+el.id);
+                        x=parseFloat(el.getAttribute('cx'));
+                        y=parseFloat(el.getAttribute('cy'));
+                        w=parseFloat(el.getAttribute('rx'))*2;
+                        h=parseFloat(el.getAttribute('ry'))*2;
+                        elementID=el.id;
+                        var html="<circle id='handleCentre' cx="+x+" cy="+y+" r='"+handleR+"' stroke='#0000FF88' fill='none'/>"
+                        id('handles').innerHTML+=html; // hollow circle handle at centre used to move whole box
+                        html="<circle id='handleSize' cx="+(x+w/2)+" cy="+(y+h/2)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // disc handle adjusts ellipse size
+                        setSizes(false);
+                        showInfo(true,(w==h)?'CIRCLE':'OVAL');
+                        mode='edit';
                 }
             }
             else {
                 mode='select';
+                elementID=null;
                 selection=[];
-                // ADD TRY..CATCH...
-                try{id('dwgSVG').removeChild(id('nodeStart'))} catch(err) {}
-                try{id('dwgSVG').removeChild(id('nodeEnd'))} catch(err) {}
-                try{id('dwgSVG').removeChild(id('nodeMid'))} catch(err) {}
-                try{id('dwgSVG').removeChild(id('nodeNW'))} catch(err) {}
-                try{id('dwgSVG').removeChild(id('nodeNE'))} catch(err) {}
-                try{id('dwgSVG').removeChild(id('nodeSE'))} catch(err) {}
-                try{id('dwgSVG').removeChild(id('nodeSW'))} catch(err) {}
+                id('handles').innerHTML=''; //remove element handles
                 showInfo(false);
+                console.log('set lineType to current default: '+lineType);
+                id('lineType').value=lineType;
+                id('styles').style.borderStyle=lineType;
+                console.log('set penWidth to current default: '+penW);
+                id('penWidth').value=id('penSelect').value=penW;
+                id('styles').style.borderWidth=penW+'mm 0 0 '+penW+'mm';;
+                console.log('set lineShade to current default: '+lineShade);
+                id('lineShade').value=lineShade;
+                id('styles').style.borderColor=lineShade;
+                id('fillType').value=fillType;
+                if(fillType==0) {
+                    id('styles').style.opacity=0;
+                }
+                else id('styles').style.opacity=opacity; // WHAT ABOUT PATTERN FILL?
+                id('opacity').value=opacity;
             }
             // if SHIFT add to selection otherwise deselect currently selected elements and select this
             event.stopPropagation();
@@ -410,32 +555,10 @@ id('graphic').addEventListener('touchend',function() {
 // ADJUST ELEMENT SIZES
 id('first').addEventListener('change',function() {
     var val=id('first').value;
-    console.log('element '+element.id+' value changed to '+val);
-    element=id(element.id); // weird fix!
+    console.log('element '+elementID+' value changed to '+val);
+    element=id(elementID);
     switch(type(element)) {
         case 'line':
-            x0=element.getAttribute('x1');
-            y0=element.getAttribute('y1');
-            x=element.getAttribute('x2');
-            y=element.getAttribute('y2');
-            // console.log('line from '+x0+','+y0+' to '+x+','+y);
-            w=x-x0;
-            h=y-y0;
-            var len=Math.sqrt(w*w+h*h);
-            var r=val/len;
-            w*=r;
-            h*=r;
-            x=parseFloat(x0)+parseFloat(w);
-            y=parseFloat(y0)+parseFloat(h);
-            element.setAttribute('x2',x);
-            element.setAttribute('y2',y);
-            console.log('mode: '+mode);
-            if(mode=='edit') {
-                id('nodeEnd').setAttribute('cx',x);
-                id('nodeEnd').setAttribute('cy',y);
-            }
-            break;
-        case 'polyline':
             console.log('element: '+element.id);
             var n=element.points.length;
             console.log(n+' points');
@@ -458,25 +581,29 @@ id('first').addEventListener('change',function() {
         case 'box':
             element.setAttribute('width',val);
             break;
+        case 'oval':
+            element.setAttribute('rx',val/2);
     }
 })
 id('second').addEventListener('change',function() {
     var val=id('second').value;
+    element=id(elementID);
     console.log('element '+element+' type: '+type(element)+' value changed to '+val);
     switch(type(element)) {
         case 'line':
-            // adjust line angle by adjusting x2 and y2
-            break;
-        case 'polyline':
+            // adjust heights of all nodes?
             break;
         case 'box':
-            element=id(element.id);
+            // element=id(element.id); DONE EARLIER 
             console.log('box height is '+element.getAttribute('height'));
             console.log('set to '+val);
             element.setAttribute('height',val);
-            // id('nodeSE').setAttribute('cy',val);
-            // id('nodeSW').setAttribute('cy',val);
+            // MOVE HANDLES
             break;
+        case 'oval':
+            console.log('change oval height');
+            element.setAttribute('ry',val/2);
+            // move size handle
     }
 })
 
@@ -486,6 +613,8 @@ function id(el) {
 }
 function showDialog(dialog,visible) {
     id(dialog).style.display=(visible)?'block':'none';
+    currentDialog=(visible)?dialog:null;
+    console.log('current dialog: '+currentDialog);
 }
 function showBoxDialog() { // CODE THIS
     alert('open box dialog');
@@ -500,7 +629,9 @@ function type(el) {
     else if(el instanceof SVGRectElement) {
         return 'box';
     }
-}
+    else if(el instanceof SVGEllipseElement) {
+        return 'oval';}
+    }
 function showInfo(visible,prompt) {
     id('info').style.display=(visible)?'block':'none';
     id('prompt').innerHTML=(prompt)?prompt:'';
@@ -1414,7 +1545,7 @@ if (navigator.serviceWorker.controller) {
 	console.log('Active service worker found, no need to register')
 }
 else { //Register the ServiceWorker
-	navigator.serviceWorker.register('sw.js').then(function(reg) {
+	navigator.serviceWorker.register('ddSW.js').then(function(reg) {
 		console.log('Service worker has been registered for scope:'+ reg.scope);
 	});
 }
