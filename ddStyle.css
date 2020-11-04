@@ -23,9 +23,9 @@ h {
 	top: 0;
 	width: 100%;
 	height: 100%;
+	background: white;
 }
-#dwgSVG {
-    background: white;
+#svg {
     z-index: 1000;
 }
 #symbol {
@@ -49,6 +49,14 @@ h {
     display: block;
     z-index: 20;
 }
+#editTools {
+    position: fixed;
+    right: 4px;
+    top: 4px;
+    width: 32px;
+    display: none;
+    z-index: 20;
+}
 #info {
     position: fixed;
     left: 0;
@@ -70,14 +78,15 @@ h {
     right: 0;
     padding: 4px;
 }
-#logo {
+#checks {
     position: fixed;
     right: 0;
     bottom: 0;
     width: 96px;
     height: 32px;
-    background-image: url('logo.png');
-    background-repeat: repeat-x;
+    background-image: url('svg/checks.svg');
+    /*background-position: right;
+    background-repeat: no-repeat;*/
     z-index: 11;
 }
 #styles {
@@ -129,7 +138,6 @@ button {
     border: none;
     border-radius: 3px;
     color: white;
-    background-color: blue;
 }
 
 .menuButton {
@@ -142,28 +150,38 @@ button {
 #fileButton {
     background: url(svg/file.svg) center center no-repeat;
 }
-
 #layersButton {
     background: url(svg/layers.svg) center center no-repeat;
 }
-
+#zoomInButton {
+    background: url(svg/zoomin.svg) center center no-repeat;
+}
+#zoomOutButton {
+    background: url(svg/zoomout.svg) center center no-repeat;
+}
+#extentsButton {
+    background: url(svg/extents.svg) center center no-repeat;
+}
+#panButton {
+    background: url(svg/pan.svg) center center no-repeat;
+}
 #lineButton {
     background: url(svg/line.svg) center center no-repeat;
 }
-
 #boxButton {
     background: url(svg/box.svg) center center no-repeat;
 }
 #ovalButton {
     background: url(svg/oval.svg) center center no-repeat;
 }
-
-#landscapeButton {
-    background: url(svg/landscape.svg) center center no-repeat;
+#deleteButton {
+    background: url(svg/cross.svg) center center no-repeat;
 }
-
-#portraitButton {
-    background: url(svg/portrait.svg) center center no-repeat;
+#forwardButton {
+    background: url(svg/forward.svg) center center no-repeat;
+}
+#backButton {
+    background: url(svg/back.svg) center center no-repeat;
 }
 #fileMenu {
     left: 0;
@@ -172,6 +190,15 @@ button {
 #newDrawing {
     left: 0;
     top: 0;
+    padding: 5px;
+}
+#createNewDrawing {
+    float: right;
+    background: url(svg/tick.svg) center center no-repeat;
+}
+#cancelNewDrawing {
+    float: left;
+    background: url(svg/cross.svg) center center no-repeat;
 }
 #stylesDialog {
     bottom: 0;

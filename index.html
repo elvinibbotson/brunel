@@ -11,8 +11,7 @@
 </head>
 <body>
     <div id='graphic'>
-		<svg id='dwgSVG' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
-		    <g id='handles'></g>
+		<svg id='svg' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
 		    <defs>
 		        <marker id='startArrow' markerWidth='20' markerHeight='10' refX='0' refY='5' orient='auto'>
 		            <path d='M0,5 L20,0 L20,10 L0,5' stroke='none' fill='gray'/>
@@ -20,11 +19,18 @@
 		        <marker id='endArrow' markerWidth='20' markerHeight='10' refX='20' refY='5' orient='auto'>
 		            <path d='M20,5 L0,0 L0,10 L20,5' stroke='none' fill='gray'/>
 		        </marker>
+		        <clipPath id='clipper'>
+		            <rect x='0' y='0' width='297' height='210'/>
+		        </clipPath>
 		    </defs>
-		    <!--line id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue'/-->
-		    <polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
-		    <rect id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
-		    <ellipse id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/> 
+		    <g id='ref'></g>
+		    <g id='dwg' style="clip-path: url(#clipper);"></g>
+		    <g id='handles'></g>
+		    <g id='blue'>
+		        <polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
+		        <rect id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
+		        <ellipse id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/>
+		    </g>
 		    <!-- TEST DIMENSION line x1='100' y1='100' x2='200' y2='150' marker-start='url(#startArrow)' marker-end='url(#endArrow)' stroke='gray' stroke-width='0.25' fill='none'/-->
 		</svg>
 	</div>
@@ -34,17 +40,25 @@
 	</div>
     <div id='tools'>
         <button id='fileButton' class='iconButton'></button>
-        <button id='layersButton' class='iconButton'></button>
+        <button id='zoomInButton' class='iconButton'></button>
+        <button id='zoomOutButton' class='iconButton'></button>
+        <button id='extentsButton' class='iconButton'></button>
+        <button id='panButton' class='iconButton'></button>
         <button id='lineButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
         <button id='ovalButton' class='iconButton'></button>
+    </div>
+    <div id='editTools'>
+        <button id='deleteButton' class='iconButton'></button>
+        <button id='forwardButton' class='iconButton'></button>
+        <button id='backButton' class='iconButton'></button>
     </div>
     <div id='fileMenu' class='dialog'>
         <p id='new'>new drawing</p>
         <p id='load'>load drawing</p>
         <p id='save'>save drawing</p>
     </div>
-    <div id='logo'></div>
+    <div id='checks'></div>
     <div id='styles'></div>
     <div id='info'>
         <span id='prompt'>prompt text</span>
@@ -52,32 +66,34 @@
             <input id='first' type='number'/><span id='between'>x</span>
             <input id='second' type='number'/><span id='after'>mm</span>
              @<input id='rotation' type='number'/>&deg; layer
-            <select id='layer'>
-                <option value='ref'>ref</option>
-                <option value='dwg' selected>dwg</option>
-                <option value='nts'>nts</option>
-            </select>
         </div>
     </div>
     <div id='newDrawing' class='dialog'>
         <p>new drawing</p>
         <p>size: A4</p>
+        <input type='radio' name='aspect' id='landscape' value='landscape' checked>
+        <label for='landscape'>landscape</label><br>
+        <input type='radio' name='aspect' id='portrait' value='portrait'>
+        <label for='portrait'>portrait</label>
         <p>scale:
         <select id='scaleSelect'>
-            <option value='1:1'>1:1</option>
-            <option value='1:2'>1:2</option>
-            <option value='1:5'>1:5</option>
-            <option value='1:10'>1:10</option>
-            <option value='1:20'>1:20</option>
-            <option value='1:50'>1:50</option>
-            <option value='1:100'>1:100</option>
-            <option value='1:200'>1:200</option>
-            <option value='1:500'>1:500</option>
-            <option value='1:1000'>1:1000</option>
+            <option value='1'>1:1</option>
+            <option value='2'>1:2</option>
+            <option value='5'>1:5</option>
+            <option value='10'>1:10</option>
+            <option value='20'>1:20</option>
+            <option value='50'>1:50</option>
+            <option value='100'>1:100</option>
         </select>
+        <p>units:</p>
+        <input type='radio' name='units' id='mm' value='mm' checked>
+        <label for='mm'>millimeters</label><br>
+        <input type='radio' name='units' id='inches' value='in'>
+        <label for='in'>inches</label>
+        <p>
+            <button id='cancelNewDrawing' class='iconButton'></button>
+            <button id='createNewDrawing' class='iconButton'></button>
         </p>
-        <p>aspect:<br><button id='landscapeButton' class='iconButton'></button> landscape
-        <button id='portraitButton' class='iconButton'></button>portrait</p>
     </div>
     <div id='stylesDialog' class='dialog'>
         <div id='lineStyle'>
@@ -106,24 +122,25 @@
         <div id='fillStyle'>
             <p>fill style
             <select id='fillType'>
-                <option value=0 selected>none</option>
-                <option value=1>solid</option>
+                <option value=0 selected>no fill</option>
+                <option value=1>filled</option>
                 <option value=-1>pattern</option>
             </select>
             shade<select id='fillShade'>
-                <option value='black'>black</option>
-                <option value='dimgray'>dark</option>
-                <option value='gray' selected>mid</option>
+                <option value='none' selected>no fill</option>
                 <option value='silver'>light</option>
+                <option value='gray'>medium</option>
+                <option value='dimgray'>dark</option>
+                <option value='black'>black</option>
             </select>
             opacity<select id='opacity'>
-                <option value=1 selected>solid</option>
-                <option value=0.75>high</option>
-                <option value=0.5>mid</option>
-                <option value=0.25>low</option>
+                <option value=1 selected>100%</option>
+                <option value=0.75>75%</option>
+                <option value=0.5>50%</option>
+                <option value=0.25>25%</option>
             </select>
             text size<select id='textSize'>
-                <option value=3.5>10pt</option>
+                <option value=3.5 selected>10pt</option>
                 <option value=5>14pt</option>
                 <option value=7>20pt</option>
                 <option value=10>28pt</option>
