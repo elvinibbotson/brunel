@@ -57,6 +57,13 @@ h {
     display: none;
     z-index: 20;
 }
+#actionLabel {
+    position: fixed;
+    left: 40px;
+    top: 10px;
+    display: none;
+    z-index: 20;
+}
 #info {
     position: fixed;
     left: 0;

@@ -71,6 +71,7 @@ id('createNewDrawing').addEventListener('click',function() {
     window.localStorage.setItem('aspect',aspect);
     window.localStorage.setItem('scale',scale);
     window.localStorage.setItem('units',units);
+    elID=0;
     // CLEAR DRAWING IN HTML & DATABASE
     id('dwg').innerHTML=''; // clear drawing
     id('ref').innerHTML=''; // clear reference layer
@@ -91,16 +92,18 @@ id('createNewDrawing').addEventListener('click',function() {
     initialise();
 });
 id('zoomInButton').addEventListener('click',function() {
+    action('ZOOM IN');
     zoom*=2;
     console.log('zoom in to '+zoom);
     w=Math.round(dwg.w*scale/zoom);
     h=Math.round(dwg.h*scale/zoom);
     console.log('new viewBox: '+dwg.x+','+dwg.y+' '+w+'x'+h);
     id('svg').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+w+' '+h);
+    snapD/=2; // avoid making snap too easy
     handleR/=2; // avoid oversizing edit handles
-    id('zoomTools').style.display='none';
 });
 id('zoomOutButton').addEventListener('click',function() {
+    action('ZOOM OUT');
     if(zoom<2) return;
     zoom/=2;
     console.log('zoom out to '+zoom);
@@ -108,21 +111,31 @@ id('zoomOutButton').addEventListener('click',function() {
     h=Math.round(dwg.h*scale/zoom);
     console.log('new viewBox: '+dwg.x+','+dwg.y+' '+w+'x'+h);
     id('svg').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+w+' '+h);
+    snapD*=2;
     handleR*=2;
-    id('zoomTools').style.display='none';
 });
 id('extentsButton').addEventListener('click',function() {
+    action('ZOOM ALL');
     console.log('zoom out to full drawing');
     zoom=1;
     dwg.x=0;
     dwg.y=0;
-    console.log('new viewBox: '+dwg.x+','+dwg.y+' '+w+'x'+h);
-    id('svg').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+dwg.w+' '+dwg.h);
-    // ADJUST handleR
+    console.log('new viewBox: '+dwg.x+','+dwg.y+' '+dwg.w+'x'+dwg.h);
+    id('svg').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+(dwg.w*scale)+' '+(dwg.h*scale));
+    // reset snap distance and handle radius
+    if(units=='mm') {
+        snapD=5*scale;
+        handleR=2.5*scale;
+    }
+    else { // inches
+        snapD=0.2*scale;
+        handleR=0.1*scale;
+    }
 });
 id('panButton').addEventListener('click',function() {
     console.log('pan mode');
     mode='pan';
+    action('PAN');
 });
 /* NEED TO REVISIT THIS...
 console.log('set zoom'); // ACCORDING TO CHOICE IN DIALOG
@@ -140,22 +153,27 @@ console.log('zoom; '+zoom+' w: '+w+' h: '+h);
 id('lineButton').addEventListener('click', function() { // (POLY)LINE: JUST CLICK - NO HOLD OR DRAG
     mode='line';
     showInfo(true,'LINE: press at start');
+    action('LINE');
 });
 id('boxButton').addEventListener('click',function() { // BOX(& SQUARE): JUST CLICK - NO HOLD OR DRAG
     mode='box';
     showInfo(true,'BOX: press at start');
+    action('BOX');
 });
 id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
     mode='oval';
     showInfo(true,'OVAL: press at centre');
+    action('OVAL');
 })
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
+    action('DELETE');
     console.log('delete element '+elementID);
     for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
         if(nodes[i].el==elementID) nodes.splice(i,1);
     }
     id('dwg').removeChild(element); // remove element from SVG
+    id('handles').innerHTML=''; // remove edit handles 
     var dbTransaction=db.transaction('elements',"readwrite");
 	console.log("indexedDB transaction ready");
 	var dbObjectStore=dbTransaction.objectStore('elements');
@@ -168,13 +186,15 @@ id('deleteButton').addEventListener('click',function() {
 	    console.log("error deleting element");
 	};
 });
-id('backButton').addEventListener('click',function() { // MOVE SELECTED ELEMENT BACK (EARLIER IN dwg)
+id('backButton').addEventListener('click',function() {
+    action('PUSH BACK');
     console.log('move '+elementID+' backwards');
     var previousElement=element.previousSibling;
     if(previousElement===null) alert('already at back');
     else id('dwg').insertBefore(element,previousElement);
 });
 id('forwardButton').addEventListener('click',function() {
+    action('PULL FORWARD');
     console.log('move '+elementID+' forwards');
     var nextElement=element.nextSibling;
     if(nextElement===null) alert('already at front');
@@ -217,11 +237,12 @@ id('lineType').addEventListener('change',function() {
 })
 id('penSelect').addEventListener('change',function() {
     var val=event.target.value;
-    console.log('pen width: '+val+'mm');
-    id('penWidth').value=pen;
+    console.log('pen width: '+val+'mm at 1:1');
+    id('penWidth').value=val;
+    console.log((val*scale)+'mm at 1:'+scale);
     if(elementID) { // change selected element
         element=id(elementID);
-        element.setAttribute('stroke-width',val);
+        element.setAttribute('stroke-width',val*scale);
         console.log('set element '+element.id+' pen to '+val);
         updateElement(element.id,'lineW',val);
     }
@@ -326,8 +347,10 @@ id('graphic').addEventListener('touchstart',function() {
     console.log('touch at '+event.touches[0].clientX+','+event.touches[0].clientY);
     scr.x=Math.round(event.touches[0].clientX);
     scr.y=Math.round(event.touches[0].clientY);
-    x=x0=Math.round(scr.x*scaleF/zoom-dwg.x);
-    y=y0=Math.round(scr.y*scaleF/zoom-dwg.y);
+    // x=x0=Math.round(scr.x*scaleF/zoom-dwg.x);
+    // y=y0=Math.round(scr.y*scaleF/zoom-dwg.y);
+    x=x0=Math.round(scr.x*scaleF/zoom+dwg.x);
+    y=y0=Math.round(scr.y*scaleF/zoom+dwg.y);
     /* previous code
     x=x0=Math.round(event.touches[0].clientX/scaleF)*scale;
     y=y0=Math.round(event.touches[0].clientY/scaleF)*scale;
@@ -410,14 +433,17 @@ id('graphic').addEventListener('touchmove',function() {
     event.preventDefault();
     scr.x=Math.round(event.touches[0].clientX);
     scr.y=Math.round(event.touches[0].clientY);
-    x=Math.round(scr.x*scaleF/zoom-dwg.x);
-    y=Math.round(scr.y*scaleF/zoom-dwg.y);
+    // x=Math.round(scr.x*scaleF/zoom-dwg.x);
+    // y=Math.round(scr.y*scaleF/zoom-dwg.y);
+    x=Math.round(scr.x*scaleF/zoom+dwg.x);
+    y=Math.round(scr.y*scaleF/zoom+dwg.y);
     switch(mode) {
         case 'pan':
             var dx=dwg.x-(x-x0);
             var dy=dwg.y-(y-y0);
-            console.log('drawing x,y: '+dx+','+dy);
-            id('svg').setAttribute('viewBox',(dx*scale/zoom)+' '+(dy*scale/zoom)+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
+            // console.log('drawing x,y: '+dx+','+dy);
+            id('svg').setAttribute('viewBox',dx+' '+dy+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
+            // id('svg').setAttribute('viewBox',(dx*scale/zoom)+' '+(dy*scale/zoom)+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
             break;
         case 'line':
             if(Math.abs(x-x0)<snapD) x=x0; // snap to vertical
@@ -465,7 +491,7 @@ id('graphic').addEventListener('touchend',function() {
             console.log('pan ends at '+x+','+y);
             dwg.x-=(x-x0);
             dwg.y-=(y-y0);
-            console.log('drawing x,y: '+dwg.x+','+dwg.y);
+            console.log('drawing x,y: '+dwg.x+','+dwg.y+'; scale: '+scale+'; zoom: '+zoom);
             mode='select';
             console.log('mode is '+mode);
             break;
@@ -482,7 +508,7 @@ id('graphic').addEventListener('touchend',function() {
                 console.log('end polyline');
                 var html="<polyline id='~"+elID+"' points='";
                 var points=id('bluePolyline').getAttribute('points');
-                html+=points+"' stroke='"+lineShade+"' stroke-width='"+pen+"' ";
+                html+=points+"' stroke='"+lineShade+"' stroke-width='"+(pen*scale)+"' ";
                 if(lineType=='dashed') html+="stroke-dasharray='3 3' ";
                 else if(lineType=='dotted') html+="stroke-dasharray='1 1' ";
                 html+="stroke-opacity='"+opacity+"' fill='none'/>";
@@ -559,7 +585,7 @@ id('graphic').addEventListener('touchend',function() {
                 case 'dotted':
                     html+=lineShade+" stroke-dasharray='1 1'";
             }
-            html+=" stroke-width="+pen+" stroke-opacity='"+opacity+"' fill='";
+            html+=" stroke-width="+(pen*scale)+" stroke-opacity='"+opacity+"' fill='";
             console.log('fillType: '+fillType+' fillShade: '+fillShade);
             if(fillType>0) html+=fillShade;
             else if(fillType==0) html+="none";
@@ -628,7 +654,7 @@ id('graphic').addEventListener('touchend',function() {
                 case 'dotted':
                     html+=lineShade+" stroke-dasharray='1 1'";
             }
-            html+=" stroke-width="+pen+" stroke-opacity='"+opacity+"' fill='";
+            html+=" stroke-width="+(pen*scale)+" stroke-opacity='"+opacity+"' fill='";
             console.log('fillType: '+fillType+' fillShade: '+fillShade);
             if(fillType>0) html+=fillShade;
             else if(fillType==0) html+="none";
@@ -920,7 +946,7 @@ function initialise() {
     if(units=='mm') {
         scaleF*=25.4; // ...or 25.4mm
         snapD=5*scale; // ...5mm snap distance...
-        handleR=2.5*scale; // ...and 2.5mm raadius handles at 1:1 scale
+        handleR=2.5*scale; // ...and 2.5mm radius handles at 1:1 scale
         if(aspect=='landscape') {
             dwg.w=297; // A4 landscape...
             dwg.h=210;
@@ -978,6 +1004,11 @@ function type(el) {
     else if(el instanceof SVGEllipseElement) {
         return 'oval';}
     }
+function action(text) {
+    id('actionLabel').innerHTML=text; //display text for 3 secs
+    id('actionLabel').style.display='block';
+    setTimeout(function(){id('actionLabel').style.display='none'},3000);
+}
 function showInfo(visible,prompt) {
     id('info').style.display=(visible)?'block':'none';
     id('prompt').innerHTML=(prompt)?prompt:'';
