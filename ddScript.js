@@ -371,6 +371,7 @@ id('graphic').addEventListener('touchstart',function() {
             break;
         case 'line':
             element=id('bluePolyline');
+            elementID='bluePolyline';
             var point=id('svg').createSVGPoint();
                 point.x=x;
                 point.y=y;
@@ -676,10 +677,10 @@ id('graphic').addEventListener('touchend',function() {
             h=parseInt(element.getAttribute('ry'));
             console.log('x:'+x+' y:'+y+' w:'+w+' h:'+h);
             nodes.push({'x':x,'y':y,'el':elementID});
-            nodes.push({'x':x-w,'y':y,'el':elementID});
-            nodes.push({'x':x+w,'y':y,'el':elementID});
-            nodes.push({'x':x,'y':y-h,'el':elementID});
-            nodes.push({'x':x,'y':y+h,'el':elementID});
+            nodes.push({'x':(x-w),'y':y,'el':elementID});
+            nodes.push({'x':(x+w),'y':y,'el':elementID});
+            nodes.push({'x':x,'y':(y-h),'el':elementID});
+            nodes.push({'x':x,'y':(y+h),'el':elementID});
             console.log('oval nodes added');
             // save oval to database
             var dbTransaction=db.transaction('elements',"readwrite");
@@ -723,7 +724,7 @@ id('graphic').addEventListener('touchend',function() {
                 while(e<6 && !hit) {
                     n=-5;
                     while(n<6 && !hit) {
-                        console.log('check at '+e+','+n+' '+(scr.x+e)+','+(scr.y+n));
+                        // console.log('check at '+e+','+n+' '+(scr.x+e)+','+(scr.y+n));
                         el=document.elementFromPoint(scr.x+e,scr.y+n);
                         if(el) el=el.id;
                         if(el!='svg') hit=el; // hits.push(el); 
@@ -878,12 +879,17 @@ id('graphic').addEventListener('touchend',function() {
 })
 // ADJUST ELEMENT SIZES
 id('first').addEventListener('change',function() {
-    var val=id('first').value;
+    var val=parseInt(id('first').value);
     console.log('element '+elementID+' value changed to '+val);
     element=id(elementID);
     switch(type(element)) {
-        case 'line': // NEEDS TO BE POLYLINE!!!
+        case 'polyline':
             console.log('element: '+element.id);
+            if(elementID.startsWith('~')) { // width of completed (poly)line
+                console.log('completed polyline - adjust overall width');
+                // CODE THIS - MOVE POINTS< NODES & HANDLES IN PROPORTION AND UPDATE DB
+                break;
+            } // otherwise adjust length of latest line segment
             var n=element.points.length;
             console.log(n+' points');
             var pt0=element.points[n-2];
@@ -903,21 +909,51 @@ id('first').addEventListener('change',function() {
             element.points[n-1]=pt1;
             break;
         case 'box':
+            console.log('change width of element '+elementID);
             element.setAttribute('width',val);
             updateElement(elementID,'width',val);
+            var elX=parseInt(element.getAttribute('x'));
+            // console.log('move nodes and handles');
+            for(var i=0;i<nodes.length;i++) { // adjust two RH nodes...
+                if((nodes[i].el==elementID)&&(nodes[i].x!=elX)) {
+                    // console.log('node '+i+' x changed to '+(elX+val));
+                    nodes[i].x=elX+val;
+                }
+            } // ...then move RH edit handles
+            // console.log('RH handles.x: '+(elX+val-handleR));
+            id('handleNE').setAttribute('x',(elX+val-handleR));
+            id('handleSE').setAttribute('x',(elX+val-handleR));
             break;
         case 'oval':
             element.setAttribute('rx',val/2);
             updateElement(elementID,'rx',val/2);
+            var elX=parseInt(element.getAttribute('cx'));
+            for(var i=0;i<nodes.length;i++) { // adjust two RH nodes...
+                if((nodes[i].el==elementID)&&(nodes[i].x!=elX)) {
+                    // console.log('node '+i+' x changed to '+(elX+val));
+                    console.log('change node '+i+'.x: '+nodes[i].x);
+                    if(nodes[i].x<elX) nodes[i].x=elX-val/2;
+                    else nodes[i].x=elX+val/2;
+                    // nodes[i].x=elX+(nodes[i].x<elX)?val/2*-1:val/2;
+                    console.log('to: '+nodes[i].x);
+                }
+            }
+            id('handleSize').setAttribute('x',(elX+val/2-handleR));
     }
 })
 id('second').addEventListener('change',function() {
-    var val=id('second').value;
+    var val=parseInt(id('second').value);
     element=id(elementID);
     console.log('element '+element+' type: '+type(element)+' value changed to '+val);
     switch(type(element)) {
-        case 'line': // NEEDS TO BE POLYLINE!!!
-            // adjust heights of all nodes?
+        case 'polyline':
+            console.log('element: '+element.id);
+            if(elementID.startsWith('~')) { // height of completed (poly)line
+                console.log('completed polyline - adjust overall height');
+                // CODE THIS - MOVE POINTS< NODES & HANDLES IN PROPORTION AND UPDATE DB
+                break;
+            } // otherwise adjust angle of latest line segment
+            // ADJUST LINE ANGLE!!!
             break;
         case 'box':
             // element=id(element.id); DONE EARLIER 
@@ -925,13 +961,33 @@ id('second').addEventListener('change',function() {
             console.log('set to '+val);
             element.setAttribute('height',val);
             updateElement(elementID,'height',val);
-            // MOVE HANDLES
+            var elY=parseInt(element.getAttribute('y'));
+            console.log('move nodes and handles');
+            for(var i=0;i<nodes.length;i++) { // adjust two lower nodes...
+                if((nodes[i].el==elementID)&&(nodes[i].y!=elY)) {
+                    console.log('change node '+i+'.y: '+nodes[i].y);
+                    nodes[i].y=elY+val;
+                    console.log('to: '+nodes[i].y);
+                }
+            } // ...then move lower edit handles
+            // console.log('lower handles.y: '+(elY+val-handleR));
+            id('handleSW').setAttribute('y',(elY+val-handleR));
+            id('handleSE').setAttribute('y',(elY+val-handleR));
             break;
         case 'oval':
             console.log('change oval height');
             element.setAttribute('ry',val/2);
             updateElement(elementID,'ry',val/2);
-            // MOVE HANDLE
+            var elY=parseInt(element.getAttribute('cy'));
+            for(var i=0;i<nodes.length;i++) { // adjust top & bottom nodes...
+                if((nodes[i].el==elementID)&&(nodes[i].y!=elY)) {
+                    console.log('change node '+i+'.y: '+nodes[i].y);
+                    if(nodes[i].y<elY) nodes[i].y=elY-val/2;
+                    else nodes[i].y=elY+val/2;
+                    console.log('to: '+nodes[i].y);
+                }
+            }
+            id('handleSize').setAttribute('y',(elY+val/2-handleR));
     }
 })
 
@@ -985,6 +1041,7 @@ function initialise() {
     id('clipper').innerHTML=html;
     console.log('drawing scale size: '+w+'x'+h+units+'; scaleF: '+scaleF+'; snapD: '+snapD);
     mode='select';
+    alert('screen: '+scr.w+'x'+scr.h+' drawing: '+dwg.w+'x'+dwg.h+units+' at '+dwg.x+','+dwg.y+' scale: '+scale+' scaleF: '+scaleF);
 }
 function showDialog(dialog,visible) {
     id(dialog).style.display=(visible)?'block':'none';
@@ -1072,6 +1129,34 @@ function updateElement(id,attribute,val) {
 	request.onsuccess=function(event) {
 	    var el=request.result;
 	    switch(attribute) {
+	        case 'x':
+	            el.x=val;
+	            break;
+	        case 'y':
+	            el.y=val;
+	            break;
+	        case 'width':
+	            el.width=val;
+	            break;
+	        case 'height':
+	            el.height=val;
+	            break;
+	        case 'points':
+	            // MAY NEED TO SAVE INDIVIDUAL ARRAY ITEMS
+	            el.points=val;
+	            break;
+	        case 'cx':
+	            el.cx=val;
+	            break;
+	        case 'cy':
+	            el.cy=val;
+	            break;
+	        case 'rx':
+	            el.rx=val;
+	            break;
+	        case 'ry':
+	            el.ry=val;
+	            break;
 	        case 'stroke':
 	            el.stroke=val;
 	            break;
@@ -2041,6 +2126,6 @@ if (navigator.serviceWorker.controller) {
 }
 else { //Register the ServiceWorker
 	navigator.serviceWorker.register('ddSW.js').then(function(reg) {
-		console.log('Service worker has been registered for scope:'+ reg.scope);
+		// console.log('Service worker has been registered for scope:'+ reg.scope);
 	});
 }
