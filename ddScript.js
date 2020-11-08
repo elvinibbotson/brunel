@@ -41,8 +41,11 @@ console.log("screen size "+scr.w+"x"+scr.h);
 aspect=window.localStorage.getItem('aspect');
 scale=window.localStorage.getItem('scale');
 units=window.localStorage.getItem('units');
-console.log('1:'+scale+' '+aspect+' drawing using '+units);
-if(!aspect) showDialog('newDrawing',true);
+if(!aspect) {
+    aspect=(scr.w>scr.h)?'landscape':'portrait';
+    id('aspect').innerHTML=aspect;
+    showDialog('newDrawing',true);
+}
 else initialise();
 
 // TOOLS
@@ -54,6 +57,8 @@ id('new').addEventListener('click',function() {
     if(!saved) alert('You may want to save your work before starting a new drawing');
     report("show New Drawing dialog");
     showDialog('fileMenu',false);
+    aspect=(scr.w>scr.h)?'landscape':'portrait';
+    id('aspect').innerHTML=aspect;
     showDialog('newDrawing',true);
 });
 id('save').addEventListener('click',function() {
@@ -64,7 +69,7 @@ id('cancelNewDrawing').addEventListener('click',function() {
     showDialog('newDrawing',false);
 });
 id('createNewDrawing').addEventListener('click',function() {
-    aspect=(id('landscape').checked)?'landscape':'portrait';
+    // aspect=(id('landscape').checked)?'landscape':'portrait';
     scale=id('scaleSelect').value;
     units=(id('mm').checked)?'mm':'in';
     console.log('create new drawing - aspect:'+aspect+' scale:'+scale+' units:'+units);
@@ -1123,7 +1128,7 @@ function initialise() {
     id('clipper').innerHTML=html;
     console.log('drawing scale size: '+w+'x'+h+units+'; scaleF: '+scaleF+'; snapD: '+snapD);
     mode='select';
-    alert('screen: '+scr.w+'x'+scr.h+' drawing: '+dwg.w+'x'+dwg.h+units+' at '+dwg.x+','+dwg.y+' scale: '+scale+' scaleF: '+scaleF);
+    // alert('screen: '+scr.w+'x'+scr.h+' drawing: '+dwg.w+'x'+dwg.h+units+' at '+dwg.x+','+dwg.y+' scale: '+scale+' scaleF: '+scaleF);
 }
 function showDialog(dialog,visible) {
     id(dialog).style.display=(visible)?'block':'none';
@@ -2208,6 +2213,6 @@ if (navigator.serviceWorker.controller) {
 }
 else { //Register the ServiceWorker
 	navigator.serviceWorker.register('ddSW.js').then(function(reg) {
-		// console.log('Service worker has been registered for scope:'+ reg.scope);
+		console.log('Service worker has been registered for scope:'+ reg.scope);
 	});
 }

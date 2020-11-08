@@ -27,6 +27,7 @@ h {
 }
 #svg {
     z-index: 1000;
+    background: white;
 }
 #symbol {
     position: absolute;
