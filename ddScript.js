@@ -544,6 +544,10 @@ id('graphic').addEventListener('touchend',function() {
                     nodes.push({'x':element.points[i].x,'y':element.points[i].y,'el':elementID});
                     console.log('node added at '+element.points[i].x+','+element.points[i].y);
                 }
+                // TEST
+                for(i=0;i<nodes.length;i++) {
+                    console.log('node '+i+' at '+nodes[i].x+','+nodes[i].y+' element '+nodes[i].el);
+                }
                 // save poly/line to database
                 var dbTransaction=db.transaction('elements',"readwrite");
 	            console.log("indexedDB transaction ready");
@@ -887,7 +891,30 @@ id('first').addEventListener('change',function() {
             console.log('element: '+element.id);
             if(elementID.startsWith('~')) { // width of completed (poly)line
                 console.log('completed polyline - adjust overall width');
-                // CODE THIS - MOVE POINTS< NODES & HANDLES IN PROPORTION AND UPDATE DB
+                var bounds=element.getBBox();
+                w=bounds.width;
+                var ratio=val/w;
+                var points=element.points;
+                // var n=points.length;
+                var i=0;
+                var n=-1;
+                while(n<0 && i<nodes.length) {
+                    if(nodes[i].el==elementID) n=i;
+                }
+                console.log('start node is '+n);
+                console.log('adjust all polyline points, nodes and handles x-values by ratio '+ratio);
+                for(i=1;i<points.length;i++) { // points[0] is start - not affected
+                    x=points[0].x+(points[i].x-points[0].x)*ratio;
+                    points[i].x=x; // adjust element,... 
+                    nodes[n+i].x=x; // ...nodes...
+                    id('handle'+i).setAttribute('x',x-handleR); // ...and edit handles
+                }
+                var pts=[];
+	            for(var i=0;i<points.length;i++) {
+	                pts.push(points[i].x);
+	                pts.push(points[i].y);
+	            }
+                updateElement(elementID,'points',pts); // UPDATE DB
                 break;
             } // otherwise adjust length of latest line segment
             var n=element.points.length;
@@ -950,10 +977,65 @@ id('second').addEventListener('change',function() {
             console.log('element: '+element.id);
             if(elementID.startsWith('~')) { // height of completed (poly)line
                 console.log('completed polyline - adjust overall height');
-                // CODE THIS - MOVE POINTS< NODES & HANDLES IN PROPORTION AND UPDATE DB
+                var bounds=element.getBBox();
+                h=bounds.height;
+                var ratio=val/h;
+                var points=element.points;
+                var i=0;
+                var n=-1;
+                while(n<0 && i<nodes.length) {
+                    if(nodes[i].el==elementID) n=i;
+                }
+                console.log('start node is '+n);
+                console.log('adjust all polyline points, nodes and handles x-values by ratio '+ratio);
+                for(i=1;i<points.length;i++) { // points[0] is start - not affected
+                    y=points[0].y+(points[i].y-points[0].y)*ratio;
+                    points[i].y=y; // adjust element,... 
+                    nodes[n+i].y=y; // ...nodes...
+                    id('handle'+i).setAttribute('y',y-handleR); // ...and edit handles
+                }
+                var pts=[];
+	            for(var i=0;i<points.length;i++) {
+	                pts.push(points[i].x);
+	                pts.push(points[i].y);
+	            }
+                updateElement(elementID,'points',pts);
                 break;
             } // otherwise adjust angle of latest line segment
             // ADJUST LINE ANGLE!!!
+            var n=element.points.length;
+            console.log(n+' points');
+            var pt0=element.points[n-2];
+            var pt1=element.points[n-1];
+            w=pt1.x-pt0.x;
+            h=pt1.y-pt0.y;
+            var r=Math.round(Math.sqrt(w*w+h*h));
+            if(val==0) {
+                w=0;
+                h=-r;
+            }
+            else if(val==90) {
+                w=r;
+                h=0;
+            }
+            else if(val==180) {
+                w=0;
+                h=r;
+            }
+            else if(val==270) {
+                w=-r;
+                h=0;
+            }
+            else {
+                val-=90;
+                if(val<0) val+=360;
+                val*=(Math.PI/180);
+                w=r*Math.cos(val);
+                h=r*Math.sin(val);
+            }
+            pt1.x=pt0.x+w;
+            pt1.y=pt0.y+h;
+            element.points[n-1]=pt1;
             break;
         case 'box':
             // element=id(element.id); DONE EARLIER 
@@ -1119,7 +1201,7 @@ function snapCheck() {
 }
 function nearby(node) {
     return (node.x>x-snapD)&&(node.x<x+snapD)&&(node.y>y-snapD)&&(node.y<y+snapD);
-} 
+}
 function updateElement(id,attribute,val) {
     var dbTransaction=db.transaction('elements',"readwrite");
 	console.log("indexedDB transaction ready");
