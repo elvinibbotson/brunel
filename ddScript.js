@@ -97,7 +97,7 @@ id('createNewDrawing').addEventListener('click',function() {
     initialise();
 });
 id('zoomInButton').addEventListener('click',function() {
-    action('ZOOM IN');
+    prompt('ZOOM IN');
     zoom*=2;
     console.log('zoom in to '+zoom);
     w=Math.round(dwg.w*scale/zoom);
@@ -108,7 +108,7 @@ id('zoomInButton').addEventListener('click',function() {
     handleR/=2; // avoid oversizing edit handles
 });
 id('zoomOutButton').addEventListener('click',function() {
-    action('ZOOM OUT');
+    prompt('ZOOM OUT');
     if(zoom<2) return;
     zoom/=2;
     console.log('zoom out to '+zoom);
@@ -120,7 +120,7 @@ id('zoomOutButton').addEventListener('click',function() {
     handleR*=2;
 });
 id('extentsButton').addEventListener('click',function() {
-    action('ZOOM ALL');
+    prompt('ZOOM ALL');
     console.log('zoom out to full drawing');
     zoom=1;
     dwg.x=0;
@@ -140,7 +140,7 @@ id('extentsButton').addEventListener('click',function() {
 id('panButton').addEventListener('click',function() {
     console.log('pan mode');
     mode='pan';
-    action('PAN');
+    prompt('PAN');
 });
 /* NEED TO REVISIT THIS...
 console.log('set zoom'); // ACCORDING TO CHOICE IN DIALOG
@@ -155,24 +155,28 @@ if(zoom<0.5) {
 */
 console.log('zoom; '+zoom+' w: '+w+' h: '+h);
 // DRAWING TOOLS
-id('lineButton').addEventListener('click', function() { // (POLY)LINE: JUST CLICK - NO HOLD OR DRAG
+id('lineButton').addEventListener('click', function() {
     mode='line';
-    showInfo(true,'LINE: press at start');
-    action('LINE');
+    showSizes(true,'LINE: press at start');
+    // action('LINE');
 });
-id('boxButton').addEventListener('click',function() { // BOX(& SQUARE): JUST CLICK - NO HOLD OR DRAG
+id('boxButton').addEventListener('click',function() {
     mode='box';
-    showInfo(true,'BOX: press at start');
-    action('BOX');
+    showSizes(true,'BOX: press at start');
+    // action('BOX');
 });
 id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
     mode='oval';
-    showInfo(true,'OVAL: press at centre');
-    action('OVAL');
+    showSizes(true,'OVAL: press at centre');
+    // action('OVAL');
 })
+id('arcButton').addEventListener('click', function() {
+   mode='arc';
+   showSizes(true,'ARC: press at start');
+});
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
-    action('DELETE');
+    prompt('DELETE');
     console.log('delete element '+elementID);
     for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
         if(nodes[i].el==elementID) nodes.splice(i,1);
@@ -192,14 +196,14 @@ id('deleteButton').addEventListener('click',function() {
 	};
 });
 id('backButton').addEventListener('click',function() {
-    action('PUSH BACK');
+    prompt('PUSH BACK');
     console.log('move '+elementID+' backwards');
     var previousElement=element.previousSibling;
     if(previousElement===null) alert('already at back');
     else id('dwg').insertBefore(element,previousElement);
 });
 id('forwardButton').addEventListener('click',function() {
-    action('PULL FORWARD');
+    prompt('PULL FORWARD');
     console.log('move '+elementID+' forwards');
     var nextElement=element.nextSibling;
     if(nextElement===null) alert('already at front');
@@ -390,21 +394,25 @@ id('graphic').addEventListener('touchstart',function() {
             }
             id('bluePolyline').points.appendItem(point); // ...create first (zero-length) segment
             console.log(id('bluePolyline').points.length+' points');
-            showInfo(true,'LINES: drag to next point; tap twice to end');
+            prompt('LINES: drag to next point; tap twice to end'); // JUST PROMPT?
             break;
         case 'box':
             console.log('box starts at '+x0+','+y0);
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
             console.log('sizing box initiated');
-            showInfo(true,'BOX: drag to size');
+            prompt('BOX: drag to size'); // JUST PROMPT?
             break;
         case 'oval':
             console.log('oval centre at '+x0+','+y0);
             id('blueOval').setAttribute('cx',x0);
             id('blueOval').setAttribute('cy',y0);
             console.log('sizing oval initiated');
-            showInfo('true','OVAL: drag to size');
+            prompt('OVAL: drag to size'); // JUST PROMPT?
+            break;
+        case 'arc':
+            console.log('arc starts at '+x0+','+y0);
+            prompt('ARC: drag to centre');
             break;
         case 'select':
             // IS THIS JUST TO LOOK FOR EDIT HANDLES?
@@ -482,6 +490,15 @@ id('graphic').addEventListener('touchmove',function() {
             w=Math.abs(w*2);
             h=Math.abs(h*2);
             setSizes(false);
+            break;
+        case 'arc':
+            w=Math.abs(x-x0);
+            h=Math.abs(y-y0);
+            var r=Math.round(Math.sqrt(w*w+h*h));
+            id('blueOval').setAttribute('cx',x);
+            id('blueOval').setAttribute('cy',y);
+            id('blueOval').setAttribute('rx',r);
+            id('blueOval').setAttribute('ry',r);
             break;
         case 'edit':
             // IF ON AN EDIT HANDLE, MOVE OR RE-SIZE ELEMENT
@@ -579,7 +596,7 @@ id('graphic').addEventListener('touchend',function() {
 		            console.log("error adding new poly/line element");
 		        };
                 element=elementID=null;
-                showInfo(false);
+                showSizes(false);
                 mode='select';
             }
             break;
@@ -722,6 +739,14 @@ id('graphic').addEventListener('touchend',function() {
             element=elementID=null;
             mode='select';
             break;
+        case 'arc':
+            prompt('ARC: drag to end-point');
+            var r=id('blueOval').getAttribute('rx');
+            id('blueOval').setAttribute('rx',0);
+            id('blueOval').setAttribute('ry',0);
+            id('blueArc').setAttribute('d','M'+x0+','+y0+' A'+r+','+r+' 0 0,1 '+x0+','+y0);
+            mode='arcEnd';
+            break;
         case 'select':
         case 'edit':
             var el=event.target.id;
@@ -744,7 +769,7 @@ id('graphic').addEventListener('touchend',function() {
             }
             else hit=el;
             console.log('hit: '+el);
-            if(hit && el.charAt(0)=='~') { // IDENTIFIES ELEMENTS - WAS if(el!='dwg') {
+            if(hit && el.charAt(0)=='~') {
                 // IF BOX-SELECT ADD TO 'selections' ARRAY - LIST OF ELEMENT IDs
                 // OTHERWISE (CLICK-SELECT) JUST SELECT AN ELEMENT IN snap RANGE
                 console.log('el: '+el+' set styles');
@@ -772,7 +797,7 @@ id('graphic').addEventListener('touchend',function() {
                 val=el.getAttribute('stroke-width');
                 console.log('element line width: '+val);
                 id('penWidth').value=id('penSelect').value=val;
-                id('styles').style.borderWidth=val+'mm 0 0 '+val+'mm';
+                id('styles').style.borderWidth=val+'mm';
                 val=el.getAttribute('stroke');
                 console.log('set lineShade to '+val);
                 id('lineShade').value=val;
@@ -794,14 +819,9 @@ id('graphic').addEventListener('touchend',function() {
                     id('styles').style.background=val;
                     val=el.getAttribute('fill-opacity');
                     console.log('element opacity: '+val);
+                    id('opacity').value=val;
                     id('styles').style.opacity=val;
                 }
-                /*
-                console.log('set fillShade to '+val);
-                id('fillShade').value=val;
-                id('styles').style.opacity=opacity;
-                // SIMILAR FOR OPACITY
-                */
                 id('handles').innerHTML=''; // clear any handles then add handles for selected element 
                 console.log('element type: '+type(el));
                 switch(type(el)) {
@@ -819,7 +839,7 @@ id('graphic').addEventListener('touchend',function() {
                             html="<rect id='handle"+i+"' x="+(points[i].x-handleR)+" y="+(points[i].y-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>";
                             id('handles').innerHTML+=html; // remaining handles move nodes
                         }
-                        showInfo(true,'LINE');
+                        showSizes(true,'LINE');
                         elementID=el.id;
                         mode='edit';
                         break;
@@ -839,7 +859,7 @@ id('graphic').addEventListener('touchend',function() {
                         html="<rect id='handleSW' x='"+(x-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML+=html; // bottom-left handle adjusts box height
                         setSizes(false);
-                        showInfo(true,(w==h)?'SQUARE':'BOX');
+                        showSizes(true,(w==h)?'SQUARE':'BOX');
                         mode='edit';
                         break;
                     case 'oval':
@@ -854,7 +874,7 @@ id('graphic').addEventListener('touchend',function() {
                         html="<rect id='handleSize' x="+(x+w/2-handleR)+" y="+(y+h/2-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML+=html; // square handle adjusts ellipse size
                         setSizes(false);
-                        showInfo(true,(w==h)?'CIRCLE':'OVAL');
+                        showSizes(true,(w==h)?'CIRCLE':'OVAL');
                         mode='edit';
                 }
                 id('editTools').style.display='block';
@@ -864,7 +884,7 @@ id('graphic').addEventListener('touchend',function() {
                 elementID=null;
                 selection=[];
                 id('handles').innerHTML=''; //remove element handles
-                showInfo(false);
+                showSizes(false);
                 console.log('set lineType to current default: '+lineType);
                 id('lineType').value=lineType;
                 id('styles').style.borderStyle=lineType;
@@ -1148,14 +1168,15 @@ function type(el) {
     else if(el instanceof SVGEllipseElement) {
         return 'oval';}
     }
-function action(text) {
-    id('actionLabel').innerHTML=text; //display text for 3 secs
-    id('actionLabel').style.display='block';
-    setTimeout(function(){id('actionLabel').style.display='none'},3000);
+function prompt(text) {
+    id('prompt').innerHTML=text; //display text for 3 secs
+    id('prompt').style.display='block';
+    setTimeout(function(){id('prompt').style.display='none'},3000);
 }
-function showInfo(visible,prompt) {
-    id('info').style.display=(visible)?'block':'none';
-    id('prompt').innerHTML=(prompt)?prompt:'';
+function showSizes(visible,promptText) {
+    id('sizes').style.display=(visible)?'block':'none';
+    if(visible) prompt(promptText);
+    // id('prompt').innerHTML=(prompt)?prompt:'';
 }
 function setSizes(polar) {
     if(polar) {

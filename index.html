@@ -30,14 +30,15 @@
 		        <polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
 		        <rect id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
 		        <ellipse id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/>
+		        <path id='blueArc' d='M0,0 A0,0 0 0,0 0,0' stroke='blue' fill='none'/> 
 		    </g>
 		    <!-- TEST DIMENSION line x1='100' y1='100' x2='200' y2='150' marker-start='url(#startArrow)' marker-end='url(#endArrow)' stroke='gray' stroke-width='0.25' fill='none'/-->
 		</svg>
 	</div>
-	<div id='symbol'><!--FOR DRAWING SYMBOLS - NEEDED?-->
+	<!--div id='symbol'>
 	    <svg id='symbolSVG' xmlns='http://www.w3.org/2000/svg' width='100mm' height='100mm' viewBox='0 0 100 100'>
 	    </svg>
-	</div>
+	</div-->
     <div id='tools'>
         <button id='fileButton' class='iconButton'></button>
         <button id='zoomInButton' class='iconButton'></button>
@@ -47,6 +48,7 @@
         <button id='lineButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
         <button id='ovalButton' class='iconButton'></button>
+        <button id='arcButton' class='iconButton'></button>
     </div>
     <div id='editTools'>
         <button id='deleteButton' class='iconButton'></button>
@@ -58,17 +60,14 @@
         <p id='load'>load drawing</p>
         <p id='save'>save drawing</p>
     </div>
-    <div id='actionLabel'></div>
+    <div id='sizes'>
+        <input id='first' type='number'/> <span id='between'>x</span>
+        <input id='second' type='number'/><span id='after'>mm</span>
+         @<input id='spin' type='number'/>&deg;
+    </div>
+    <div id='prompt'></div>
     <div id='checks'></div>
     <div id='styles'></div>
-    <div id='info'>
-        <span id='prompt'>prompt text</span>
-        <div id='sizes'>
-            <input id='first' type='number'/><span id='between'>x</span>
-            <input id='second' type='number'/><span id='after'>mm</span>
-             @<input id='rotation' type='number'/>&deg; layer
-        </div>
-    </div>
     <div id='newDrawing' class='dialog'>
         <p>new drawing</p>
         <p>size: A4 (<span id='aspect'></span>)</p>
@@ -98,13 +97,20 @@
     </div>
     <div id='stylesDialog' class='dialog'>
         <div id='lineStyle'>
-            <p>line style 
+            <p>line 
             <select id='lineType'>
                 <option value='solid' selected>solid</option>
                 <option value='dashed'>dashed</option>
                 <option value='dotted'>dotted</option>
             </select>
-            width<input id='penWidth' type='number' value='0.25'/>mm
+            <select id='lineShade'>
+                <option value='black' selected>black</option>
+                <option value='dimgray'>dark</option>
+                <option value='gray'>medium</option>
+                <option value='silver'>light</option>
+            </select>
+            </p>
+            <p>width <input id='penWidth' type='number' value='0.25'/>mm
             <select id='penSelect'>
                 <option value='0.25' selected>0.25mm</option>
                 <option value='0.5'>0.5mm</option>
@@ -112,35 +118,30 @@
                 <option value='1.4'>1.4mm</option>
                 <option value='2.0'>2.0mm</option>
             </select>
-            shade<select id='lineShade'>
-                <option value='black' selected>black</option>
-                <option value='dimgray'>dark</option>
-                <option value='gray'>medium</option>
-                <option value='silver'>light</option>
-            </select>
             </p>
         </div>
         <div id='fillStyle'>
-            <p>fill style
+            <p>fill 
             <select id='fillType'>
                 <option value=0 selected>no fill</option>
                 <option value=1>filled</option>
                 <option value=-1>pattern</option>
             </select>
-            shade<select id='fillShade'>
+            <select id='fillShade'>
                 <option value='none' selected>no fill</option>
                 <option value='silver'>light</option>
                 <option value='gray'>medium</option>
                 <option value='dimgray'>dark</option>
                 <option value='black'>black</option>
             </select>
-            opacity<select id='opacity'>
+            </p>
+            <p>opacity <select id='opacity'>
                 <option value=1 selected>100%</option>
                 <option value=0.75>75%</option>
                 <option value=0.5>50%</option>
                 <option value=0.25>25%</option>
             </select>
-            text size<select id='textSize'>
+            text <select id='textSize'>
                 <option value=3.5 selected>10pt</option>
                 <option value=5>14pt</option>
                 <option value=7>20pt</option>

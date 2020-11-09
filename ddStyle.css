@@ -2,21 +2,6 @@ body {
 	font-family: sans-serif;
 	background: silver;
 }
-
-h {
-	font-size: 1.2em;
-	/*font-family: sans-serif;*/
-}
-
-#header {
-	position: fixed;
-	left: 0;
-	top: 0;
-	height: 25px;
-	padding: 5px;
-	z-index: 100;
-}
-
 #graphic {
 	position: absolute;
 	left: 0;
@@ -29,6 +14,7 @@ h {
     z-index: 1000;
     background: white;
 }
+/*
 #symbol {
     position: absolute;
     left: 20px;
@@ -42,10 +28,11 @@ h {
     background: #CCCCFF;
     z-index: 2000;
 }
+*/
 #tools {
     position: fixed;
     left: 4px;
-    top: 4px;
+    top: 48px;
     width: 32px;
     display: block;
     z-index: 20;
@@ -58,18 +45,11 @@ h {
     display: none;
     z-index: 20;
 }
-#actionLabel {
-    position: fixed;
-    left: 40px;
-    top: 10px;
-    font-size: 2em;
-    display: none;
-    z-index: 20;
-}
+/*
 #info {
     position: fixed;
-    left: 0;
-    bottom: 0;
+    left: 40px;
+    top: 0;
     width: 50%;
     height: 40px;
     color: white;
@@ -77,23 +57,46 @@ h {
     z-index: 10;
     display: none;
 }
+*/
+#sizes {
+    position: absolute;
+    top: 4px;
+    left: 48px;
+    /* width: 50%; */
+    height: 32px;
+    padding: 4px;
+    border-radius: 3px;
+    color: white;
+    background-color: black;
+    z-index: 10;
+    display: none;
+}
+#prompt {
+    position: fixed;
+    left: 48px;
+    top: 48px;
+    font-size: 1.2em;
+    display: none;
+    z-index: 20;
+}
+/*
 #prompt {
     padding: 4px;
     font-size: 1.5em;
 }
-#sizes {
-    position: absolute;
-    top: 0;
-    /*left: 30%;*/
-    right: 0;
-    padding: 4px;
-}
+*/
 #checks {
     position: fixed;
+    left: 4px;
+    top: 4px;
+    width: 32px;
+    /*
     right: 0;
     bottom: 0;
     width: 96px;
+    */
     height: 32px;
+    border-radius: 3px;
     background-image: url('svg/checks.svg');
     /*background-position: right;
     background-repeat: no-repeat;*/
@@ -101,14 +104,20 @@ h {
 }
 #styles {
     position: fixed;
+    left: 4px;
+    top: 4px;
+    width: 32px;
+    /*
     right: 0;
     bottom: 0;
     width: 96px;
+    */
     height: 32px;
+    border-radius: 3px;
     background: gray;
     opacity: 0.5;
-    border-style: solid none none solid;
-    border-width: 0.25mm 0 0 0.25mm;
+    border-style: solid;
+    border-width: 0.25mm;
     border-color: black;
     z-index: 12;
 }
@@ -120,16 +129,19 @@ h {
 	z-index: 100;
 }
 input {
-    width: 50px;
+    width: 64px;
 	height: 24px;
 	color: white;
-	background-color: black;
+	background-color: dimgray;
 	border: 1px solid #CCCCCC;
 	font-size: 1.2em;
 }
+#spin {
+    width: 32px;
+}
 select {
     color: white;
-    background-color: black;
+    background-color: dimgray;
     height: 32px;
     border: 1px solid #CCCCCC;
     font-size: 1.2em;
@@ -149,19 +161,8 @@ button {
     border-radius: 3px;
     color: white;
 }
-
-.menuButton {
-	width: 25px;
-	height: 25px;
-	border: 1px solid silver;
-	background-color: white;
-}
-
 #fileButton {
     background: url(svg/file.svg) center center no-repeat;
-}
-#layersButton {
-    background: url(svg/layers.svg) center center no-repeat;
 }
 #zoomInButton {
     background: url(svg/zoomin.svg) center center no-repeat;
@@ -184,6 +185,9 @@ button {
 #ovalButton {
     background: url(svg/oval.svg) center center no-repeat;
 }
+#arcButton {
+    background: url(svg/arc.svg) center center no-repeat;
+}
 #deleteButton {
     background: url(svg/cross.svg) center center no-repeat;
 }
@@ -194,13 +198,16 @@ button {
     background: url(svg/back.svg) center center no-repeat;
 }
 #fileMenu {
-    left: 0;
-    top: 0;
+    left: 4px;
+    top: 48px;
+    padding: 5px;
+    border-radius: 3px;
 }
 #newDrawing {
-    left: 0;
-    top: 0;
+    left: 4px;
+    top: 48px;
     padding: 5px;
+    border-radius: 3px;
 }
 #createNewDrawing {
     float: right;
@@ -211,8 +218,14 @@ button {
     background: url(svg/cross.svg) center center no-repeat;
 }
 #stylesDialog {
+    left: 48px;
+    top: 48px;
+    /*
     bottom: 0;
     right: 0;
+    */
+    padding: 5px;
+    border-radius: 3px;
     display: none;
 }
 
