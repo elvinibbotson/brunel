@@ -921,7 +921,7 @@ id('graphic').addEventListener('touchend',function() {
                     case 'arc':
                         // console.log('arc '+el.id);
                         var d=el.getAttribute('d');
-                        // console.log('select arc - d: '+d);
+                        console.log('select arc - d: '+d);
                         // derive arc geometry from d
                         var from=1;
                         var to=d.indexOf(',');
@@ -929,8 +929,8 @@ id('graphic').addEventListener('touchend',function() {
                         from=to+1;
                         to=d.indexOf(' ',from);
                         arc.centreY=parseInt(d.substr(from,to));
-                        from=d.indexOf('M')+1;
-                         to=d.indexOf(',',from);
+                        from=d.indexOf('M',to)+1;
+                        to=d.indexOf(',',from);
                         arc.startX=parseInt(d.substr(from,to));
                         from=to+1;
                         to=d.indexOf(' ',from);
@@ -947,21 +947,7 @@ id('graphic').addEventListener('touchend',function() {
                         arc.endX=parseInt(d.substr(from,to));
                         from=to+1;
                         arc.endY=parseInt(d.substr(from));
-                        /* find centre from nodes NO NEED NOW!
-                        for(i=0;i<nodes.length;i++) {
-                            var n=nodes[i];
-                            if(n.el!=el.id) continue;
-                            // console.log('node '+i+' el:'+n.el+' at '+n.x+','+n.y);
-                            if((n.x==arc.startX)&&(n.y==arc.startY)) continue;
-                            else if((n.x==arc.endX)&&(n.y==arc.endY)) continue;
-                            else {
-                                arc.centreX=n.x;
-                                arc.centreY=n.y;
-                                // console.log('arc centre: '+arc.centreX+','+arc.centreY);
-                            }
-                        }
-                        */
-                        console.log('arc centre: '+arc.centreX+','+arc.centreY+' start: '+arc.startX+','+arc.startY+'; radius: '+arc.radius+'; major: '+arc.major+'; spin: '+arc.spin+'; end: '+arc.endX+','+arc.endY);
+                        // console.log('arc centre: '+arc.centreX+','+arc.centreY+' start: '+arc.startX+','+arc.startY+'; radius: '+arc.radius+'; major: '+arc.major+'; spin: '+arc.spin+'; end: '+arc.endX+','+arc.endY);
                         elementID=el.id;
                         var html="<circle id='handleCentre' cx="+arc.centreX+" cy="+arc.centreY+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML+=html; // circle handle at arc centre
@@ -972,7 +958,9 @@ id('graphic').addEventListener('touchend',function() {
                         // set up x0 & x for arc radius and included angle
                         var startAngle=Math.atan((arc.startY-arc.centreY)/(arc.startX-arc.centreX));
                         if(arc.startX<arc.centreX) startAngle+=Math.PI;
+                        // console.log('startAngle: '+startAngle);
                         var angle=Math.atan((arc.endY-arc.centreY)/(arc.endX-arc.centreX));
+                        // console.log('angle: '+angle);
                         if(arc.endX<arc.centreX) angle+=Math.PI;
                         angle=Math.abs(angle-startAngle);
                         // console.log('arc angle: '+Math.round(angle*180/Math.PI));
