@@ -510,7 +510,8 @@ id('graphic').addEventListener('touchend',function() {
             dwg.x-=(x-x0);
             dwg.y-=(y-y0);
             // console.log('drawing x,y: '+dwg.x+','+dwg.y+'; scale: '+scale+'; zoom: '+zoom);
-            mode='select';
+            // STAY IN PAN MODE UNTIL TAP TO EXIT
+            if((Math.abs(x-x0)<snapD)&&(Math.abs(y-y0)<snapD)) mode='select';
             // console.log('mode is '+mode);
             break;
         case 'line':
