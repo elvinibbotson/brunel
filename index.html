@@ -11,6 +11,8 @@
 </head>
 <body>
     <div id='graphic'>
+        <svg id='ref' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
+        </svg>
 		<svg id='svg' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
 		    <defs>
 		        <marker id='startArrow' markerWidth='20' markerHeight='10' refX='0' refY='5' orient='auto'>
@@ -23,14 +25,15 @@
 		            <rect x='0' y='0' width='297' height='210'/>
 		        </clipPath>
 		    </defs>
-		    <g id='ref'></g>
+		    <!--g id='ref'></g-->
 		    <g id='dwg' style="clip-path: url(#clipper);"></g>
 		    <g id='handles'></g>
 		    <g id='blue'>
 		        <polyline id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
 		        <rect id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
 		        <ellipse id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/>
-		        <path id='blueArc' d='M0,0 A0,0 0 0,0 0,0' stroke='blue' fill='none'/> 
+		        <path id='blueArc' d='M0,0 A0,0 0 0,0 0,0' stroke='blue' fill='none'/>
+		        <line id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue' fill='none'/>
 		    </g>
 		    <!-- TEST DIMENSION line x1='100' y1='100' x2='200' y2='150' marker-start='url(#startArrow)' marker-end='url(#endArrow)' stroke='gray' stroke-width='0.25' fill='none'/-->
 		</svg>
@@ -67,7 +70,8 @@
     </div>
     <div id='prompt'></div>
     <div id='checks'></div>
-    <div id='styles'></div>
+    <div id='fill'></div>
+    <div id='line'></div>
     <div id='newDrawing' class='dialog'>
         <p>new drawing</p>
         <p>size: A4 (<span id='aspect'></span>)</p>
@@ -103,45 +107,19 @@
                 <option value='dashed'>dashed</option>
                 <option value='dotted'>dotted</option>
             </select>
-            <select id='lineShade'>
-                <option value='black' selected>black</option>
-                <option value='dimgray'>dark</option>
-                <option value='gray'>medium</option>
-                <option value='silver'>light</option>
-            </select>
-            </p>
-            <p>width <input id='penWidth' type='number' value='0.25'/>mm
             <select id='penSelect'>
                 <option value='0.25' selected>0.25mm</option>
                 <option value='0.5'>0.5mm</option>
                 <option value='1.0'>1.0mm</option>
-                <option value='1.4'>1.4mm</option>
+                <!--option value='1.4'>1.4mm</option-->
                 <option value='2.0'>2.0mm</option>
             </select>
+            <img id='lineShade'></img>
             </p>
         </div>
         <div id='fillStyle'>
-            <p>fill 
-            <select id='fillType'>
-                <option value=0 selected>no fill</option>
-                <option value=1>filled</option>
-                <option value=-1>pattern</option>
-            </select>
-            <select id='fillShade'>
-                <option value='none' selected>no fill</option>
-                <option value='silver'>light</option>
-                <option value='gray'>medium</option>
-                <option value='dimgray'>dark</option>
-                <option value='black'>black</option>
-            </select>
-            </p>
-            <p>opacity <select id='opacity'>
-                <option value=1 selected>100%</option>
-                <option value=0.75>75%</option>
-                <option value=0.5>50%</option>
-                <option value=0.25>25%</option>
-            </select>
-            text <select id='textSize'>
+            <p>fill  
+            <img id='fillShade'></img> text <select id='textSize'>
                 <option value=3.5 selected>10pt</option>
                 <option value=5>14pt</option>
                 <option value=7>20pt</option>
@@ -149,93 +127,23 @@
                 <option value=14>40pt</option>
                 <option value=20>58pt</option>
                 <option value=25>72pt</option>
-            </select>
-            </p>
+            </select></p>
+            <p>opacity <select id='opacity'>
+                <option value=1 selected>100%</option>
+                <!--option value=0.75>75%</option-->
+                <option value=0.5>50%</option>
+                <option value=0.25>25%</option>
+            </select></p>
         </div>
     </div>
-	<!--h id="header"><span id='element'>drawing</span> <span id='dialog'>shape</span></h-->
-	<div id='shapeDialog' class='dialog'>
-		<div>
-			<button id='squareButton' class='menuButton'></button>
-			<button id='lozengeButton' class='menuButton'></button>
-			<button id='circleButton' class='menuButton'></button>
-			<button id='diamondButton' class='menuButton'></button>
-			<button id='shieldButton' class='menuButton'></button>
-		</div>
-	</div>
-	<div id='colourDialog' class='dialog'>
-		<div>
-			<button id='redButton' class='menuButton'></button>
-			<button id='orangeButton' class='menuButton'></button>
-			<button id='yellowButton' class='menuButton'></button>
-			<button id='limeButton' class='menuButton'></button>
-			<button id='greenButton' class='menuButton'></button>
-			<button id='blueButton' class='menuButton'></button>
-			<button id='purpleButton' class='menuButton'></button>
-			<button id='whiteButton' class='menuButton'></button>
-			<button id='grayButton' class='menuButton'></button>
-			<button id='blackButton' class='menuButton'></button>
-		</div>
-	</div>
-	<div id='patternDialog' class='dialog'>
-		<div>
-			<button id='noPatternButton' class='menuButton'></button>
-			<button id='dotsButton' class='menuButton'></button>
-			<button id='checksButton' class='menuButton'></button>
-			<button id='VstripesButton' class='menuButton'></button>
-			<button id='HstripesButton' class='menuButton'></button>
-			<button id='diamondsButton' class='menuButton'></button>
-			<button id='RdiagonalsButton' class='menuButton'></button>
-			<button id='LdiagonalsButton' class='menuButton'></button>
-			<button id='crossesButton' class='menuButton'></button>
-			<button id='starsButton' class='menuButton'></button>
-			<button id='chevronsButton' class='menuButton'></button>
-		</div>
-	</div>
-	<div id='borderDialog' class='dialog'>
-		<div>
-			<button id='noBorderButton' class='menuButton'></button>
-			<button id='outlineButton' class='menuButton'></button>
-			<button id='borderButton' class='menuButton'></button>
-		</div>
-	</div>
-	<div id='divisionDialog' class='dialog'>
-		<div>
-			<button id='noDivisionButton' class='menuButton'></button>
-			<button id='VdivButton' class='menuButton'></button>
-			<button id='HdivButton' class='menuButton'></button>
-			<button id='SEdivButton' class='menuButton'></button>
-			<button id='SWdivButton' class='menuButton'></button>
-			<button id='quartersButton' class='menuButton'></button>
-			<button id='diagonalQuartersButton' class='menuButton'></button>
-			<button id='cantonButton' class='menuButton'></button>
-		</div>
-	</div>
-	<div id='bandDialog' class='dialog'>
-		<div>
-			<button id='noBandButton' class='menuButton'></button>
-			<button id='chiefButton' class='menuButton'></button>
-			<button id='paleButton' class='menuButton'></button>
-			<button id='fessButton' class='menuButton'></button>
-			<button id='RbendButton' class='menuButton'></button>
-			<button id='LbendButton' class='menuButton'></button>
-			<button id='crossedButton' class='menuButton'></button>
-			<button id='saltireButton' class='menuButton'></button>
-			<button id='chevronUpButton' class='menuButton'></button>
-			<button id='chevronDownButton' class='menuButton'></button>
-		</div>
-	</div>
-	<div id='symbolDialog' class='dialog'>
-		<div>
-			<button id='noSymbolButton' class='menuButton'></button>
-			<button id='ballButton' class='menuButton'></button>
-			<button id='ringButton' class='menuButton'></button>
-			<button id='boxButton' class='menuButton'></button>
-			<button id='dmndButton' class='menuButton'></button>
-			<button id='crossButton' class='menuButton'></button>
-			<button id='starButton' class='menuButton'></button>
-		</div>
-	</div>
+    <div id='shadeMenu'>
+        <svg width='96' height='24'>
+            <line x1='0' y1='24' x2='24' y2='0' stroke='blue' fill='none'/>
+            <rect x='24' y='0' width='24' height='24' stroke='none' fill='silver'/>
+            <rect x='48' y='0' width='24' height='24' stroke='none' fill='gray'/>
+            <rect x='72' y='0' width='24' height='24' stroke='none' fill='black'/>
+        </svg>
+    </div>
 	<div id='saveDialog' class='dialog'>
 		save as...<br/>
 		<input id='saveName' type='text'>.svg<br/>
