@@ -170,6 +170,18 @@ select {
 #arcButton {
     background: url(svg/arc.svg) center center no-repeat;
 }
+#textButton {
+    background: url(svg/text.svg) center center no-repeat;
+}
+#dimensionButton {
+    background: url(svg/dimension.svg) center center no-repeat;
+}
+#pointButton {
+    background: url(svg/point.svg) center center no-repeat;
+}
+#comboButton {
+    background: url(svg/combo.svg) center center no-repeat;
+}
 #deleteButton {
     background: url(svg/cross.svg) center center no-repeat;
 }
@@ -211,14 +223,14 @@ select {
     height: 24px;
     border: 1px solid #CCCCCC;
     vertical-align: bottom;
-    background-color: gray;
+    background-color: black;
 }
 #fillShade {
     width: 24px;
     height: 24px;
     border: 1px solid #CCCCCC;
     vertical-align: bottom;
-    background: lightgray;
+    background: white;
 }
 #shadeMenu {
     position: fixed;
@@ -232,4 +244,16 @@ select {
     background-color: white;
     z-index: 11;
     display: none;
+}
+#textDialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 5px;
+    border-radius: 3px;
+    z-index: 10;
+    display: none;
+}
+#text {
+    width: 96px;
 }

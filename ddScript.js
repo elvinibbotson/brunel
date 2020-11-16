@@ -29,9 +29,10 @@ var elementID=null; // id of current element
 var lineType='solid'; // default styles
 var lineShade='black';
 var pen=0.25; // 0.25mm at 1:1 scale - increase for smaller scales (eg.12.5 at 1:50 scale)
-var fillShade='gray';
+var fillShade='none';
 var opacity='1';
-var textSize=3.5; // default text size 10pt
+var textSize=5; // default text size
+var textStyle='fine'; // normal text
 var currentDialog=null;
 
 scr.w=screen.width;
@@ -162,6 +163,10 @@ id('arcButton').addEventListener('click', function() {
    mode='arc';
    showSizes(true,'ARC: press at start');
 });
+id('textButton').addEventListener ('click',function() {
+    mode='text';
+    prompt('TEXT: press at start');
+})
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
     prompt('DELETE');
@@ -200,7 +205,7 @@ id('forwardButton').addEventListener('click',function() {
 // STYLES
 id('line').addEventListener('click',function() {
     showDialog('stylesDialog',true);
-})
+});
 id('lineType').addEventListener('change',function() {
     var type=event.target.value;
     // console.log('line type: '+type);
@@ -226,7 +231,7 @@ id('lineType').addEventListener('change',function() {
         // console.log('line type is '+type);
     }
     id('line').style.borderStyle=type;
-})
+});
 id('penSelect').addEventListener('change',function() {
     var val=event.target.value;
     // console.log('pen width: '+val+'mm at 1:1');
@@ -243,7 +248,46 @@ id('penSelect').addEventListener('change',function() {
         // console.log('pen is '+pen);
     }
     id('line').style.borderWidth=(pen/scaleF)+'px';
-})
+});
+id('textSize').addEventListener('change',function() {
+    var val=event.target.value;
+    if(elementID) { // change selected text element
+        element=id(elementID);
+        if(type(element)=='text') {
+            element.setAttribute('font-size',val*scale);
+            // console.log('set element '+element.id+' text size to '+val);
+            updateElement(element.id,'textSize',val);
+        }
+    }
+    else { // change default pen width
+        textSize=val;
+    }
+});
+id('textStyle').addEventListener('change',function() {
+    var val=event.target.value;
+    if(elementID) { // change selected text element
+        element=id(elementID);
+        if(type(element)=='text') {
+            switch(val) {
+                case 'fine':
+                    element.setAttribute('font-style','normal');
+                    element.setAttribute('font-weight','normal');
+                    break;
+                case 'bold':
+                    element.setAttribute('font-style','normal');
+                    element.setAttribute('font-weight','bold');
+                    break;
+                case 'italic':
+                    element.setAttribute('font-style','italic');
+                    element.setAttribute('font-weight','normal');
+            }
+            updateElement(element.id,'textStyle',val);
+        }
+    }
+    else { // change default pen width
+        textStyle=val;
+    }
+});
 id('lineShade').addEventListener('click',function() {
     // console.log('show shadeMenu');
     id('shadeMenu').mode='line';
@@ -253,7 +297,7 @@ id('fillShade').addEventListener('click',function() {
     console.log('show shadeMenu');
     id('shadeMenu').mode='fill';
     var shade=showShadeMenu(true,event.clientX-16,event.clientY-16);
-})
+});
 id('opacity').addEventListener('change',function() {
     var val=event.target.value;
     // console.log('opacity: '+val);
@@ -265,7 +309,7 @@ id('opacity').addEventListener('change',function() {
     }
     else opacity=val; // change default opacity
     id('fill').style.opacity=val;
-})
+});
 id('shadeMenu').addEventListener('click',function() {
     // console.log('shadeMenu at '+id('shadeMenu').style.left);
     var x=event.clientX-parseInt(id('shadeMenu').style.left);
@@ -279,14 +323,21 @@ id('shadeMenu').addEventListener('click',function() {
         var val=(shade=='none')?'blue':shade;
         if(elementID) { // change selected element
             element=id(elementID);
-            element.setAttribute('stroke',val);
-            // console.log('set element '+element.id+' line shade to '+val);
-            updateElement(element.id,'stroke',val);
-            if(val='blue') { // move element into <ref> layer...
-                element.setAttribute('stroke-width',0.25*scale); // ...with thin lines...
-                updateElement(element.id,'stroke-width',0.25*scale);
-                element.setAttribute('fill','none'); // ...and no fill
-                updateElement(element.id,'fill','none');
+            if(type(element)=='text') { // text is filled not stroked
+            console.log('change text colour to '+val);
+                element.setAttribute('fill',val);
+                updateElement(element.id,'fill',val);
+            }
+            else {
+                element.setAttribute('stroke',val);
+                updateElement(element.id,'stroke',val);
+                if(val='blue') { // move element into <ref> layer...
+                    element.setAttribute('stroke-width',0.25*scale); // ...with thin lines...
+                    updateElement(element.id,'stroke-width',0.25*scale);
+                    element.setAttribute('fill','none'); // ...and no fill
+                }
+            }
+            if(val=='blue') { // <ref> layer
                 id('ref').appendChild(element); // move to <ref> layer
                 // console.log('element moved to <ref> layer');
                 mode='select'; // deselect element
@@ -402,6 +453,13 @@ id('graphic').addEventListener('touchstart',function() {
             else if(arc.startX>arc.centreX) arc.spin=(y>arc.startY)?1:0;
             else arc.spin=(y>arc.startY)?0:1;
             // console.log('MAJOR: '+arc.major+'; SPIN: '+arc.spin);
+            break;
+        case 'text':
+            console.log('show text dialog');
+            id('textDialog').style.left=scr.x+'px';
+            id('textDialog').style.top=scr.y+'px';
+            id('text').value='';
+            id('textDialog').style.display='block';
             break;
     }
     event.stopPropagation();
@@ -838,15 +896,19 @@ id('graphic').addEventListener('touchend',function() {
                 }
                 val=el.getAttribute('stroke-width');
                 // console.log('element line width: '+val);
-                id('line').style.borderWidth=(val/scaleF)+'px';
+                if(val) id('line').style.borderWidth=(val/scaleF)+'px';
                 val=el.getAttribute('stroke');
                 // console.log('set lineShade to '+val);
-                id('lineShade').style.backgroundColor=val;
-                id('line').style.borderColor=val;
+                if(val) {
+                    id('lineShade').style.backgroundColor=val;
+                    id('line').style.borderColor=val;
+                }
+                /*
                 val=el.getAttribute('strokeOpacity');
                 // console.log('stroke opacity: '+val);
                 id('opacity').value=val;
                 id('fill').style.opacity=val;
+                */
                 val=el.getAttribute('fill');
                 // console.log('element fill: '+val);
                 if(val=='none') {
@@ -855,14 +917,27 @@ id('graphic').addEventListener('touchend',function() {
                     id('fillShade').style.backgroundColor='white';
                 }
                 else { // MODIFY THIS TO ACCOMMODATE PATTERN FILL
-                    // console.log('set fill to '+val);
-                    // id('fillType').value=1;
-                    id('fillShade').style.backgroundColor=val;
-                    id('fill').style.background=val;
-                    val=el.getAttribute('fill-opacity');
-                    // console.log('element opacity: '+val);
+                    if(type(element)=='text') {
+                        id('lineShade').style.backgroundColor=val;
+                    }
+                    else {
+                        id('fillShade').style.backgroundColor=val;
+                        id('fill').style.background=val;
+                    }
+                }
+                val=el.getAttribute('fill-opacity');
+                if(val) {
                     id('opacity').value=val;
                     id('fill').style.opacity=val;
+                }
+                if(type(element)=='text') {
+                    val=el.getAttribute('font-size');
+                    id('textSize').value=val;
+                    id('textStyle').value='fine';
+                    val=el.getAttribute('font-style');
+                    if(val=='italic') id('textStyle').value='italic';
+                    val=el.getAttribute('font-weight');
+                    if(val=='bold') id('textStyle').value='bold';
                 }
                 id('handles').innerHTML=''; // clear any handles then add handles for selected element 
                 // console.log('element type: '+type(el));
@@ -973,6 +1048,28 @@ id('graphic').addEventListener('touchend',function() {
                         showSizes(true,'ARC');
                         mode='edit';
                         break;
+                    case 'text':
+                        var bounds=el.getBBox();
+                        w=Math.round(bounds.width);
+                        h=Math.round(bounds.height);
+                        // console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
+                        setSizes(false); // size of bounding box
+                        var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                        id('handles').innerHTML+=html; // circle handle at bottom-left moves whole element
+                        id('blueBox').setAttribute('x',bounds.x);
+                        id('blueBox').setAttribute('y',bounds.y);
+                        id('blueBox').setAttribute('width',w);
+                        id('blueBox').setAttribute('height',h);
+                        showSizes(true,'TEXT');
+                        console.log('display text content: '+element.innerHTML);
+                        console.log('show text dialog');
+                        id('textDialog').style.left=scr.x+'px';
+                        id('textDialog').style.top=scr.y+'px';
+                        id('text').value=element.innerHTML;
+                        id('textDialog').style.display='block';
+                        elementID=el.id;
+                        mode='edit';
+                        break;
                 }
                 showEditTools(true);
             }
@@ -980,9 +1077,12 @@ id('graphic').addEventListener('touchend',function() {
                 mode='select';
                 elementID=null;
                 selection=[];
-                id('handles').innerHTML=''; //remove element handles
+                id('handles').innerHTML=''; //remove element handles...
+                id('blueBox').setAttribute('width',0); // ...and text bounds
+                id('blueBox').setAttribute('height',0);
                 showSizes(false);
                 showEditTools(false);
+                id('textDialog').style.display='none';
                 // console.log('set lineType to current default: '+lineType);
                 id('lineType').value=lineType;
                 // console.log('set border to '+lineType+' pen: '+pen+' shade: '+lineShade);
@@ -1184,6 +1284,56 @@ id('second').addEventListener('change',function() {
             id('handleSize').setAttribute('y',(elY+val/2-handleR));
     }
 })
+// TEXT
+id('text').addEventListener('change',function() {
+    var text=event.target.value;
+    if(elementID) { // change selected text
+        element=id(elementID);
+        element.innerHTML=text;
+        updateElement(elementID,'text',text);
+    }
+    else {
+        console.log('add text '+text);
+        var html="<text id='~"+elID+"' x='"+x0+"' y='"+y0+"' ";
+        html+="font-size='"+(textSize*scale)+"' ";
+        if(textStyle=='bold') html+="font-weight='bold' ";
+        else if(textStyle=='italic') html+="font-style='italic' ";
+        html+="stroke='none' fill='"+lineShade+"'>"+text+"</text>";
+        console.log('text html: '+html);
+        id('dwg').innerHTML+=html;
+        id('textDialog').style.display='none';
+        elementID='~'+elID;
+	    element=id(elementID);
+	    // console.log('element is '+elementID);
+	    elID++;
+        // NO NODES FOR TEXT
+        // save text to database
+        var dbTransaction=db.transaction('elements',"readwrite");
+	    // console.log("indexedDB transaction ready");
+	    var dbObjectStore=dbTransaction.objectStore('elements');
+	    var el={}
+	    el.id=elementID;
+	    el.type='text';
+	    el.text=text;
+	    el.x=x0;
+        el.y=y0;
+        el.textSize=textSize;
+        el.textStyle=textStyle;
+	    el.fill=element.getAttribute('fill');
+	    el.opacity=element.getAttribute('fill-opacity');
+	    if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
+        var request=dbObjectStore.add(el);
+	    request.onsuccess=function(event) {
+	        console.log("new text element added: "+el.id);
+	    };
+	    request.onerror=function(event) {
+	        console.log("error adding new text element");
+	    };
+    }
+    
+    element=elementID=null;
+    mode='select';
+})
 
 // UTILITY FUNCTIONS
 function id(el) {
@@ -1226,6 +1376,9 @@ function initialise() {
         id('ref').setAttribute('width',dwg.w+'in');
         id('ref').setAttribute('height',dwg.h+'in');
     }
+    var blues=document.getElementsByClassName('blue');
+    console.log(blues.length+' elements in blue class');
+    for(var i=0;i<blues.length;i++) blues[i].style.strokeWidth=0.25*scale;
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
@@ -1276,6 +1429,9 @@ function type(el) {
     }
     else if(el instanceof SVGPathElement) {
         return 'arc';
+    }
+    else if(el instanceof SVGTextElement) {
+        return 'text';
     }
 }
 function prompt(text) {
@@ -1394,7 +1550,7 @@ function updateElement(id,attribute,val) {
 	    // console.log('element '+id+' '+attribute+' changed to '+val);
 	    request=dbObjectStore.put(el);
 	    request.onsuccess=function(event) {
-			console.log("element '+id+' updated");
+			console.log('element '+id+' updated');
 		};
 		request.onerror=function(event) {
 		    console.log("PUT error updating element "+id);
@@ -1406,7 +1562,8 @@ function updateElement(id,attribute,val) {
 }
 // SAVE DRAWING AS SVG FILE _ PRINT AS PDF AT 100% SCALE
 function saveSVG() {
-	var svg=id('graphic').innerHTML;
+    var svg=id('drawing').innerHTML;
+	// WAS THIS... var svg=id('graphic').innerHTML;
 	// console.log("SVG: "+svg);
 	var fileName="drawing.svg";
 	// var saveName=id('saveName').value;
@@ -1504,9 +1661,20 @@ request.onsuccess=function(event) {
                     nodes.push({'x':el.startX,'y':el.startY,'el':el.id});
                     nodes.push({'x':el.endX,'y':el.endY,'el':el.id});
                     break;
+                case 'text':
+                    console.log('load text element');
+                    html+=" x='"+el.x+"' y='"+el.y+"' ";
+                    html+="font-size='"+(el.textSize*scale)+"' ";
+                    if(el.textStyle=='bold') html+="font-weight='bold' ";
+                    else if(el.textStyle=='italic') html+="font-style='italic' ";
+                    html+="stroke='none' fill='"+el.fill+"' ";
+                    if(el.transform) html+="transform='"+el.transform+"'";
+                    html+=">"+el.text+"</text>";
+                    console.log('html: '+html);
+                    break;
             }
             var len=nodes.length;
-            // console.log(len+ ' nodes');
+            console.log(len+ ' nodes');
             // for(var i=len-4;i<len;i++) console.log('node: '+nodes[i].x+','+nodes[i].y+' el:'+nodes[i].el);
             if(el.stroke=='blue') id('ref').innerHTML+=html; // blue lines go into <ref> layer
             else id('dwg').innerHTML+=html; // ADD TO <defs> IF SYMBOL
