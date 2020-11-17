@@ -15,6 +15,8 @@ var x=0;
 var y=0;
 var x0=0;
 var y0=0;
+var dx=0;
+var dy=0;
 var w=0;
 var h=0;
 var arc={};
@@ -202,6 +204,67 @@ id('forwardButton').addEventListener('click',function() {
     if(nextElement===null) alert('already at front');
     else id('dwg').insertBefore(nextElement,element);
 });
+id('moveButton').addEventListener('click',function() {
+    id('moveRight').value=id('moveDown').value=id('moveDist').value=id('moveAngle').value=0;
+    showDialog('moveDialog',true);
+});
+id('cancelMove').addEventListener('click',function() {
+    showDialog('moveDialog',false);
+});
+id('confirmMove').addEventListener('click',function() {
+    // read move parameters and adjust element
+    var moveX=parseInt(id('moveRight').value);
+    var moveY=parseInt(id('moveDown').value);
+    var moveD=parseInt(id('moveDist').value);
+    var moveA=parseInt(id('moveAngle').value);
+
+    console.log('move '+moveX+','+moveY+' '+moveD+'@'+moveA);
+    if((moveD!=0)&&(moveA!=0)) { // polar coordinates - convert to cartesian
+        moveA-=90;
+        moveA*=Math.PI/180;
+        moveX=moveD*Math.cos(moveA);
+        moveY=moveD*Math.sin(moveA);
+    }
+    switch(type(element)) {
+        case 'polyline':
+            // move all points by moveX, moveY
+            break;
+        case 'box':
+        case 'text':
+            console.log('move by '+moveX+','+moveY);
+            var val=parseInt(element.getAttribute('x'));
+            val+=moveX;
+            element.setAttribute('x',val);
+            updateElement(elementID,'x',val);
+            val=parseInt(element.getAttribute('y'));
+            val+=moveY;
+            element.setAttribute('y',val);
+            updateElement(elementID,'y',val);
+            break;
+        case 'oval':
+            var val=parseInt(element.getAttribute('cx'));
+            val+=moveX;
+            element.setAttribute('cx',val);
+            updateElement(elementID,'cx',val);
+            val=parseInt(element.getAttribute('cy'));
+            val+=moveY;
+            element.setAttribute('cy',val);
+            updateElement(elementID,'cy',val);
+            break;
+        case 'arc':
+            // move centre, start and end points by moveX, moveY
+            break;
+    }
+    for(var i=0;i<nodes.length;i++) { // move nodes
+        if(nodes[i].el==elementID) nodes[i].x=val;
+    }
+    showDialog('moveDialog',false);
+    id('handles').innerHTML='';
+    mode='select';
+    selected=[];
+    elementID=null;
+});
+
 // STYLES
 id('line').addEventListener('click',function() {
     showDialog('stylesDialog',true);
@@ -303,7 +366,6 @@ id('opacity').addEventListener('change',function() {
     // console.log('opacity: '+val);
     if(elementID) { // change selected element
         element=id(elementID);
-        element.setAttribute('stroke-opacity',val);
         element.setAttribute('fill-opacity',val);
         updateElement(elementID,'opacity',val);
     }
@@ -385,7 +447,26 @@ id('graphic').addEventListener('touchstart',function() {
     y=y0=Math.round(scr.y*scaleF/zoom+dwg.y);
     // TEST FOR TOUCHING EDIT HANDLES
     var val=event.target.id;
-    // console.log('touch on '+val);
+    console.log('touch on '+val);
+    if(val.startsWith('handle')) {
+        console.log('HANDLE '+val);
+        var handle=id(val);
+        if(handle instanceof SVGCircleElement) {
+            mode='move';
+            var bounds=element.getBBox();
+            id('blueBox').setAttribute('x',bounds.x);
+            id('blueBox').setAttribute('y',bounds.y);
+            id('blueBox').setAttribute('width',bounds.width);
+            id('blueBox').setAttribute('height',bounds.height);
+            dx=bounds.x-x0; // offsets to top-left corner
+            dy=bounds.y-y0;
+            console.log('offsets: '+dx+','+dy);
+            prompt('drag to MOVE');
+            id('textDialog').style.display='none';
+        }
+        else if(handle instanceof SVGRectElement) mode='size';
+        return;
+    }
     snap=snapCheck();
     if(snap) { // snap start/centre to snap target
         x0=x;
@@ -466,15 +547,21 @@ id('graphic').addEventListener('touchstart',function() {
 })
 // TOUCH - MOVE
 id('graphic').addEventListener('touchmove',function() {
+    // console.log('DRAG - offsets: '+dx+','+dy);
     event.preventDefault();
     scr.x=Math.round(event.touches[0].clientX);
     scr.y=Math.round(event.touches[0].clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
     switch(mode) {
+        case 'move':
+            // console.log('move element '+elementID+' to '+x+','+y);
+            id('blueBox').setAttribute('x',(x+dx));
+            id('blueBox').setAttribute('y',(y+dy));
+            break;
         case 'pan':
-            var dx=dwg.x-(x-x0);
-            var dy=dwg.y-(y-y0);
+            dx=dwg.x-(x-x0);
+            dy=dwg.y-(y-y0);
             // console.log('drawing x,y: '+dx+','+dy);
             id('svg').setAttribute('viewBox',dx+' '+dy+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
             id('ref').setAttribute('viewBox',dx+' '+dy+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
@@ -563,6 +650,77 @@ id('graphic').addEventListener('touchend',function() {
     // console.log('touch-end at '+x+','+y);
     snap=snapCheck();
     switch(mode) {
+        case 'move':
+            // console.log('move element '+elementID+' ends at '+x+','+y);
+            id('handles').innerHTML='';
+            dx=x-x0;
+            dy=y-y0;
+            console.log('moved by '+dx+','+dy);
+            id('blueBox').setAttribute('width',0);
+            id('blueBox').setAttribute('height',0);
+            var val=type(element);
+            console.log('element type: '+val);
+            switch(val) {
+                case 'polyline':
+                    console.log('move all points by '+dx+','+dy);
+                    for(var i=0;i<element.points.length;i++) {
+                        element.points[i].x+=dx;
+                        element.points[i].y+=dy;
+                    }
+                    // console.log(element.points.length+' points adjusted');
+                    updateElement(elementID,'points',element.getAttribute('points'));
+                    break;
+                case 'box':
+                    element.setAttribute('x',x);
+                    element.setAttribute('y',y);
+                    updateElement(elementID,'x',x);
+                    updateElement(elementID,'y',y);
+                    break;
+                case 'oval':
+                    element.setAttribute('cx',x);
+                    element.setAttribute('cy',y);
+                    updateElement(elementID,'cx',x);
+                    updateElement(elementID,'cy',y);
+                    break;
+                case 'arc':
+                    // move centre, start and end points by dx,dy
+                    var d=element.getAttribute('d');
+                    getArc(d);
+                    arc.centreX+=dx;
+                    arc.centreY+=dy;
+                    arc.startX+=dx;
+                    arc.startY+=dy;
+                    arc.endX+=dx;
+                    arc.endY+=dy;
+                    d=setArc();
+                    element.setAttribute('d',d);
+                    updateElement(elementID,'centreX',arc.centreX);
+                    updateElement(elementID,'centreY',arc.centreY);
+                    updateElement(elementID,'startX',arc.startX);
+                    updateElement(elementID,'startY',arc.startY);
+                    updateElement(elementID,'endX',arc.endX);
+                    updateElement(elementID,'endY',arc.endY);
+                    break;
+                case 'text':
+                    element.setAttribute('x',x);
+                    element.setAttribute('y',y);
+                    updateElement(elementID,'x',x);
+                    updateElement(elementID,'y',y);
+                    break;
+            }
+            // MOVE ELEMENT NODES
+            for(var i=0; i<nodes.length;i++) {
+                if(nodes[i].el=elementID) {
+                    nodes[i].x+=dx;
+                    nodes[i].y+=dy;
+                }
+            }
+            mode='select';
+            elementID=null;
+            selection=[];
+            showSizes(false);
+            showEditTools(false);
+            break;
         case 'pan':
             console.log('pan ends at '+x+','+y);
             dwg.x-=(x-x0);
@@ -588,7 +746,7 @@ id('graphic').addEventListener('touchend',function() {
                 html+=points+"' stroke='"+lineShade+"' stroke-width='"+(pen*scale)+"' ";
                 if(lineType=='dashed') html+="stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"' ";
                 else if(lineType=='dotted') html+="stroke-dasharray='"+scale+" "+scale+"' ";
-                html+="stroke-opacity='"+opacity+"' fill='none'/>";
+                html+="fill='none'/>";
                 id('dwg').innerHTML+=html;
                 // console.log('poly/line added: '+html);
                 elementID='~'+elID;
@@ -618,7 +776,7 @@ id('graphic').addEventListener('touchend',function() {
 	            el.lineW=element.getAttribute('stroke-width');
 	            if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
 	            el.fill=element.getAttribute('fill');
-	            if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
+	            // if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
 	            if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
                 // console.log('element data object id: '+el.id+'; type: '+el.type+'; '+el.points.length+' points');
     		    var request=dbObjectStore.add(el);
@@ -645,7 +803,7 @@ id('graphic').addEventListener('touchend',function() {
                 case 'dotted':
                     html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
             }
-            html+=" stroke-width="+(pen*scale)+" stroke-opacity='"+opacity+"' fill='";
+            html+=" stroke-width='"+(pen*scale)+"' fill='";
             // console.log('fillShade: '+fillShade);
             html+=fillShade;
             html+="' fill-opacity='"+opacity+"'>";
@@ -687,7 +845,7 @@ id('graphic').addEventListener('touchend',function() {
 	        el.lineW=element.getAttribute('stroke-width');
 	        if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
 	        el.fill=element.getAttribute('fill');
-	        if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
+	        // if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
 	        if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
 	        // console.log('element data object id: '+el.id+'; type: '+el.type+'; size: '+el.width+'x'+el.height);
     		var request=dbObjectStore.add(el);
@@ -712,7 +870,7 @@ id('graphic').addEventListener('touchend',function() {
                 case 'dotted':
                     html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
             }
-            html+=" stroke-width="+(pen*scale)+" stroke-opacity='"+opacity+"' fill='";
+            html+=" stroke-width="+(pen*scale)+" fill='";
             // console.log('fillShade: '+fillShade);
             html+=fillShade;
             html+="' fill-opacity='"+opacity+"'>";
@@ -755,7 +913,7 @@ id('graphic').addEventListener('touchend',function() {
 	        el.lineW=element.getAttribute('stroke-width');
 	        if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
 	        el.fill=element.getAttribute('fill');
-	        if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
+	        // if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
 	        if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
 	        // console.log('element data object id: '+el.id+'; type: '+el.type+'; radii: '+el.rx+'x'+el.ry);
     		var request=dbObjectStore.add(el);
@@ -782,7 +940,8 @@ id('graphic').addEventListener('touchend',function() {
             mode='arcEnd';
             break;
         case 'arcEnd':
-            var html="<path id='~"+elID+"' d='M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY+" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" "+arc.endX+","+arc.endY+"' stroke=";
+            var html="<path id='~"+elID+"' d='"+setArc()+"' stroke="; // set arc path html from arc properties
+            /* "<path id='~"+elID+"' d='M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY+" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" "+arc.endX+","+arc.endY+"' stroke=";*/
             switch(lineType) {
                 case 'solid':
                     html+=lineShade;
@@ -793,7 +952,7 @@ id('graphic').addEventListener('touchend',function() {
                 case 'dotted':
                     html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
             }
-            html+=" stroke-width="+(pen*scale)+" stroke-opacity='"+opacity+"' fill='none'"; // no fill
+            html+=" stroke-width="+(pen*scale)+" fill='none'"; // no fill
             html+="' fill-opacity='"+opacity+"'>";
             // console.log('arc svg: '+html);
             id('dwg').innerHTML+=html;
@@ -834,7 +993,7 @@ id('graphic').addEventListener('touchend',function() {
 	        el.lineW=element.getAttribute('stroke-width');
 	        if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
 	        el.fill=element.getAttribute('fill');
-	        if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
+	        // if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
 	        if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
 	        var request=dbObjectStore.add(el);
 		    request.onsuccess=function(event) {
@@ -867,6 +1026,7 @@ id('graphic').addEventListener('touchend',function() {
                 }
             }
             else hit=el;
+            console.log('hit: '+hit);
             if(hit && el.charAt(0)=='~') {
                 // IF BOX-SELECT ADD TO 'selections' ARRAY - LIST OF ELEMENT IDs
                 // OTHERWISE (CLICK-SELECT) JUST SELECT AN ELEMENT IN snap RANGE
@@ -916,7 +1076,7 @@ id('graphic').addEventListener('touchend',function() {
                     id('fill').style.background='#00000000';
                     id('fillShade').style.backgroundColor='white';
                 }
-                else { // MODIFY THIS TO ACCOMMODATE PATTERN FILL
+                else {
                     if(type(element)=='text') {
                         id('lineShade').style.backgroundColor=val;
                     }
@@ -998,32 +1158,7 @@ id('graphic').addEventListener('touchend',function() {
                         // console.log('arc '+el.id);
                         var d=el.getAttribute('d');
                         console.log('select arc - d: '+d);
-                        // derive arc geometry from d
-                        var from=1;
-                        var to=d.indexOf(',');
-                        arc.centreX=parseInt(d.substr(from,to));
-                        from=to+1;
-                        to=d.indexOf(' ',from);
-                        arc.centreY=parseInt(d.substr(from,to));
-                        from=d.indexOf('M',to)+1;
-                        to=d.indexOf(',',from);
-                        arc.startX=parseInt(d.substr(from,to));
-                        from=to+1;
-                        to=d.indexOf(' ',from);
-                        arc.startY=parseInt(d.substr(from,to));
-                        from=d.indexOf('A')+1;
-                        to=d.indexOf(',',from);
-                        arc.radius=parseInt(d.substr(from,to));
-                        from=to+1;
-                        to=d.indexOf(',',from);
-                        arc.major=parseInt(d.charAt(to-1));
-                        arc.spin=parseInt(d.charAt(to+1));
-                        from=d.indexOf(' ',to);
-                        to=d.indexOf(',',from);
-                        arc.endX=parseInt(d.substr(from,to));
-                        from=to+1;
-                        arc.endY=parseInt(d.substr(from));
-                        // console.log('arc centre: '+arc.centreX+','+arc.centreY+' start: '+arc.startX+','+arc.startY+'; radius: '+arc.radius+'; major: '+arc.major+'; spin: '+arc.spin+'; end: '+arc.endX+','+arc.endY);
+                        getArc(d); // derive arc geometry from d
                         elementID=el.id;
                         var html="<circle id='handleCentre' cx="+arc.centreX+" cy="+arc.centreY+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML+=html; // circle handle at arc centre
@@ -1055,7 +1190,7 @@ id('graphic').addEventListener('touchend',function() {
                         // console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
                         setSizes(false); // size of bounding box
                         var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
-                        id('handles').innerHTML+=html; // circle handle at bottom-left moves whole element
+                        id('handles').innerHTML+=html; // circle handle moves whole element
                         id('blueBox').setAttribute('x',bounds.x);
                         id('blueBox').setAttribute('y',bounds.y);
                         id('blueBox').setAttribute('width',w);
@@ -1330,7 +1465,6 @@ id('text').addEventListener('change',function() {
 	        console.log("error adding new text element");
 	    };
     }
-    
     element=elementID=null;
     mode='select';
 })
@@ -1375,6 +1509,7 @@ function initialise() {
         id('svg').setAttribute('height',dwg.h+'in');
         id('ref').setAttribute('width',dwg.w+'in');
         id('ref').setAttribute('height',dwg.h+'in');
+        id('moveUnit').innerHTML='in';
     }
     var blues=document.getElementsByClassName('blue');
     console.log(blues.length+' elements in blue class');
@@ -1465,6 +1600,43 @@ function setSizes(polar,arc) {
     }
     // PUT ELEMENT SPIN INTO 'spin' BOX
 }
+function getArc(d) {
+    console.log('get arc from: '+d);
+    var from=1;
+    var to=d.indexOf(',');
+    arc.centreX=parseInt(d.substr(from,to));
+    from=to+1;
+    to=d.indexOf(' ',from);
+    arc.centreY=parseInt(d.substr(from,to));
+    from=d.indexOf('M',to)+1;
+    to=d.indexOf(',',from);
+    arc.startX=parseInt(d.substr(from,to));
+    from=to+1;
+    to=d.indexOf(' ',from);
+    arc.startY=parseInt(d.substr(from,to));
+    from=d.indexOf('A')+1;
+    to=d.indexOf(',',from);
+    arc.radius=parseInt(d.substr(from,to));
+    from=to+1;
+    to=d.indexOf(',',from);
+    arc.major=parseInt(d.charAt(to-1));
+    arc.spin=parseInt(d.charAt(to+1));
+    from=d.indexOf(' ',to);
+    to=d.indexOf(',',from);
+    arc.endX=parseInt(d.substr(from,to));
+    from=to+1;
+    arc.endY=parseInt(d.substr(from));
+    console.log('arc centre: '+arc.centreX+','+arc.centreY+' start: '+arc.startX+','+arc.startY+'; radius: '+arc.radius+'; major: '+arc.major+'; spin: '+arc.spin+'; end: '+arc.endX+','+arc.endY);
+}
+function setArc() {
+    console.log('create arc path html from arc properties');
+    var d="M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY;
+    d+=" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" ";
+    d+=arc.endX+","+arc.endY;
+    // 'M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY+" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" "+arc.endX+","+arc.endY
+    console.log('set arc d to: '+d);
+    return d;
+}
 function blueArc() {
     id('blueArc').setAttribute('d','M'+arc.centreX+','+arc.centreY+' M'+arc.startX+','+arc.startY+' A'+arc.radius+','+arc.radius+' 0 '+arc.major+','+arc.spin+' '+arc.endX+','+arc.endY);
 }
@@ -1529,6 +1701,24 @@ function updateElement(id,attribute,val) {
 	            break;
 	        case 'ry':
 	            el.ry=val;
+	            break;
+	        case 'centreX':
+	            el.centreX=val;
+	            break;
+	        case 'centreY':
+	            el.centreY=val;
+	            break;
+	        case 'startX':
+	            el.startX=val;
+	            break;
+	        case 'startY':
+	            el.startY=val;
+	            break;
+	        case 'endX':
+	            el.endX=val;
+	            break;
+	        case 'endY':
+	            el.endY=val;
 	            break;
 	        case 'stroke':
 	            el.stroke=val;
@@ -1606,7 +1796,7 @@ request.onsuccess=function(event) {
                     html+="points='"+el.points+"' ";
                     html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
                     if(el.lineStyle) html+="stroke-dasharray='"+el.lineStyle+"' ";
-                    html+="stroke-opacity='"+el.opacity+"' ";
+                    // html+="stroke-opacity='"+el.opacity+"' ";
                     html+="fill='"+el.fill+"' ";
                     html+="fill-opacity='"+el.opacity+"' ";
                     if(el.transform) html+="transform='"+el.transform+"'";
@@ -1620,7 +1810,7 @@ request.onsuccess=function(event) {
                     html+="x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' ";
                     html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
                     if(el.lineStyle) html+="stroke-dasharray='"+el.lineStyle+"' ";
-                    html+="stroke-opacity='"+el.opacity+"' ";
+                    // html+="stroke-opacity='"+el.opacity+"' ";
                     html+="fill='"+el.fill+"' ";
                     html+="fill-opacity='"+el.opacity+"' ";
                     if(el.transform) html+="transform='"+el.transform+"'";
@@ -1635,7 +1825,7 @@ request.onsuccess=function(event) {
                     html+="cx='"+el.cx+"' cy='"+el.cy+"' rx='"+el.rx+"' ry='"+el.ry+"' ";
                     html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
                     if(el.lineStyle) html+="stroke-dasharray='"+el.lineStyle+"' ";
-                    html+="stroke-opacity='"+el.opacity+"' ";
+                    // html+="stroke-opacity='"+el.opacity+"' ";
                     html+="fill='"+el.fill+"' ";
                     html+="fill-opacity='"+el.opacity+"' ";
                     if(el.transform) html+="transform='"+el.transform+"'";
@@ -1651,7 +1841,7 @@ request.onsuccess=function(event) {
                     html+=" d='M"+el.centreX+","+el.centreY+" M"+el.startX+","+el.startY+" A"+el.radius+","+el.radius+" 0 "+el.major+","+el.spin+" "+el.endX+","+el.endY+"' ";
                     html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
                     if(el.lineStyle) html+="stroke-dasharray='"+el.lineStyle+"' ";
-                    html+="stroke-opacity='"+el.opacity+"' ";
+                    // html+="stroke-opacity='"+el.opacity+"' ";
                     html+="fill='"+el.fill+"' ";
                     html+="fill-opacity='"+el.opacity+"' ";
                     if(el.transform) html+="transform='"+el.transform+"'";

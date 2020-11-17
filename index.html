@@ -66,6 +66,10 @@
         <button id='deleteButton' class='iconButton'></button>
         <button id='forwardButton' class='iconButton'></button>
         <button id='backButton' class='iconButton'></button>
+        <button id='moveButton' class='iconButton'></button>
+        <button id='spinButton' class='iconButton'></button>
+        <button id='parallelButton' class='iconButton'></button>
+        <button id='repeatButton' class='iconButton'></button>
     </div>
     <div id='fileMenu' class='dialog'>
         <p id='new'>new drawing</p>
@@ -147,6 +151,16 @@
                 <option value=0.25>25%</option>
             </select> opacity</p>
         <!--/div-->
+    </div>
+    <div id='moveDialog' class='dialog'>
+        <p>move...</p>
+        <p><input type='number' id='moveRight'/><img src='svg/right.svg'/>
+        <input type='number' id='moveDown'/><img src='svg/down.svg'/></p>
+        <p>...or <input type='number' id='moveDist'/> @ <input type='number' id='moveAngle'/> &deg;</p>
+        <p>
+            <button id='cancelMove' class='iconButton'></button>
+            <button id='confirmMove' class='iconButton'></button>
+        </p>
     </div>
     <div id='shadeMenu'>
         <svg width='96' height='24'>

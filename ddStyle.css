@@ -112,6 +112,9 @@ body {
 }
 .dialog {
 	position: absolute;
+	padding: 5px;
+	border: none;
+	border-radius: 3px;
 	display: none;
 	color: white;
 	background-color: black;
@@ -125,6 +128,9 @@ input {
 	border: 1px solid #CCCCCC;
 	border-radius: 3px;
 	font-size: 1.2em;
+}
+img {
+    vertical-align: bottom;
 }
 #spin {
     width: 32px;
@@ -191,6 +197,18 @@ select {
 #backButton {
     background: url(svg/back.svg) center center no-repeat;
 }
+#moveButton {
+    background: url(svg/move.svg) center center no-repeat;
+}
+#spinButton {
+    background: url(svg/spin.svg) center center no-repeat;
+}
+#parallelButton {
+    background: url(svg/parallel.svg) center center no-repeat;
+}
+#repeatButton {
+    background: url(svg/repeat.svg) center center no-repeat;
+}
 #fileMenu {
     left: 4px;
     top: 48px;
@@ -214,9 +232,24 @@ select {
 #stylesDialog {
     left: 48px;
     top: 48px;
+    /*
     padding: 5px;
     border-radius: 3px;
+    */
     display: none;
+}
+#moveDialog {
+    left: 48px;
+    top: 48px;
+    display: none;
+}
+#confirmMove {
+    float: right;
+    background: url(svg/tick.svg) center center no-repeat;
+}
+#cancelMove {
+    float: left;
+    background: url(svg/cross.svg) center center no-repeat;
 }
 #lineShade {
     width: 24px;
