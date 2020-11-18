@@ -173,11 +173,15 @@ id('textButton').addEventListener ('click',function() {
 id('deleteButton').addEventListener('click',function() {
     prompt('DELETE');
     // console.log('delete element '+elementID);
+    var elementNodes=nodes.filter(belong);
     for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
         if(nodes[i].el==elementID) nodes.splice(i,1);
     }
     id('dwg').removeChild(element); // remove element from SVG
-    id('handles').innerHTML=''; // remove edit handles 
+    id('handles').innerHTML=''; // remove edit handles...
+    id('blueBox').setAttribute('width',0); // ...and text outline...
+    id('blueBox').setAttribute('height',0);
+    showDialog('textDialog',false); // ...and content (if shown)
     var dbTransaction=db.transaction('elements',"readwrite");
 	// console.log("indexedDB transaction ready");
 	var dbObjectStore=dbTransaction.objectStore('elements');
@@ -189,6 +193,7 @@ id('deleteButton').addEventListener('click',function() {
 	request.onerror=function(event) {
 	    console.log("error deleting element");
 	};
+	showEditTools(false);
 });
 id('backButton').addEventListener('click',function() {
     prompt('PUSH BACK');
@@ -217,7 +222,6 @@ id('confirmMove').addEventListener('click',function() {
     var moveY=parseInt(id('moveDown').value);
     var moveD=parseInt(id('moveDist').value);
     var moveA=parseInt(id('moveAngle').value);
-
     console.log('move '+moveX+','+moveY+' '+moveD+'@'+moveA);
     if((moveD!=0)&&(moveA!=0)) { // polar coordinates - convert to cartesian
         moveA-=90;
@@ -227,7 +231,13 @@ id('confirmMove').addEventListener('click',function() {
     }
     switch(type(element)) {
         case 'polyline':
-            // move all points by moveX, moveY
+            console.log('move all points by '+moveX+','+moveY);
+            for(var i=0;i<element.points.length;i++) {
+                element.points[i].x+=moveX;
+                element.points[i].y+=moveY;
+            }
+            // console.log(element.points.length+' points adjusted');
+            updateElement(elementID,'points',element.getAttribute('points'));
             break;
         case 'box':
         case 'text':
@@ -253,10 +263,28 @@ id('confirmMove').addEventListener('click',function() {
             break;
         case 'arc':
             // move centre, start and end points by moveX, moveY
+            var d=element.getAttribute('d');
+            getArc(d);
+            arc.centreX+=moveX;
+            arc.centreY+=moveY;
+            arc.startX+=moveX;
+            arc.startY+=moveY;
+            arc.endX+=moveX;
+            arc.endY+=moveY;
+            d=setArc();
+            element.setAttribute('d',d);
+            updateElement(elementID,'centreX',arc.centreX);
+            updateElement(elementID,'centreY',arc.centreY);
+            updateElement(elementID,'startX',arc.startX);
+            updateElement(elementID,'startY',arc.startY);
+            updateElement(elementID,'endX',arc.endX);
+            updateElement(elementID,'endY',arc.endY);
             break;
     }
-    for(var i=0;i<nodes.length;i++) { // move nodes
-        if(nodes[i].el==elementID) nodes[i].x=val;
+    var elementNodes=nodes.filter(belong);
+    for(var i=0;i<elementNodes.length;i++) { // move nodes
+        elementNodes[i].x+=moveX;
+        elementNodes[i].y+=moveY;
     }
     showDialog('moveDialog',false);
     id('handles').innerHTML='';
@@ -451,20 +479,61 @@ id('graphic').addEventListener('touchstart',function() {
     if(val.startsWith('handle')) {
         console.log('HANDLE '+val);
         var handle=id(val);
+        var bounds=element.getBBox();
+        id('blueBox').setAttribute('x',bounds.x);
+        id('blueBox').setAttribute('y',bounds.y);
+        id('blueBox').setAttribute('width',bounds.width);
+        id('blueBox').setAttribute('height',bounds.height);
         if(handle instanceof SVGCircleElement) {
             mode='move';
-            var bounds=element.getBBox();
-            id('blueBox').setAttribute('x',bounds.x);
-            id('blueBox').setAttribute('y',bounds.y);
-            id('blueBox').setAttribute('width',bounds.width);
-            id('blueBox').setAttribute('height',bounds.height);
             dx=bounds.x-x0; // offsets to top-left corner
             dy=bounds.y-y0;
             console.log('offsets: '+dx+','+dy);
             prompt('drag to MOVE');
             id('textDialog').style.display='none';
         }
-        else if(handle instanceof SVGRectElement) mode='size';
+        else if(handle instanceof SVGRectElement) {
+            val=val.substr(6);
+            console.log('size handle '+val);
+            switch(val) {
+                case 'NE':
+                    mode='boxWidth';
+                    x0=parseInt(element.getAttribute('x'));
+                    break;
+                case 'SW':
+                    mode='boxHeight';
+                    y0=parseInt(element.getAttribute('y'));
+                    break;
+                case 'SE':
+                    mode='boxSize';
+                    x0=parseInt(element.getAttribute('x'));
+                    y0=parseInt(element.getAttribute('y'));
+                    break;
+                case 'Size':
+                    mode='ovalSize';
+                    x0=parseInt(element.getAttribute('cx'));
+                    y0=parseInt(element.getAttribute('cy'));
+                    break;
+                case 'Start':
+                case 'End':
+                    mode='arcSize';
+                    var d=element.getAttribute('d');
+                    getArc(d);
+                    x0=arc.centreX;
+                    y0=arc.centreY;
+                    console.log('arc centre: '+x0+','+y0);
+                    id('blueBox').setAttribute('width',0);
+                    id('blueBox').setAttribute('height',0);
+                    id('blueOval').setAttribute('cx',x0);
+                    id('blueOval').setAttribute('cy',y0);
+                    id('blueOval').setAttribute('rx',arc.radius);
+                    id('blueOval').setAttribute('ry',arc.radius);
+                    break;
+                default:
+                    mode='movePoint'+val;
+            }
+            console.log('mode: '+mode);
+        }
         return;
     }
     snap=snapCheck();
@@ -558,6 +627,54 @@ id('graphic').addEventListener('touchmove',function() {
             // console.log('move element '+elementID+' to '+x+','+y);
             id('blueBox').setAttribute('x',(x+dx));
             id('blueBox').setAttribute('y',(y+dy));
+            break;
+        case 'boxWidth':
+            if(x<x0) prompt('OOPS!');
+            id('blueBox').setAttribute('width',x-x0);
+            // console.log('set width to '+(x-x0));
+            id('first').value=(x-x0);
+            break;
+        case 'boxHeight':
+            if(y<y0) prompt('OOPS!');
+            id('blueBox').setAttribute('height',y-y0);
+            id('second').value=(y-y0);
+            break;
+        case 'boxSize':
+            var aspect=parseInt(element.getAttribute('width'))/parseInt(element.getAttribute('height'));
+            console.log('box aspect: '+aspect);
+            dx=x-x0;
+            dy=y-y0;
+            if((dx/dy)>aspect) dy=dx/aspect;
+            else dx=dy*aspect;
+            if(dx<0) prompt('OOPS!');
+            id('blueBox').setAttribute('width',dx);
+            id('blueBox').setAttribute('height',dy);
+            w=dx;
+            h=dy;
+            setSizes();
+            break;
+        case 'ovalSize':
+            dx=x-x0;
+            dy=y-y0;
+            if(Math.abs(dx-dy)<snapD*2) dx=dy; // snap to circle
+            // console.log('radii: '+dx+','+dy);
+            id('blueBox').setAttribute('x',(x0-dx));
+            id('blueBox').setAttribute('y',(y0-dy));
+            id('blueBox').setAttribute('width',(dx*2));
+            id('blueBox').setAttribute('height',(dy*2));
+            w=dx*2;
+            h=dy*2;
+            console.log('set size to '+w+'x'+h);
+            setSizes();
+            break;
+        case 'arcSize':
+            dx=x-x0;
+            dy=y-y0;
+            var r=Math.sqrt((dx*dx)+(dy*dy));
+            console.log('radius: '+r);
+            id('blueOval').setAttribute('rx',r);
+            id('blueOval').setAttribute('ry',r);
+            id('first').value=r;
             break;
         case 'pan':
             dx=dwg.x-(x-x0);
@@ -708,13 +825,132 @@ id('graphic').addEventListener('touchend',function() {
                     updateElement(elementID,'y',y);
                     break;
             }
-            // MOVE ELEMENT NODES
-            for(var i=0; i<nodes.length;i++) {
-                if(nodes[i].el=elementID) {
-                    nodes[i].x+=dx;
-                    nodes[i].y+=dy;
-                }
+            var elementNodes=nodes.filter(belong);
+            for(var i=0; i<elementNodes.length;i++) {
+                elementNodes[i].x+=dx;
+                elementNodes[i].y+=dy;
             }
+            mode='select';
+            elementID=null;
+            selection=[];
+            showSizes(false);
+            showEditTools(false);
+            break;
+        case 'boxWidth':
+            console.log('touchEnd - box width: '+(x-x0));
+            id('handles').innerHTML='';
+            element.setAttribute('width',(x-x0));
+            updateElement(elementID,'width',(x-x0));
+            id('blueBox').setAttribute('width',0);
+            id('blueBox').setAttribute('height',0);
+            var elementNodes=nodes.filter(belong);
+            for(var i=0; i<elementNodes.length;i++) {
+                elementNodes[i].x=x;
+            }
+            mode='select';
+            elementID=null;
+            selection=[];
+            showSizes(false);
+            showEditTools(false);
+            break;
+        case 'boxHeight':
+            console.log('touchEnd - box height: '+(y-y0));
+            id('handles').innerHTML='';
+            element.setAttribute('height',(y-y0));
+            updateElement(elementID,'height',(y-y0));
+            id('blueBox').setAttribute('width',0);
+            id('blueBox').setAttribute('height',0);
+            var elementNodes=nodes.filter(belong); 
+            for(var i=0; i<nodes.length;i++) {
+                elementNodes[i].y=y;
+            }
+            mode='select';
+            elementID=null;
+            selection=[];
+            showSizes(false);
+            showEditTools(false);
+            break;
+        case 'boxSize':
+            console.log('touchEnd - box size: '+dx+'x'+dy);
+            id('handles').innerHTML='';
+            element.setAttribute('width',dx);
+            updateElement(elementID,'width',dx);
+            element.setAttribute('height',dy);
+            updateElement(elementID,'height',dy);
+            id('blueBox').setAttribute('width',0);
+            id('blueBox').setAttribute('height',0);
+            var elementNodes=nodes.filter(belong);
+            for(var i=0; i<elementNodes.length;i++) {
+                elementNodes[i].x=x0+dx;
+                elementNodes[i].y=y0+dy;
+            }
+            mode='select';
+            elementID=null;
+            selection=[];
+            showSizes(false);
+            showEditTools(false);
+            break;
+        case 'ovalSize':
+            console.log('touchEnd - radii: '+dx+'x'+dy);
+            id('handles').innerHTML='';
+            element.setAttribute('rx',dx);
+            updateElement(elementID,'rx',dx);
+            element.setAttribute('ry',dy);
+            updateElement(elementID,'ry',dy);
+            id('blueBox').setAttribute('width',0);
+            id('blueBox').setAttribute('height',0);
+            var elementNodes=nodes.filter(belong);
+            for(var i=0; i<elementNodes.length;i++) {
+                elementNodes[i].x=x0-dx;
+                elementNodes[i].x=x0+dx;
+                elementNodes[i].y=y0-dy;
+                elementNodes[i].y=y0+dy;
+            }
+            mode='select';
+            elementID=null;
+            selection=[];
+            showSizes(false);
+            showEditTools(false);
+            break;
+        case 'arcSize':
+            dx=x-x0;
+            dy=y-y0;
+            var r=Math.sqrt((dx*dx)+(dy*dy));
+            console.log('touch end - radius: '+r);
+            id('handles').innerHTML='';
+            // adjust arc start...
+            dx=arc.startX-arc.centreX;
+            dy=arc.startY-arc.centreY;
+            dx*=r/arc.radius;
+            dy*=r/arc.radius;
+            arc.startX=arc.centreX+dx;
+            arc.startY=arc.centreY+dy;
+            // ...and end points...
+            dx=arc.endX-arc.centreX;
+            dy=arc.endY-arc.centreY;
+            dx*=r/arc.radius;
+            dy*=r/arc.radius;
+            arc.endX=arc.centreX+dx;
+            arc.endY=arc.centreY+dy;
+            // ...and radius 
+            arc.radius=r;
+            var d=setArc();
+            element.setAttribute('d',d);
+            updateElement(elementID,'startX',arc.startX);
+            updateElement(elementID,'startY',arc.startY);
+            updateElement(elementID,'endX',arc.endX);
+            updateElement(elementID,'endY',arc.endY);
+            updateElement(elementID,'radius',r);
+            var arcNodes=nodes.filter(belong);
+            console.log(arcNodes.length+' arc nodes');
+            arcNodes[0].x=arc.centreX;
+            arcNodes[0].y=arc.centreY;
+            arcNodes[1].x=arc.startX;
+            arcNodes[1].y=arc.startY;
+            arcNodes[2].x=arc.endX;
+            arcNodes[2].y=arc.endY;
+            id('blueOval').setAttribute('rx',0);
+            id('blueOval').setAttribute('ry',0);
             mode='select';
             elementID=null;
             selection=[];
@@ -757,9 +993,6 @@ id('graphic').addEventListener('touchend',function() {
                 for(var i=0;i<element.points.length;i++) {
                     nodes.push({'x':element.points[i].x,'y':element.points[i].y,'el':elementID});
                     console.log('node added at '+element.points[i].x+','+element.points[i].y);
-                }
-                for(i=0;i<nodes.length;i++) {
-                    console.log('node '+i+' at '+nodes[i].x+','+nodes[i].y+' element '+nodes[i].el);
                 }
                 // save poly/line to database
                 var dbTransaction=db.transaction('elements',"readwrite");
@@ -826,7 +1059,6 @@ id('graphic').addEventListener('touchend',function() {
             nodes.push({'x':x+w,'y':y,'el':elementID});
             nodes.push({'x':x,'y':y+h,'el':elementID});
             nodes.push({'x':x+w,'y':y+h,'el':elementID});
-            for(var i=0;i<4;i++) console.log('node '+i+': '+nodes[i].x+','+nodes[i].y+' el:'+nodes[i].el);
             // save box to database
             var dbTransaction=db.transaction('elements',"readwrite");
 	        // console.log("indexedDB transaction ready");
@@ -1292,13 +1524,13 @@ id('first').addEventListener('change',function() {
             updateElement(elementID,'width',val);
             var elX=parseInt(element.getAttribute('x'));
             // console.log('move nodes and handles');
-            for(var i=0;i<nodes.length;i++) { // adjust two RH nodes...
-                if((nodes[i].el==elementID)&&(nodes[i].x!=elX)) {
+            var boxNodes=nodes.filter(belong);
+            for(var i=0;i<boxNodes.length;i++) { // adjust two RH nodes...
+                if(boxNodes[i].x!=elX) {
                     // console.log('node '+i+' x changed to '+(elX+val));
-                    nodes[i].x=elX+val;
+                    boxNodes[i].x=elX+val;
                 }
             } // ...then move RH edit handles
-            // console.log('RH handles.x: '+(elX+val-handleR));
             id('handleNE').setAttribute('x',(elX+val-handleR));
             id('handleSE').setAttribute('x',(elX+val-handleR));
             break;
@@ -1306,15 +1538,56 @@ id('first').addEventListener('change',function() {
             element.setAttribute('rx',val/2);
             updateElement(elementID,'rx',val/2);
             var elX=parseInt(element.getAttribute('cx'));
-            for(var i=0;i<nodes.length;i++) { // adjust two RH nodes...
-                if((nodes[i].el==elementID)&&(nodes[i].x!=elX)) {
-                    // console.log('change node '+i+'.x: '+nodes[i].x);
-                    if(nodes[i].x<elX) nodes[i].x=elX-val/2;
-                    else nodes[i].x=elX+val/2;
-                    // console.log('to: '+nodes[i].x);
+            var ovalNodes=nodes.filter(belong);
+            for(var i=0;i<ovalNodes.length;i++) { // adjust two RH nodes...
+                if(ovalNodes[i].x!=elX) {
+                    if(ovalNodes[i].x<elX) ovalNodes[i].x=elX-val/2;
+                    else ovalNodes[i].x=elX+val/2;
                 }
             }
             id('handleSize').setAttribute('x',(elX+val/2-handleR));
+            break;
+        case 'arc':
+            console.log('adjust arc radius to '+val);
+            d=element.getAttribute('d');
+            getArc(d);
+            dx=arc.startX-arc.centreX;
+            dy=arc.startY-arc.centreY;
+            dx*=val/arc.radius;
+            dy*=val/arc.radius;
+            arc.startX=arc.centreX+dx;
+            arc.startY=arc.centreY+dy;
+            // ...and end points...
+            dx=arc.endX-arc.centreX;
+            dy=arc.endY-arc.centreY;
+            dx*=val/arc.radius;
+            dy*=val/arc.radius;
+            arc.endX=arc.centreX+dx;
+            arc.endY=arc.centreY+dy;
+            // ...and radius
+            console.log('diameter: '+(val*2));
+            arc.radius=val;
+            console.log('arc radius:'+arc.radius+' centre:'+arc.centreX+','+arc.centreY+' start:'+arc.startX+','+arc.startY+' end:'+arc.endX+','+arc.endY);
+            var d=setArc();
+            element.setAttribute('d',d);
+            updateElement(elementID,'startX',arc.startX);
+            updateElement(elementID,'startY',arc.startY);
+            updateElement(elementID,'endX',arc.endX);
+            updateElement(elementID,'endY',arc.endY);
+            updateElement(elementID,'radius',r);
+            id('handleStart').setAttribute('x',arc.startX-handleR);
+            id('handleStart').setAttribute('y',arc.startY-handleR);
+            id('handleEnd').setAttribute('x',arc.endX-handleR);
+            id('handleEnd').setAttribute('y',arc.endY-handleR);
+            arcNodes=nodes.filter(belong);
+            console.log(arcNodes.length+' arc nodes');
+            arcNodes[0].x=arc.centreX;
+            arcNodes[0].y=arc.centreY;
+            arcNodes[1].x=arc.startX;
+            arcNodes[1].y=arc.startY;
+            arcNodes[2].x=arc.endX;
+            arcNodes[2].y=arc.endY;
+            break;
     }
 })
 id('second').addEventListener('change',function() {
@@ -1392,11 +1665,10 @@ id('second').addEventListener('change',function() {
             updateElement(elementID,'height',val);
             var elY=parseInt(element.getAttribute('y'));
             // console.log('move nodes and handles');
-            for(var i=0;i<nodes.length;i++) { // adjust two lower nodes...
-                if((nodes[i].el==elementID)&&(nodes[i].y!=elY)) {
-                    // console.log('change node '+i+'.y: '+nodes[i].y);
-                    nodes[i].y=elY+val;
-                    // console.log('to: '+nodes[i].y);
+            var boxNodes=nodes.filter(belong);
+            for(var i=0;i<boxNodes.length;i++) { // adjust two lower nodes...
+                if(boxNodes[i].y!=elY) {
+                    boxNodes[i].y=elY+val;
                 }
             } // ...then move lower edit handles
             // console.log('lower handles.y: '+(elY+val-handleR));
@@ -1408,12 +1680,11 @@ id('second').addEventListener('change',function() {
             element.setAttribute('ry',val/2);
             updateElement(elementID,'ry',val/2);
             var elY=parseInt(element.getAttribute('cy'));
-            for(var i=0;i<nodes.length;i++) { // adjust top & bottom nodes...
-                if((nodes[i].el==elementID)&&(nodes[i].y!=elY)) {
-                    // console.log('change node '+i+'.y: '+nodes[i].y);
-                    if(nodes[i].y<elY) nodes[i].y=elY-val/2;
-                    else nodes[i].y=elY+val/2;
-                    // console.log('to: '+nodes[i].y);
+            var ovalNodes=nodes.filter(belong);
+            for(var i=0;i<ovalNodes.length;i++) { // adjust top & bottom nodes...
+                if(ovalNodes[i].y!=elY) {
+                    if(ovalNodes[i].y<elY) ovalNodes[i].y=elY-val/2;
+                    else ovalNodes[i].y=elY+val/2;
                 }
             }
             id('handleSize').setAttribute('y',(elY+val/2-handleR));
@@ -1633,12 +1904,14 @@ function setArc() {
     var d="M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY;
     d+=" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" ";
     d+=arc.endX+","+arc.endY;
-    // 'M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY+" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" "+arc.endX+","+arc.endY
     console.log('set arc d to: '+d);
     return d;
 }
 function blueArc() {
     id('blueArc').setAttribute('d','M'+arc.centreX+','+arc.centreY+' M'+arc.startX+','+arc.startY+' A'+arc.radius+','+arc.radius+' 0 '+arc.major+','+arc.spin+' '+arc.endX+','+arc.endY);
+}
+function belong(node) {
+    return node.el==elementID;
 }
 function snapCheck() {
     // console.log('check for snap-to-node');
