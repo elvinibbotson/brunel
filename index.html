@@ -16,20 +16,22 @@
         <div id='drawing'>
 		    <svg id='svg' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
 		    <defs>
+		        <g id='point'>
+		            <circle cx='0' cy='0' r='3' stroke='none' fill='silver'/>
+                    <line x1='-3' y1='0' x2='3' y2='0' stroke='white' stroke-width='0.25' fill='none'/>
+                    <line x1='0' y1='-3' x2='0' y2='3' stroke='white' stroke-width='0.25' fill='none'/>
+		        </g>
 		        <marker id='startArrow' markerWidth='10' markerHeight='20' refX='0' refY='10' orient='auto'>
 		            <path d='M10,0 L0,10 L10,20' stroke='gray' fill='none'/>
 		        </marker>
 		        <marker id='endArrow' markerWidth='10' markerHeight='20' refX='10' refY='10' orient='auto'>
 		            <path d='M0,0 L10,10 L0,20' stroke='gray' fill='none'/>
 		        </marker>
-		        <symbol id='point' refX='center' refY='center'>
-		            <circle cx='0' cy='0' r='8' stroke='none' fill='gray'/>
-                    <circle cx='0' cy='0' r='2' stroke='none' fill='white'/>
-		        </symbol>
 		        <clipPath id='clipper'>
 		            <rect x='0' y='0' width='297' height='210'/>
 		        </clipPath>
 		    </defs>
+		    <g id='guides'></g>
 		    <g id='dwg' style="clip-path: url(#clipper);"></g>
 		    <g id='handles'></g>
 		    <g id='blue'>
@@ -53,8 +55,10 @@
         <button id='zoomOutButton' class='iconButton'></button>
         <button id='extentsButton' class='iconButton'></button>
         <button id='panButton' class='iconButton'></button>
+        <button id='gridButton' class='iconButton'></button>
         <button id='lineButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
+        <button id='roundboxButton' class='iconButton'></button>
         <button id='ovalButton' class='iconButton'></button>
         <button id='arcButton' class='iconButton'></button>
         <button id='textButton' class='iconButton'></button>
@@ -68,6 +72,7 @@
         <button id='backButton' class='iconButton'></button>
         <button id='moveButton' class='iconButton'></button>
         <button id='spinButton' class='iconButton'></button>
+        <button id='flipButton' class='iconButton'></button>
         <button id='parallelButton' class='iconButton'></button>
         <button id='repeatButton' class='iconButton'></button>
     </div>
@@ -151,6 +156,9 @@
                 <option value=0.25>25%</option>
             </select> opacity</p>
         <!--/div-->
+    </div>
+    <div id='boxDialog' class='dialog'>
+        <p>box corner radius</p><p><input type='number' id='boxRadius' value='5'/> <span id='radiusUnit'>mm</span></p>
     </div>
     <div id='moveDialog' class='dialog'>
         <p>move...</p>

@@ -164,11 +164,17 @@ select {
 #panButton {
     background: url(svg/pan.svg) center center no-repeat;
 }
+#gridButton {
+    background: url(svg/grid.svg) center center no-repeat;
+}
 #lineButton {
     background: url(svg/line.svg) center center no-repeat;
 }
 #boxButton {
     background: url(svg/box.svg) center center no-repeat;
+}
+#roundboxButton {
+    background: url(svg/roundbox.svg) center center no-repeat;
 }
 #ovalButton {
     background: url(svg/oval.svg) center center no-repeat;
@@ -203,6 +209,9 @@ select {
 #spinButton {
     background: url(svg/spin.svg) center center no-repeat;
 }
+#flipButton {
+    background: url(svg/flip.svg) center center no-repeat;
+}
 #parallelButton {
     background: url(svg/parallel.svg) center center no-repeat;
 }
@@ -236,6 +245,11 @@ select {
     padding: 5px;
     border-radius: 3px;
     */
+    display: none;
+}
+#boxDialog {
+    left: 48px;
+    top: 330px;
     display: none;
 }
 #moveDialog {

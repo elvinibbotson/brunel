@@ -5,6 +5,8 @@ var scale=1; // default scale is 1:1
 var units='mm'; // default unit is mm
 var scaleF=3.78; // default scale factor for mm (1:1 scale)
 var handleR=2; // 2mm handle radius at 1:1 scale - increase for smaller scales (eg. 100 at 1:50)
+var boxR=5; // radius for corners of round-cornered boxes
+var rad=0; // ditto for current box
 var snapD=5*scale; // 5mm snap distance at 1:1 scale - increase for smaller scales (eg. 250 at 1:50)
 var snap=false; // flags if snapping to a node
 var zoom=1; // start zoomed out to full drawing
@@ -36,6 +38,7 @@ var opacity='1';
 var textSize=5; // default text size
 var textStyle='fine'; // normal text
 var currentDialog=null;
+var timer=null;
 
 scr.w=screen.width;
 scr.h=screen.height;
@@ -155,8 +158,24 @@ id('lineButton').addEventListener('click', function() {
 });
 id('boxButton').addEventListener('click',function() {
     mode='box';
+    rad=0;
     showSizes(true,'BOX: press at start');
 });
+id('roundboxButton').addEventListener('touchstart',function() {
+    timer=setTimeout(function(){showDialog('boxDialog',true)}, 2000);
+});
+id('roundboxButton').addEventListener('touchend',function() {
+    clearTimeout(timer);
+    mode='box';
+    rad=boxR;
+    showSizes(true,'BOX: press at start');
+});
+id('boxRadius').addEventListener('change',function() {
+    rad=boxR=event.target.value;
+    mode='box';
+    rad=boxR;
+    showSizes(true,'BOX: press at start');
+})
 id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
     mode='oval';
     showSizes(true,'OVAL: press at centre');
@@ -165,9 +184,61 @@ id('arcButton').addEventListener('click', function() {
    mode='arc';
    showSizes(true,'ARC: press at start');
 });
-id('textButton').addEventListener ('click',function() {
+id('textButton').addEventListener('click',function() {
     mode='text';
     prompt('TEXT: press at start');
+});
+id('text').addEventListener('change',function() {
+    var text=event.target.value;
+    if(elementID) { // change selected text
+        element=id(elementID);
+        element.innerHTML=text;
+        updateElement(elementID,'text',text);
+    }
+    else {
+        console.log('add text '+text);
+        var html="<text id='~"+elID+"' x='"+x0+"' y='"+y0+"' ";
+        html+="font-size='"+(textSize*scale)+"' ";
+        if(textStyle=='bold') html+="font-weight='bold' ";
+        else if(textStyle=='italic') html+="font-style='italic' ";
+        html+="stroke='none' fill='"+lineShade+"'>"+text+"</text>";
+        console.log('text html: '+html);
+        id('dwg').innerHTML+=html;
+        id('textDialog').style.display='none';
+        elementID='~'+elID;
+	    element=id(elementID);
+	    // console.log('element is '+elementID);
+	    elID++;
+        // NO NODES FOR TEXT
+        // save text to database
+        var dbTransaction=db.transaction('elements',"readwrite");
+	    // console.log("indexedDB transaction ready");
+	    var dbObjectStore=dbTransaction.objectStore('elements');
+	    var el={}
+	    el.id=elementID;
+	    el.type='text';
+	    el.text=text;
+	    el.x=x0;
+        el.y=y0;
+        el.textSize=textSize;
+        el.textStyle=textStyle;
+	    el.fill=element.getAttribute('fill');
+	    el.opacity=element.getAttribute('fill-opacity');
+	    if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
+        var request=dbObjectStore.add(el);
+	    request.onsuccess=function(event) {
+	        console.log("new text element added: "+el.id);
+	    };
+	    request.onerror=function(event) {
+	        console.log("error adding new text element");
+	    };
+    }
+    element=elementID=null;
+    mode='select';
+});
+id('pointButton').addEventListener('click',function() {
+    mode='point';
+    prompt('POINT: click to place');
 })
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
@@ -611,6 +682,11 @@ id('graphic').addEventListener('touchstart',function() {
             id('text').value='';
             id('textDialog').style.display='block';
             break;
+        case 'point':
+            // var html="<use xlink:href='#point' x='"+x+"' y='"+y+"'/>";
+            console.log('point html: '+html);
+            id('guides').innerHTML+=html;
+            break;
     }
     event.stopPropagation();
 })
@@ -1025,7 +1101,7 @@ id('graphic').addEventListener('touchend',function() {
             }
             break;
         case 'box':
-            var html="<rect id='~"+elID+"' x='"+((x<x0)?x:x0)+"' y='"+((y<y0)?y:y0)+"' width='"+w+"' height='"+h+"' stroke=";
+            var html="<rect id='~"+elID+"' x='"+((x<x0)?x:x0)+"' y='"+((y<y0)?y:y0)+"' width='"+w+"' height='"+h+"' rx='"+rad+"' stroke=";
             switch(lineType) {
                 case 'solid':
                     html+=lineShade;
@@ -1040,7 +1116,7 @@ id('graphic').addEventListener('touchend',function() {
             // console.log('fillShade: '+fillShade);
             html+=fillShade;
             html+="' fill-opacity='"+opacity+"'>";
-            // console.log('box svg: '+html);
+            console.log('box svg: '+html);
             id('dwg').innerHTML+=html;
 	        // console.log("box svg drawn: "+x0+','+y0+' to '+(x0+w)+','+(y0+h));
 	        elementID='~'+elID;
@@ -1073,6 +1149,7 @@ id('graphic').addEventListener('touchend',function() {
 	        el.y=y;
 	        el.width=w;
 	        el.height=h;
+	        el.radius=rad;
 	        el.stroke=element.getAttribute('stroke');
 	        el.lineW=element.getAttribute('stroke-width');
 	        if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
@@ -1690,55 +1767,6 @@ id('second').addEventListener('change',function() {
             id('handleSize').setAttribute('y',(elY+val/2-handleR));
     }
 })
-// TEXT
-id('text').addEventListener('change',function() {
-    var text=event.target.value;
-    if(elementID) { // change selected text
-        element=id(elementID);
-        element.innerHTML=text;
-        updateElement(elementID,'text',text);
-    }
-    else {
-        console.log('add text '+text);
-        var html="<text id='~"+elID+"' x='"+x0+"' y='"+y0+"' ";
-        html+="font-size='"+(textSize*scale)+"' ";
-        if(textStyle=='bold') html+="font-weight='bold' ";
-        else if(textStyle=='italic') html+="font-style='italic' ";
-        html+="stroke='none' fill='"+lineShade+"'>"+text+"</text>";
-        console.log('text html: '+html);
-        id('dwg').innerHTML+=html;
-        id('textDialog').style.display='none';
-        elementID='~'+elID;
-	    element=id(elementID);
-	    // console.log('element is '+elementID);
-	    elID++;
-        // NO NODES FOR TEXT
-        // save text to database
-        var dbTransaction=db.transaction('elements',"readwrite");
-	    // console.log("indexedDB transaction ready");
-	    var dbObjectStore=dbTransaction.objectStore('elements');
-	    var el={}
-	    el.id=elementID;
-	    el.type='text';
-	    el.text=text;
-	    el.x=x0;
-        el.y=y0;
-        el.textSize=textSize;
-        el.textStyle=textStyle;
-	    el.fill=element.getAttribute('fill');
-	    el.opacity=element.getAttribute('fill-opacity');
-	    if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
-        var request=dbObjectStore.add(el);
-	    request.onsuccess=function(event) {
-	        console.log("new text element added: "+el.id);
-	    };
-	    request.onerror=function(event) {
-	        console.log("error adding new text element");
-	    };
-    }
-    element=elementID=null;
-    mode='select';
-})
 
 // UTILITY FUNCTIONS
 function id(el) {
@@ -1751,7 +1779,9 @@ function initialise() {
     if(units=='mm') {
         scaleF*=25.4; // ...or 25.4mm
         snapD=5*scale; // ...5mm snap distance...
-        handleR=2.5*scale; // ...and 2.5mm radius handles at 1:1 scale
+        handleR=2.5*scale; // ...2.5mm radius handles...
+        boxR=5*scale; // ... and 5mm roundbox corners at 1:1 scale
+        id('point').setAttribute('transform','scale('+scale+')');
         if(aspect=='landscape') {
             dwg.w=297; // A4 landscape...
             dwg.h=210;
@@ -1767,7 +1797,8 @@ function initialise() {
     }
     else {
         snapD=0.2*scale; // ...0.2in snap distance...
-        handleR=0.1*scale; // ...and 0.1in handle radius at 1:1 scale
+        handleR=0.1*scale; // ...0.1in handle radius...
+        boxR=0.25*scale; // ...and 0.25in roundbox corner radius at 1:1 scale
         if(aspect=='landscape') {
             dwg.w=11.7; // A4 landscape...
             dwg.h=8.27;
@@ -1781,6 +1812,7 @@ function initialise() {
         id('ref').setAttribute('width',dwg.w+'in');
         id('ref').setAttribute('height',dwg.h+'in');
         id('moveUnit').innerHTML='in';
+        id('radiusUnit').innerHTML='in';
     }
     var blues=document.getElementsByClassName('blue');
     console.log(blues.length+' elements in blue class');
@@ -2080,7 +2112,7 @@ request.onsuccess=function(event) {
                     }
                     break;
                 case 'rect':
-                    html+="x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' ";
+                    html+="x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' rx='"+el.radius+"' ";
                     html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
                     if(el.lineStyle) html+="stroke-dasharray='"+el.lineStyle+"' ";
                     // html+="stroke-opacity='"+el.opacity+"' ";
