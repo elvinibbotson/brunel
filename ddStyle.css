@@ -23,21 +23,6 @@ body {
 	top: 0;
     z-index: 2;
 }
-/*
-#symbol {
-    position: absolute;
-    left: 20px;
-    top: 20px;
-    width: 110mm;
-    height: 110mm;
-    background: yellow;
-    display: none;
-}
-#symbolSVG {
-    background: #CCCCFF;
-    z-index: 2000;
-}
-*/
 #tools {
     position: fixed;
     left: 4px;
@@ -110,16 +95,6 @@ body {
     background: none;
     z-index: 12;
 }
-.dialog {
-	position: absolute;
-	padding: 5px;
-	border: none;
-	border-radius: 3px;
-	display: none;
-	color: white;
-	background-color: black;
-	z-index: 10;
-}
 input {
     width: 64px;
 	height: 24px;
@@ -188,10 +163,7 @@ select {
 #dimensionButton {
     background: url(svg/dimension.svg) center center no-repeat;
 }
-#pointButton {
-    background: url(svg/point.svg) center center no-repeat;
-}
-#comboButton {
+#combiButton {
     background: url(svg/combo.svg) center center no-repeat;
 }
 #deleteButton {
@@ -212,6 +184,9 @@ select {
 #flipButton {
     background: url(svg/flip.svg) center center no-repeat;
 }
+#alignButton {
+    background: url(svg/align.svg) center center no-repeat;
+}
 #parallelButton {
     background: url(svg/parallel.svg) center center no-repeat;
 }
@@ -219,13 +194,29 @@ select {
     background: url(svg/repeat.svg) center center no-repeat;
 }
 #fileMenu {
-    left: 4px;
+    left: 48px;
     top: 48px;
     padding: 5px;
     border-radius: 3px;
 }
-#newDrawing {
-    left: 4px;
+.dialog {
+	position: absolute;
+	padding: 5px;
+	border: none;
+	border-radius: 3px;
+	display: none;
+	color: white;
+	background-color: black;
+	z-index: 10;
+}
+#newDrawingDialog {
+    left: 48px;
+    top: 48px;
+    padding: 5px;
+    border-radius: 3px;
+}
+#settingsDialog {
+    left: 48px;
     top: 48px;
     padding: 5px;
     border-radius: 3px;

@@ -16,11 +16,6 @@
         <div id='drawing'>
 		    <svg id='svg' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
 		    <defs>
-		        <g id='point'>
-		            <circle cx='0' cy='0' r='3' stroke='none' fill='silver'/>
-                    <line x1='-3' y1='0' x2='3' y2='0' stroke='white' stroke-width='0.25' fill='none'/>
-                    <line x1='0' y1='-3' x2='0' y2='3' stroke='white' stroke-width='0.25' fill='none'/>
-		        </g>
 		        <marker id='startArrow' markerWidth='10' markerHeight='20' refX='0' refY='10' orient='auto'>
 		            <path d='M10,0 L0,10 L10,20' stroke='gray' fill='none'/>
 		        </marker>
@@ -31,8 +26,13 @@
 		            <rect x='0' y='0' width='297' height='210'/>
 		        </clipPath>
 		    </defs>
-		    <g id='guides'></g>
+		    <g id='datumGroup'>
+		        <circle id='datum' cx='0' cy='0' r='3' stroke='none' fill='silver'/>
+                <line id='datumH' x1='-1000' y1='0' x2='2000' y2='0' stroke='gray' stroke-width='0.25'/>
+                <line id='datumV' x1='0' y1='-1000' x2='0' y2='2000' stroke='gray' stroke-width='0.25'/>
+            </g>
 		    <g id='dwg' style="clip-path: url(#clipper);"></g>
+		    <g id='selection'></g>
 		    <g id='handles'></g>
 		    <g id='blue'>
 		        <polyline class='blue' id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
@@ -45,17 +45,12 @@
 		    </svg>
 		</div>
 	</div>
-	<!--div id='symbol'>
-	    <svg id='symbolSVG' xmlns='http://www.w3.org/2000/svg' width='100mm' height='100mm' viewBox='0 0 100 100'>
-	    </svg>
-	</div-->
     <div id='tools'>
         <button id='fileButton' class='iconButton'></button>
         <button id='zoomInButton' class='iconButton'></button>
         <button id='zoomOutButton' class='iconButton'></button>
         <button id='extentsButton' class='iconButton'></button>
         <button id='panButton' class='iconButton'></button>
-        <button id='gridButton' class='iconButton'></button>
         <button id='lineButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
         <button id='roundboxButton' class='iconButton'></button>
@@ -63,8 +58,7 @@
         <button id='arcButton' class='iconButton'></button>
         <button id='textButton' class='iconButton'></button>
         <button id='dimensionButton' class='iconButton'></button>
-        <button id='pointButton' class='iconButton'></button>
-        <button id='comboButton' class='iconButton'></button>
+        <button id='combiButton' class='iconButton'></button>
     </div>
     <div id='editTools'>
         <button id='deleteButton' class='iconButton'></button>
@@ -73,13 +67,9 @@
         <button id='moveButton' class='iconButton'></button>
         <button id='spinButton' class='iconButton'></button>
         <button id='flipButton' class='iconButton'></button>
+        <button id='alignButton' class='iconButton'></button>
         <button id='parallelButton' class='iconButton'></button>
         <button id='repeatButton' class='iconButton'></button>
-    </div>
-    <div id='fileMenu' class='dialog'>
-        <p id='new'>new drawing</p>
-        <p id='load'>load drawing</p>
-        <p id='save'>save drawing</p>
     </div>
     <div id='sizes'>
         <input id='first' type='number'/> <span id='between'>x</span>
@@ -90,6 +80,19 @@
     <div id='checks'></div>
     <div id='fill'></div>
     <div id='line'></div>
+    <div id='fileMenu' class='dialog'>
+        <p id='new'>new drawing</p>
+        <p id='load'>load drawing</p>
+        <p id='save'>save drawing</p>
+        <p id='settings'>settings</p>
+    </div>
+    <div id='settingsDialog' class='dialog'>
+        <p>settings</p>
+        <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' value=0></p>
+        <p><input type='number' id='gridSize' value=10> <span id='gridUnits'>mm</span></p>
+        <p>box corner radius</p>
+        <p><input type='number' id='boxRadius' value='5'/> <span id='radiusUnit'>mm</span></p>
+    </div>
     <div id='newDrawing' class='dialog'>
         <p>new drawing</p>
         <p>size: A4 (<span id='aspect'></span>)</p>
@@ -156,9 +159,6 @@
                 <option value=0.25>25%</option>
             </select> opacity</p>
         <!--/div-->
-    </div>
-    <div id='boxDialog' class='dialog'>
-        <p>box corner radius</p><p><input type='number' id='boxRadius' value='5'/> <span id='radiusUnit'>mm</span></p>
     </div>
     <div id='moveDialog' class='dialog'>
         <p>move...</p>

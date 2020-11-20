@@ -21,9 +21,12 @@ var dx=0;
 var dy=0;
 var w=0;
 var h=0;
+var datumX=0;
+var datumY=0;
 var arc={};
 var elID=0;
-var selection=[];
+var selectionBox={}; // for box select
+var selection=[]; // list of elements in selectionBox
 var timer=null;
 var db=null; // indexed database holding SVG elements
 var nodes=[]; // array of nodes each with x,y coordinates and element ID
@@ -65,11 +68,14 @@ id('new').addEventListener('click',function() {
     // showDialog('fileMenu',false);
     aspect=(scr.w>scr.h)?'landscape':'portrait';
     id('aspect').innerHTML=aspect;
-    showDialog('newDrawing',true);
+    showDialog('newDrawingDialog',true);
 });
 id('save').addEventListener('click',function() {
     saveSVG(); // INSTEAD SHOW SAVE DIALOG
     showDialog('fileMenu',false);
+});
+id('settings').addEventListener('click',function() {
+    showDialog('settingsDialog',true);
 });
 id('cancelNewDrawing').addEventListener('click',function() {
     showDialog('newDrawing',false);
@@ -236,10 +242,9 @@ id('text').addEventListener('change',function() {
     element=elementID=null;
     mode='select';
 });
-id('pointButton').addEventListener('click',function() {
-    mode='point';
-    prompt('POINT: click to place');
-})
+id('combiButton').addEventListener('click',function() {
+    // PLACE CURRENT COMBI OR HOLD TO SHOW LIST OF COMBIS
+});
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
     prompt('DELETE');
@@ -607,6 +612,12 @@ id('graphic').addEventListener('touchstart',function() {
         }
         return;
     }
+    else if(val=='datum') {
+        console.log('move datum');
+        mode='datum';
+        prompt('DATUM: drag to move');
+        return;
+    }
     snap=snapCheck();
     if(snap) { // snap start/centre to snap target
         x0=x;
@@ -683,10 +694,23 @@ id('graphic').addEventListener('touchstart',function() {
             id('textDialog').style.display='block';
             break;
         case 'point':
+            var html="<svg id='~"+elID+"' class='point' x='"+x0+"' y='"+y0+"'>";
+            html+="<circle cx='0' cy='0' r='"+(3*scale)+"' stroke='none' fill='silver'/>";
+            html+="<line x1='"+(-3*scale)+"' y1='0' x2='"+(3*scale)+"' y2='0' stroke='white' stroke-width='0.25' fill='none'/>";
+            html+="<line x1='0' y1='"+(-3*scale)+"' x2='0' y2='"+(3*scale)+"' stroke='white' stroke-width='0.25' fill='none'/>";
+            html+="</svg>";
             // var html="<use xlink:href='#point' x='"+x+"' y='"+y+"'/>";
             console.log('point html: '+html);
             id('guides').innerHTML+=html;
+            // ADD NODE
             break;
+        case 'select':
+            id('blueBox').setAttribute('x',x0);
+            id('blueBox').setAttribute('y',y0);
+            selectionBox.x=x0;
+            selectionBox.y=y0;
+            selectionBox.w=selectionBox.h=0;
+            prompt('SELECT: drag selection box');
     }
     event.stopPropagation();
 })
@@ -699,6 +723,19 @@ id('graphic').addEventListener('touchmove',function() {
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
     switch(mode) {
+        case 'datum':
+            snap=snapCheck();
+            id('datum').setAttribute('cx',x);
+            id('datum').setAttribute('cy',y);
+            id('datumH').setAttribute('y1',y);
+            id('datumH').setAttribute('y2',y);
+            id('datumV').setAttribute('x1',x);
+            id('datumV').setAttribute('x2',x);
+            // nodes[0].x=x;
+            // nodes[0].y=y;
+            datumX=x;
+            datumY=y;
+            break;
         case 'move':
             // console.log('move element '+elementID+' to '+x+','+y);
             id('blueBox').setAttribute('x',(x+dx));
@@ -833,8 +870,19 @@ id('graphic').addEventListener('touchmove',function() {
             id('blueLine').setAttribute('y2',y);
             blueArc();
             break;
-        case 'edit':
-            // IF ON AN EDIT HANDLE, MOVE OR RE-SIZE ELEMENT
+        case 'select':
+            var boxX=(x<x0)?x:x0;
+            var boxY=(y<y0)?y:y0;
+            w=Math.abs(x-x0);
+            h=Math.abs(y-y0);
+            id('blueBox').setAttribute('x',boxX);
+            id('blueBox').setAttribute('y',boxY);
+            id('blueBox').setAttribute('width',w);
+            id('blueBox').setAttribute('height',h);
+            selectionBox.x=boxX;
+            selectionBox.y=boxY;
+            selectionBox.w=w;
+            selectionBox.h=h;
     }
     event.stopPropagation();
 })
@@ -1315,6 +1363,46 @@ id('graphic').addEventListener('touchend',function() {
             mode='select';
             break;
         case 'select':
+            id('blueBox').setAttribute('width',0);
+            selection=[];
+            console.log('box size: '+selectionBox.w+'x'+selectionBox.h);
+            if((selectionBox.w>20)&&(selectionBox.h>20)) { // significant selection box size
+                console.log('GROUP SELECTION');
+                var items=id('dwg').childNodes;
+                console.log(items.length+' nodes in dwg');
+                for(var i=0;i<items.length;i++) { // collect elements entirely within selectionBox
+                    console.log('item '+i+': '+items[i].id);
+                    var box=items[i].getBBox();
+                    if(box.x<selectionBox.x) continue;
+                    if(box.y<selectionBox.y) continue;
+                    if((box.x+box.width)>(selectionBox.x+selectionBox.w)) continue;
+                    if((box.y+box.height)>(selectionBox.y+selectionBox.h)) continue;
+                    selection.push(items[i]); // add to selection if passes tests
+                    console.log('select '+items[i].id);
+                    var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
+                    html+="stroke='none' fill='blue' fill-opacity='0.25'/>";
+                    id('selection').innerHTML+=html;
+                }
+                if(selection.length>0) { // highlight selected elements
+                    mode='edit';
+                    showEditTools(true);
+                }
+                // COLLECT SELECTED ELEMENTS
+                /* var svgElement=id('svg');
+                var box=id('blueBox').getBBox();
+                // THIS DOESN'T WORK!!!!
+                items=id('svg').getIntersectionList(box,null);
+                console.log(items.length+' items');
+                selection=[];
+                for(var i=0;i<items.length;i++) {
+                    if(!items[i].id.startsWith('~')) continue;
+                    items[i].setAttribute('stroke','red');
+                    items[i].setAttribute('stroke-width','2');
+                    selection.push(items[i]);
+                    console.log('item '+items[i].id+' selected');
+                }*/
+                return;
+            }
         case 'edit':
             var el=event.target.id;
             // console.log('touchend on '+el+' at '+scr.x+','+scr.y+'; ie: '+x+','+y+' on drawing');
@@ -1336,7 +1424,7 @@ id('graphic').addEventListener('touchend',function() {
             }
             else hit=el;
             console.log('hit: '+hit);
-            if(hit && el.charAt(0)=='~') {
+            if(hit && el.charAt(0)=='~' && selection.length<1) {
                 // IF BOX-SELECT ADD TO 'selections' ARRAY - LIST OF ELEMENT IDs
                 // OTHERWISE (CLICK-SELECT) JUST SELECT AN ELEMENT IN snap RANGE
                 // console.log('el: '+el+' set styles');
@@ -1524,6 +1612,10 @@ id('graphic').addEventListener('touchend',function() {
                 id('handles').innerHTML=''; //remove element handles...
                 id('blueBox').setAttribute('width',0); // ...and text bounds
                 id('blueBox').setAttribute('height',0);
+                console.log('clear selection');
+                selection=[];
+                selectionBox.w=selectionBox.h=0;
+                id('selection').innerHTML='';
                 showSizes(false);
                 showEditTools(false);
                 id('textDialog').style.display='none';
@@ -1781,7 +1873,7 @@ function initialise() {
         snapD=5*scale; // ...5mm snap distance...
         handleR=2.5*scale; // ...2.5mm radius handles...
         boxR=5*scale; // ... and 5mm roundbox corners at 1:1 scale
-        id('point').setAttribute('transform','scale('+scale+')');
+        // id('point').setAttribute('transform','scale('+scale+')');
         if(aspect=='landscape') {
             dwg.w=297; // A4 landscape...
             dwg.h=210;
@@ -1824,6 +1916,11 @@ function initialise() {
     // draw dashed drawing outline in 'ref' layer
     var html="<rect x='0' y='0' width='"+w+"' height='"+h+"' stroke='gray' fill='none'/>";
     id('ref').innerHTML+=html;
+    // scale datum
+    id('datum').setAttribute('r',3*scale);
+    id('datumH').setAttribute('stroke-width',0.25*scale);
+    id('datumV').setAttribute('stroke-width',0.25*scale);
+    // nodes[0]={x:0,y:0,el:'datum'};
     // console.log('clip to '+w+'x'+h);
     html="<rect x='0' y='0' width='"+w+"' height='"+h+"'/>"; // clip to drawing edges
     // console.log('clipPath: '+html);
@@ -1965,8 +2062,16 @@ function snapCheck() {
         }
         return true;
     }
-    // console.log('no snap');
-    return false;
+    // console.log('no snap-to-node');
+    else if(Math.abs(x-datumX)<snapD) {
+        x=datumX;
+        return true;
+    }
+    else if(Math.abs(y-datumY)<snapD) {
+        y=datumY;
+        return true;
+    }
+    else return false;
 }
 function nearby(node) {
     return (node.x>x-snapD)&&(node.x<x+snapD)&&(node.y>y-snapD)&&(node.y<y+snapD);
@@ -2057,6 +2162,7 @@ function updateElement(id,attribute,val) {
 }
 // SAVE DRAWING AS SVG FILE _ PRINT AS PDF AT 100% SCALE
 function saveSVG() {
+    id('datumGroup').style.display='none';
     var svg=id('drawing').innerHTML;
 	// WAS THIS... var svg=id('graphic').innerHTML;
 	// console.log("SVG: "+svg);
@@ -2074,6 +2180,7 @@ function saveSVG() {
 	document.body.appendChild(a);
 	a.click();
 	alert(fileName+" saved to downloads folder");
+	id('datumGroup').style.display='block';
 }
 function report(text) {
 	console.log(text);
