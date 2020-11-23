@@ -53,7 +53,7 @@
         <button id='panButton' class='iconButton'></button>
         <button id='lineButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
-        <button id='roundboxButton' class='iconButton'></button>
+        <button id='squircleButton' class='iconButton'></button>
         <button id='ovalButton' class='iconButton'></button>
         <button id='arcButton' class='iconButton'></button>
         <button id='textButton' class='iconButton'></button>
@@ -83,16 +83,21 @@
     <div id='fileMenu' class='dialog'>
         <p id='new'>new drawing</p>
         <p id='load'>load drawing</p>
+        <p id='loadRef'>load reference drawing</p>
+        <p id='loadCombi'>load combi</p>
         <p id='save'>save drawing</p>
+        <p id='print'>print drawing</p>
         <p id='settings'>settings</p>
     </div>
-    <div id='settingsDialog' class='dialog'>
-        <p>settings</p>
-        <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' value=0></p>
-        <p><input type='number' id='gridSize' value=10> <span id='gridUnits'>mm</span></p>
-        <p>box corner radius</p>
-        <p><input type='number' id='boxRadius' value='5'/> <span id='radiusUnit'>mm</span></p>
-    </div>
+    <div id='printDialog' class='dialog'>
+	    <p>save as printable SVG file</p>
+		<p>file name <input id='printName' type='text'>.svg</p>
+		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
+		<p>
+            <button id='cancelPrint' class='iconButton'></button>
+            <button id='confirmPrint' class='iconButton'></button>
+        </p>
+	</div>
     <div id='newDrawing' class='dialog'>
         <p>new drawing</p>
         <p>size: A4 (<span id='aspect'></span>)</p>
@@ -119,6 +124,27 @@
             <button id='cancelNewDrawing' class='iconButton'></button>
             <button id='createNewDrawing' class='iconButton'></button>
         </p>
+    </div>
+    <div id="loadCombiDialog" class="dialog">
+        <p>load combi file</p>
+	    <p><input type="file" id="combiChooser"></p>
+        <p>
+		    <button id="cancelCombi" class="iconButton"></button>
+		    <label for='cancelCombi'>cancel</label>
+	    </p>
+</div>
+    <div id='combiDialog' class='dialog'>
+        <p>select a combi</p>
+        <p><select id='combiList'>
+            <option onclick='prompt("select a combi");' value=null>select a combi</option>
+        </select></p>
+    </div>
+    <div id='settingsDialog' class='dialog'>
+        <p>settings</p>
+        <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' value=0></p>
+        <p><input type='number' id='gridSize' value=10> <span id='gridUnits'>mm</span></p>
+        <p>box corner radius</p>
+        <p><input type='number' id='boxRadius' value='5'/> <span id='radiusUnit'>mm</span></p>
     </div>
     <div id='stylesDialog' class='dialog'>
         <!--div id='lineStyle'-->
@@ -181,13 +207,6 @@
     <div id='textDialog' class='dialog'>
         text: <input id='text' type='text' size='50'/>
     </div>
-	<div id='saveDialog' class='dialog'>
-		save as...<br/>
-		<input id='saveName' type='text'>.svg<br/>
-		<button id='saveButton'>SAVE</button>
-		<button onclick='history.go(0);'>RE-START</button>
-		<p>The saved <i>scalable vector graphics</i> file will appear in your downloads folder.</p>
-	</div>
 	<script src="ddScript.js" async></script>
 </body>
 </html>

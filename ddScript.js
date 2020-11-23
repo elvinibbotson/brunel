@@ -33,6 +33,9 @@ var nodes=[]; // array of nodes each with x,y coordinates and element ID
 var node=null;
 var element=null; // current element
 var elementID=null; // id of current element 
+var combi=null; // current combi
+var combiID=null; // id of current combi
+// var combis=[]; // holds dimensions for combis to aid selection
 var lineType='solid'; // default styles
 var lineShade='black';
 var pen=0.25; // 0.25mm at 1:1 scale - increase for smaller scales (eg.12.5 at 1:50 scale)
@@ -41,7 +44,6 @@ var opacity='1';
 var textSize=5; // default text size
 var textStyle='fine'; // normal text
 var currentDialog=null;
-var timer=null;
 
 scr.w=screen.width;
 scr.h=screen.height;
@@ -69,13 +71,6 @@ id('new').addEventListener('click',function() {
     aspect=(scr.w>scr.h)?'landscape':'portrait';
     id('aspect').innerHTML=aspect;
     showDialog('newDrawingDialog',true);
-});
-id('save').addEventListener('click',function() {
-    saveSVG(); // INSTEAD SHOW SAVE DIALOG
-    showDialog('fileMenu',false);
-});
-id('settings').addEventListener('click',function() {
-    showDialog('settingsDialog',true);
 });
 id('cancelNewDrawing').addEventListener('click',function() {
     showDialog('newDrawing',false);
@@ -106,6 +101,68 @@ id('createNewDrawing').addEventListener('click',function() {
 	};
     showDialog('newDrawing',false);
     initialise();
+});
+id('loadCombi').addEventListener('click',function() {
+    // USE FILE NAVIGATOR TO FIND JSON FILE AND IMPORT TO combis DATABASE
+    showDialog('fileMenu',false);
+    showDialog('loadCombiDialog',true);
+});
+id("combiChooser").addEventListener('change', function() {
+	var file=id('combiChooser').files[0];
+	console.log("file: "+file+" name: "+file.name);
+	var fileReader=new FileReader();
+	fileReader.addEventListener('load', function(evt) {
+		console.log("file read: "+evt.target.result);
+	  	var data=evt.target.result;
+		var json=JSON.parse(data);
+		console.log("json: "+json);
+		var combis=json.combis;
+		console.log(combis.length+" combis loaded");
+		var dbTransaction=db.transaction('combis',"readwrite");
+		var dbObjectStore=dbTransaction.objectStore('combis');
+		for(var i=0;i<combis.length;i++) {
+		    // combis[i].id=i;
+		    var name=combis[i].name;
+			console.log("add "+name);
+			var request=dbObjectStore.add(combis[i]);
+			request.onsuccess=function(e) {
+			    var n=request.result;
+				console.log("combi "+i+" added to database - id: "+id);
+				var html="<option value='"+n+"'>"+name+"</option>";
+				id('combiList').innerHTML+=html;
+			};
+			request.onerror=function(e) {console.log("error adding combis");};
+		}
+		// id('importDialog').style.display='none';
+		showDialog('loadCombiDialog',false);
+		// alert("combi(s) imported - restart");
+  	});
+  	fileReader.readAsText(file);
+});
+id('print').addEventListener('click',function() {
+    showDialog('fileMenu',false);
+    id('printName').value='';
+    showDialog('printDialog',true);
+});
+id('confirmPrint').addEventListener('click',function() {
+    if(id('printName').value.length<0) {
+        prompt('OOPS');
+        return;
+    }
+    saveSVG();
+    showDialog('printDialog',false);
+});
+id('settings').addEventListener('click',function() {
+    showDialog('settingsDialog',true);
+});
+id('grid').addEventListener('change',function() {
+    // TOGGLE SNAP GRID
+});
+id('gridSize').addEventListener('change',function() {
+    // SET SIZE OF SNAP GRID
+});
+id('boxRadius').addEventListener('change',function() {
+    boxR=event.target.value*scale;
 });
 id('zoomInButton').addEventListener('click',function() {
     prompt('ZOOM IN');
@@ -167,21 +224,11 @@ id('boxButton').addEventListener('click',function() {
     rad=0;
     showSizes(true,'BOX: press at start');
 });
-id('roundboxButton').addEventListener('touchstart',function() {
-    timer=setTimeout(function(){showDialog('boxDialog',true)}, 2000);
-});
-id('roundboxButton').addEventListener('touchend',function() {
-    clearTimeout(timer);
+id('squircleButton').addEventListener('click',function() {
     mode='box';
     rad=boxR;
     showSizes(true,'BOX: press at start');
 });
-id('boxRadius').addEventListener('change',function() {
-    rad=boxR=event.target.value;
-    mode='box';
-    rad=boxR;
-    showSizes(true,'BOX: press at start');
-})
 id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
     mode='oval';
     showSizes(true,'OVAL: press at centre');
@@ -244,11 +291,25 @@ id('text').addEventListener('change',function() {
 });
 id('combiButton').addEventListener('click',function() {
     // PLACE CURRENT COMBI OR HOLD TO SHOW LIST OF COMBIS
+    showDialog('combiDialog',true);
 });
+id('combiList').addEventListener('change',function() {
+    console.log('choose '+event.target.value);
+    combiID=parseInt(event.target.value);
+    console.log('combi '+combiID+' picked');
+    mode='combi';
+    prompt('COMBI: touch to place');
+    showDialog('combiDialog',false);
+})
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
     prompt('DELETE');
-    // console.log('delete element '+elementID);
+    if(selection.length>0) {
+        while(selection.length>0) remove(selection.pop());
+    }
+    else remove(element);
+    element=elementID=null;
+    /*
     var elementNodes=nodes.filter(belong);
     for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
         if(nodes[i].el==elementID) nodes.splice(i,1);
@@ -269,9 +330,20 @@ id('deleteButton').addEventListener('click',function() {
 	request.onerror=function(event) {
 	    console.log("error deleting element");
 	};
+	*/
+	// id('dwg').removeChild(element); // remove element from SVG
+    id('handles').innerHTML=''; // remove edit handles...
+    id('selection').innerHTML=''; // ...selection shading,...
+    id('blueBox').setAttribute('width',0); // ...and text outline...
+    id('blueBox').setAttribute('height',0);
+    showDialog('textDialog',false); // ...and content (if shown)
 	showEditTools(false);
 });
 id('backButton').addEventListener('click',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     prompt('PUSH BACK');
     // console.log('move '+elementID+' backwards');
     var previousElement=element.previousSibling;
@@ -279,6 +351,10 @@ id('backButton').addEventListener('click',function() {
     else id('dwg').insertBefore(element,previousElement);
 });
 id('forwardButton').addEventListener('click',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     prompt('PULL FORWARD');
     // console.log('move '+elementID+' forwards');
     var nextElement=element.nextSibling;
@@ -305,67 +381,18 @@ id('confirmMove').addEventListener('click',function() {
         moveX=moveD*Math.cos(moveA);
         moveY=moveD*Math.sin(moveA);
     }
-    switch(type(element)) {
-        case 'polyline':
-            console.log('move all points by '+moveX+','+moveY);
-            for(var i=0;i<element.points.length;i++) {
-                element.points[i].x+=moveX;
-                element.points[i].y+=moveY;
-            }
-            // console.log(element.points.length+' points adjusted');
-            updateElement(elementID,'points',element.getAttribute('points'));
-            break;
-        case 'box':
-        case 'text':
-            console.log('move by '+moveX+','+moveY);
-            var val=parseInt(element.getAttribute('x'));
-            val+=moveX;
-            element.setAttribute('x',val);
-            updateElement(elementID,'x',val);
-            val=parseInt(element.getAttribute('y'));
-            val+=moveY;
-            element.setAttribute('y',val);
-            updateElement(elementID,'y',val);
-            break;
-        case 'oval':
-            var val=parseInt(element.getAttribute('cx'));
-            val+=moveX;
-            element.setAttribute('cx',val);
-            updateElement(elementID,'cx',val);
-            val=parseInt(element.getAttribute('cy'));
-            val+=moveY;
-            element.setAttribute('cy',val);
-            updateElement(elementID,'cy',val);
-            break;
-        case 'arc':
-            // move centre, start and end points by moveX, moveY
-            var d=element.getAttribute('d');
-            getArc(d);
-            arc.centreX+=moveX;
-            arc.centreY+=moveY;
-            arc.startX+=moveX;
-            arc.startY+=moveY;
-            arc.endX+=moveX;
-            arc.endY+=moveY;
-            d=setArc();
-            element.setAttribute('d',d);
-            updateElement(elementID,'centreX',arc.centreX);
-            updateElement(elementID,'centreY',arc.centreY);
-            updateElement(elementID,'startX',arc.startX);
-            updateElement(elementID,'startY',arc.startY);
-            updateElement(elementID,'endX',arc.endX);
-            updateElement(elementID,'endY',arc.endY);
-            break;
+    if(selection.length>0) {
+        for(var i=0;i<selection.length;i++) move(election[i],moveX,moveY);
+        return;
     }
-    var elementNodes=nodes.filter(belong);
-    for(var i=0;i<elementNodes.length;i++) { // move nodes
-        elementNodes[i].x+=moveX;
-        elementNodes[i].y+=moveY;
-    }
+    else move(element,moveX,moveY);
     showDialog('moveDialog',false);
+    id('blueBox').setAttribute('width',0);
+    id('blueBox').setAttribute('height',0);
     id('handles').innerHTML='';
-    mode='select';
+    id('selection').innerHTML='';
     selected=[];
+    mode='select';
     elementID=null;
 });
 
@@ -374,6 +401,10 @@ id('line').addEventListener('click',function() {
     showDialog('stylesDialog',true);
 });
 id('lineType').addEventListener('change',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     var type=event.target.value;
     // console.log('line type: '+type);
     if(elementID) { // change selected element
@@ -400,6 +431,10 @@ id('lineType').addEventListener('change',function() {
     id('line').style.borderStyle=type;
 });
 id('penSelect').addEventListener('change',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     var val=event.target.value;
     // console.log('pen width: '+val+'mm at 1:1');
     // id('penWidth').value=val;
@@ -417,6 +452,10 @@ id('penSelect').addEventListener('change',function() {
     id('line').style.borderWidth=(pen/scaleF)+'px';
 });
 id('textSize').addEventListener('change',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     var val=event.target.value;
     if(elementID) { // change selected text element
         element=id(elementID);
@@ -431,6 +470,10 @@ id('textSize').addEventListener('change',function() {
     }
 });
 id('textStyle').addEventListener('change',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     var val=event.target.value;
     if(elementID) { // change selected text element
         element=id(elementID);
@@ -456,16 +499,28 @@ id('textStyle').addEventListener('change',function() {
     }
 });
 id('lineShade').addEventListener('click',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     // console.log('show shadeMenu');
     id('shadeMenu').mode='line';
     showShadeMenu(true,event.clientX-16,event.clientY-16);
 });
 id('fillShade').addEventListener('click',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     console.log('show shadeMenu');
     id('shadeMenu').mode='fill';
     var shade=showShadeMenu(true,event.clientX-16,event.clientY-16);
 });
 id('opacity').addEventListener('change',function() {
+    if(selection.length>0) {
+        prompt('OOPS');
+        return;
+    }
     var val=event.target.value;
     // console.log('opacity: '+val);
     if(elementID) { // change selected element
@@ -556,6 +611,11 @@ id('graphic').addEventListener('touchstart',function() {
         console.log('HANDLE '+val);
         var handle=id(val);
         var bounds=element.getBBox();
+        if(type(element)=='combi') { // correct bounds for combis
+            bounds.x=element.getAttribute('x');
+            bounds.y=element.getAttribute('y');
+        }
+        console.log('bounds: '+bounds.x+','+bounds.y+' '+bounds.width+'x'+bounds.height);
         id('blueBox').setAttribute('x',bounds.x);
         id('blueBox').setAttribute('y',bounds.y);
         id('blueBox').setAttribute('width',bounds.width);
@@ -607,6 +667,10 @@ id('graphic').addEventListener('touchstart',function() {
                     break;
                 default:
                     mode='movePoint'+val;
+                    var points=element.getAttribute('points');
+                    id('bluePolyline').setAttribute('points',points);
+                    id('blueBox').setAttribute('width',0);
+                    id('blueBox').setAttribute('height',0);
             }
             console.log('mode: '+mode);
         }
@@ -693,16 +757,42 @@ id('graphic').addEventListener('touchstart',function() {
             id('text').value='';
             id('textDialog').style.display='block';
             break;
-        case 'point':
-            var html="<svg id='~"+elID+"' class='point' x='"+x0+"' y='"+y0+"'>";
-            html+="<circle cx='0' cy='0' r='"+(3*scale)+"' stroke='none' fill='silver'/>";
-            html+="<line x1='"+(-3*scale)+"' y1='0' x2='"+(3*scale)+"' y2='0' stroke='white' stroke-width='0.25' fill='none'/>";
-            html+="<line x1='0' y1='"+(-3*scale)+"' x2='0' y2='"+(3*scale)+"' stroke='white' stroke-width='0.25' fill='none'/>";
-            html+="</svg>";
-            // var html="<use xlink:href='#point' x='"+x+"' y='"+y+"'/>";
-            console.log('point html: '+html);
-            id('guides').innerHTML+=html;
-            // ADD NODE
+        case 'combi':
+            console.log('place combi '+combiID+' at '+x0+','+y0);
+            db.transaction('combis').objectStore('combis').get(combiID).onsuccess=function(event) {
+                combi=event.target.result;
+                console.log('combi '+combiID+' is '+combi.name);
+                var s=(combi.nts>0)?scale:1;
+                var elementID='~'+elID;
+                x0-=combi.ax*s;
+                y0-=combi.ay*s;
+                var html="<svg id='"+elementID+"' x='"+x0+"' y='"+y0+"'>";
+                html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
+                console.log('combi html: '+html);
+                id('dwg').innerHTML+=html;
+                // combis.push({'el':elementID,'x':x0,'y':y0,'w':(combi.width*s),'h':(combi.height*s),'ax':(combi.ax*s),'ay':(combi.ay*s)});
+                elID++;
+                console.log("DONE");
+                nodes.push({'x':x0,'y':y0,'el':elementID});
+                // save box to database
+                var dbTransaction=db.transaction('elements',"readwrite");
+	            // console.log("indexedDB transaction ready");
+	            var dbObjectStore=dbTransaction.objectStore('elements');
+	            var el={};
+	            el.id=elementID
+	            el.type='combi';
+	            el.no=combiID;
+	            el.x=x0;
+	            el.y=y0;
+    		    var request=dbObjectStore.add(el);
+		        request.onsuccess=function(event) {
+			        console.log("new combi element added: "+request.result);
+		        };
+		        request.onerror=function(event) {
+		            console.log("error adding new combi element");
+		        };
+                mode='select';
+            }
             break;
         case 'select':
             id('blueBox').setAttribute('x',x0);
@@ -722,7 +812,13 @@ id('graphic').addEventListener('touchmove',function() {
     scr.y=Math.round(event.touches[0].clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
-    switch(mode) {
+    if(mode.startsWith('movePoint')) {
+        var n=parseInt(mode.substr(9));
+        console.log('drag polyline point '+n);
+        id('bluePolyline').points[n].x=x;
+        id('bluePolyline').points[n].y=y;
+    }
+    else switch(mode) {
         case 'datum':
             snap=snapCheck();
             id('datum').setAttribute('cx',x);
@@ -737,29 +833,23 @@ id('graphic').addEventListener('touchmove',function() {
             datumY=y;
             break;
         case 'move':
-            // console.log('move element '+elementID+' to '+x+','+y);
+            console.log('move element '+elementID+' to '+x+','+y);
             id('blueBox').setAttribute('x',(x+dx));
             id('blueBox').setAttribute('y',(y+dy));
             break;
-        case 'boxWidth':
-            if(x<x0) prompt('OOPS!');
-            id('blueBox').setAttribute('width',x-x0);
-            // console.log('set width to '+(x-x0));
-            id('first').value=(x-x0);
-            break;
-        case 'boxHeight':
-            if(y<y0) prompt('OOPS!');
-            id('blueBox').setAttribute('height',y-y0);
-            id('second').value=(y-y0);
-            break;
         case 'boxSize':
-            var aspect=parseInt(element.getAttribute('width'))/parseInt(element.getAttribute('height'));
-            console.log('box aspect: '+aspect);
+            w=parseInt(element.getAttribute('width'));
+            h=parseInt(element.getAttribute('height'));
+            // WAS var aspect=parseInt(element.getAttribute('width'))/parseInt(element.getAttribute('height'));
+            var aspect=w/h;
+            console.log('box size: '+w+'x'+h+'; aspect: '+aspect);
             dx=x-x0;
             dy=y-y0;
-            if((dx/dy)>aspect) dy=dx/aspect;
+            if(Math.abs(dx-w)<(snapD*2)) dx=w; // snap to equal width,...
+            else if(Math.abs(dy-h)<(snapD*2)) dy=h; // ...equal height,... 
+            else if((dx/dy)>aspect) dy=dx/aspect; // ...or equal proportion
             else dx=dy*aspect;
-            if(dx<0) prompt('OOPS!');
+            if((dx<0)||(dy<0)) prompt('OOPS!');
             id('blueBox').setAttribute('width',dx);
             id('blueBox').setAttribute('height',dy);
             w=dx;
@@ -890,7 +980,26 @@ id('graphic').addEventListener('touchmove',function() {
 id('graphic').addEventListener('touchend',function() {
     // console.log('touch-end at '+x+','+y);
     snap=snapCheck();
-    switch(mode) {
+    if(mode.startsWith('movePoint')) { // move polyline point
+        id('handles').innerHTML='';
+        var n=parseInt(mode.substr(9));
+        console.log('move polyline point '+n);
+        element.points[n].x=x;
+        element.points[n].y=y;
+        id('bluePolyline').setAttribute('points','0,0');
+        updateElement(elementID,'points',element.getAttribute('points'));
+        var polylineNodes=nodes.filter(belong);
+        for(var i=0; i<polylineNodes.length;i++) {
+            polylineNodes[i].x=element.points[i].x;
+            polylineNodes[i].y=element.points[i].y;
+        }
+        mode='select';
+            elementID=null;
+            selection=[];
+            showSizes(false);
+            showEditTools(false);
+    }
+    else switch(mode) {
         case 'move':
             // console.log('move element '+elementID+' ends at '+x+','+y);
             id('handles').innerHTML='';
@@ -912,8 +1021,11 @@ id('graphic').addEventListener('touchend',function() {
                     updateElement(elementID,'points',element.getAttribute('points'));
                     break;
                 case 'box':
+                case 'text':
+                case 'combi':
                     element.setAttribute('x',x);
                     element.setAttribute('y',y);
+                    console.log('set element '+elementID+' position to '+x+','+y);
                     updateElement(elementID,'x',x);
                     updateElement(elementID,'y',y);
                     break;
@@ -942,51 +1054,20 @@ id('graphic').addEventListener('touchend',function() {
                     updateElement(elementID,'endX',arc.endX);
                     updateElement(elementID,'endY',arc.endY);
                     break;
+                /*
                 case 'text':
                     element.setAttribute('x',x);
                     element.setAttribute('y',y);
                     updateElement(elementID,'x',x);
                     updateElement(elementID,'y',y);
                     break;
+                case 'combi':
+                */    
             }
             var elementNodes=nodes.filter(belong);
             for(var i=0; i<elementNodes.length;i++) {
                 elementNodes[i].x+=dx;
                 elementNodes[i].y+=dy;
-            }
-            mode='select';
-            elementID=null;
-            selection=[];
-            showSizes(false);
-            showEditTools(false);
-            break;
-        case 'boxWidth':
-            console.log('touchEnd - box width: '+(x-x0));
-            id('handles').innerHTML='';
-            element.setAttribute('width',(x-x0));
-            updateElement(elementID,'width',(x-x0));
-            id('blueBox').setAttribute('width',0);
-            id('blueBox').setAttribute('height',0);
-            var elementNodes=nodes.filter(belong);
-            for(var i=0; i<elementNodes.length;i++) {
-                elementNodes[i].x=x;
-            }
-            mode='select';
-            elementID=null;
-            selection=[];
-            showSizes(false);
-            showEditTools(false);
-            break;
-        case 'boxHeight':
-            console.log('touchEnd - box height: '+(y-y0));
-            id('handles').innerHTML='';
-            element.setAttribute('height',(y-y0));
-            updateElement(elementID,'height',(y-y0));
-            id('blueBox').setAttribute('width',0);
-            id('blueBox').setAttribute('height',0);
-            var elementNodes=nodes.filter(belong); 
-            for(var i=0; i<nodes.length;i++) {
-                elementNodes[i].y=y;
             }
             mode='select';
             elementID=null;
@@ -1025,9 +1106,7 @@ id('graphic').addEventListener('touchend',function() {
             id('blueBox').setAttribute('height',0);
             var elementNodes=nodes.filter(belong);
             for(var i=0; i<elementNodes.length;i++) {
-                elementNodes[i].x=x0-dx;
                 elementNodes[i].x=x0+dx;
-                elementNodes[i].y=y0-dy;
                 elementNodes[i].y=y0+dy;
             }
             mode='select';
@@ -1120,11 +1199,7 @@ id('graphic').addEventListener('touchend',function() {
                 }
                 // save poly/line to database
                 var dbTransaction=db.transaction('elements',"readwrite");
-	            // console.log("indexedDB transaction ready");
 	            var dbObjectStore=dbTransaction.objectStore('elements');
-	            // console.log("indexedDB objectStore ready");
-	            // console.log("save element "+elementID);
-	            // console.log('create object from '+html);
 	            var el={}
 	            el.id=elementID;
 	            el.type='polyline';
@@ -1133,9 +1208,8 @@ id('graphic').addEventListener('touchend',function() {
 	            el.lineW=element.getAttribute('stroke-width');
 	            if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
 	            el.fill=element.getAttribute('fill');
-	            // if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
 	            if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
-                // console.log('element data object id: '+el.id+'; type: '+el.type+'; '+el.points.length+' points');
+                console.log('element data object id: '+el.id+'; type: '+el.type+'; '+el.points.length+' points');
     		    var request=dbObjectStore.add(el);
 		        request.onsuccess=function(event) {
 			        console.log("new poly/line element added: "+el.id);
@@ -1367,12 +1441,30 @@ id('graphic').addEventListener('touchend',function() {
             selection=[];
             console.log('box size: '+selectionBox.w+'x'+selectionBox.h);
             if((selectionBox.w>20)&&(selectionBox.h>20)) { // significant selection box size
-                console.log('GROUP SELECTION');
+                console.log('GROUP SELECTION - box: '+selectionBox.w+'x'+selectionBox.h+' at '+selectionBox.x+','+selectionBox.y);
                 var items=id('dwg').childNodes;
                 console.log(items.length+' nodes in dwg');
                 for(var i=0;i<items.length;i++) { // collect elements entirely within selectionBox
                     console.log('item '+i+': '+items[i].id);
                     var box=items[i].getBBox();
+                    if(type(items[i])=='combi') {
+                        console.log('COMBI!'); // FOR COMBIS GET BOUNDS FROM combiBoxes
+                        box.x=parseInt(items[i].getAttribute('x'));
+                        box.y=parseInt(items[i].getAttribute('y'));
+                        /*
+                        for(var j=0;j<combis.length;j++) {
+                            if(combis[j].el==items[i].id) {
+                                box.x=combis[j].x;
+                                box.y=combis[j].y;
+                                // box.width=combis[j].w;
+                                // box.height=combis[j].h;
+                                console.log('combi '+combis[j].el+': '+box.width+'x'+box.height+' at '+box.x+','+box.y);
+                            }
+                        }
+                        */
+                    }
+                    console.log('bounds for '+items[i].id+": "+box.x+','+box.y);
+                    console.log('item '+items[i].id+' box: '+box.width+'x'+box.height+' at '+box.x+','+box.y);
                     if(box.x<selectionBox.x) continue;
                     if(box.y<selectionBox.y) continue;
                     if((box.x+box.width)>(selectionBox.x+selectionBox.w)) continue;
@@ -1387,27 +1479,13 @@ id('graphic').addEventListener('touchend',function() {
                     mode='edit';
                     showEditTools(true);
                 }
-                // COLLECT SELECTED ELEMENTS
-                /* var svgElement=id('svg');
-                var box=id('blueBox').getBBox();
-                // THIS DOESN'T WORK!!!!
-                items=id('svg').getIntersectionList(box,null);
-                console.log(items.length+' items');
-                selection=[];
-                for(var i=0;i<items.length;i++) {
-                    if(!items[i].id.startsWith('~')) continue;
-                    items[i].setAttribute('stroke','red');
-                    items[i].setAttribute('stroke-width','2');
-                    selection.push(items[i]);
-                    console.log('item '+items[i].id+' selected');
-                }*/
                 return;
             }
         case 'edit':
-            var el=event.target.id;
-            // console.log('touchend on '+el+' at '+scr.x+','+scr.y+'; ie: '+x+','+y+' on drawing');
-            if(el=='svg') { // check for elements within snap distance
-                var hit=null;
+            var el=event.target;
+            var hit=null;
+            if(el.parentNode.id=='drawing') { // drawing background - check 10x10px zone
+                console.log('noting here - search locality');
                 var e=-5;
                 var n=-5;
                 while(e<6 && !hit) {
@@ -1415,89 +1493,89 @@ id('graphic').addEventListener('touchend',function() {
                     while(n<6 && !hit) {
                         // console.log('check at '+e+','+n+' '+(scr.x+e)+','+(scr.y+n));
                         el=document.elementFromPoint(scr.x+e,scr.y+n);
-                        if(el) el=el.id;
-                        if(el!='svg') hit=el; // hits.push(el); 
-                        n++; // 
+                        if(el.id!='svg') hit=el.id; 
+                        n++; 
                     }
                     e++;
                 }
             }
-            else hit=el;
-            console.log('hit: '+hit);
-            if(hit && el.charAt(0)=='~' && selection.length<1) {
-                // IF BOX-SELECT ADD TO 'selections' ARRAY - LIST OF ELEMENT IDs
+            else while((el.parentNode.id!='dwg')&&(el.parentNode.id!='drawing')) {
+                el=el.parentNode; // combis have elements within groups in svg container
+            }
+            console.log('parent is '+el.parentNode.id);
+            if(el.parentNode.id=='dwg') hit=el.id;
+            if(hit) console.log('HIT: '+hit+' type: '+type(el));
+            else console.log('MISS');
+            console.log('selected: '+selection.length);
+            if(hit && selection.length<1) {
+                // IF BOX-SELECT ADD TO (OR REMOVE FROM) 'selection' ARRAY - LIST OF ELEMENT IDs
                 // OTHERWISE (CLICK-SELECT) JUST SELECT AN ELEMENT IN snap RANGE
-                // console.log('el: '+el+' set styles');
-                elementID=el;
-                var el=id(el);
                 element=el;
-                var val=el.getAttribute('stroke-dasharray');
-                // console.log('element lineType (dasharray): '+val);
-                if(!val) {
-                    // console.log('set lineType to solid');
-                    id('lineType').value='solid';
-                    id('line').style.borderStyle='solid';
-                }
-                else {
-                    // console.log('dasharray value: '+parseInt(val));
-                    if(parseInt(val)==scaleF) {
-                        // console.log('set lineType to dotted');
-                        id('lineType').value='dotted';
-                        id('line').style.borderStyle='dotted';
+                elementID=hit;
+                console.log('sort style then add handles');
+                if(type(el)!='combi') { // combis have no style
+                    var val=el.getAttribute('stroke-dasharray');
+                    // console.log('element lineType (dasharray): '+val);
+                    if(!val) {
+                        // console.log('set lineType to solid');
+                        id('lineType').value='solid';
+                        id('line').style.borderStyle='solid';
                     }
                     else {
-                        // console.log('set lineType to dashed');
-                        id('lineType').value='dashed';
-                        id('line').style.borderStyle='dashed';
+                        // console.log('dasharray value: '+parseInt(val));
+                        if(parseInt(val)==scaleF) {
+                            // console.log('set lineType to dotted');
+                            id('lineType').value='dotted';
+                            id('line').style.borderStyle='dotted';
+                        }
+                        else {
+                            // console.log('set lineType to dashed');
+                            id('lineType').value='dashed';
+                            id('line').style.borderStyle='dashed';
+                        }
                     }
-                }
-                val=el.getAttribute('stroke-width');
-                // console.log('element line width: '+val);
-                if(val) id('line').style.borderWidth=(val/scaleF)+'px';
-                val=el.getAttribute('stroke');
-                // console.log('set lineShade to '+val);
-                if(val) {
-                    id('lineShade').style.backgroundColor=val;
-                    id('line').style.borderColor=val;
-                }
-                /*
-                val=el.getAttribute('strokeOpacity');
-                // console.log('stroke opacity: '+val);
-                id('opacity').value=val;
-                id('fill').style.opacity=val;
-                */
-                val=el.getAttribute('fill');
-                // console.log('element fill: '+val);
-                if(val=='none') {
-                    // id('fillType').value=0;
-                    id('fill').style.background='#00000000';
-                    id('fillShade').style.backgroundColor='white';
-                }
-                else {
-                    if(type(element)=='text') {
+                    val=el.getAttribute('stroke-width');
+                    // console.log('element line width: '+val);
+                    if(val) id('line').style.borderWidth=(val/scaleF)+'px';
+                    val=el.getAttribute('stroke');
+                    // console.log('set lineShade to '+val);
+                    if(val) {
                         id('lineShade').style.backgroundColor=val;
+                        id('line').style.borderColor=val;
+                    }
+                    val=el.getAttribute('fill');
+                    // console.log('element fill: '+val);
+                    if(val=='none') {
+                        // id('fillType').value=0;
+                        id('fill').style.background='#00000000';
+                        id('fillShade').style.backgroundColor='white';
                     }
                     else {
-                        id('fillShade').style.backgroundColor=val;
-                        id('fill').style.background=val;
+                        if(type(element)=='text') {
+                            id('lineShade').style.backgroundColor=val;
+                        }
+                        else {
+                            id('fillShade').style.backgroundColor=val;
+                            id('fill').style.background=val;
+                        }
                     }
-                }
-                val=el.getAttribute('fill-opacity');
-                if(val) {
-                    id('opacity').value=val;
-                    id('fill').style.opacity=val;
-                }
-                if(type(element)=='text') {
-                    val=el.getAttribute('font-size');
-                    id('textSize').value=val;
-                    id('textStyle').value='fine';
-                    val=el.getAttribute('font-style');
-                    if(val=='italic') id('textStyle').value='italic';
-                    val=el.getAttribute('font-weight');
-                    if(val=='bold') id('textStyle').value='bold';
+                    val=el.getAttribute('fill-opacity');
+                    if(val) {
+                        id('opacity').value=val;
+                        id('fill').style.opacity=val;
+                    }
+                    if(type(element)=='text') {
+                        val=el.getAttribute('font-size');
+                        id('textSize').value=val;
+                        id('textStyle').value='fine';
+                        val=el.getAttribute('font-style');
+                        if(val=='italic') id('textStyle').value='italic';
+                        val=el.getAttribute('font-weight');
+                        if(val=='bold') id('textStyle').value='bold';
+                    } 
                 }
                 id('handles').innerHTML=''; // clear any handles then add handles for selected element 
-                // console.log('element type: '+type(el));
+                console.log('add handles');
                 switch(type(el)) {
                     case 'polyline':
                         var bounds=el.getBBox();
@@ -1526,12 +1604,13 @@ id('graphic').addEventListener('touchend',function() {
                         elementID=el.id;
                         var html="<circle id='handleNW' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML+=html; // top-left circle handle at top-left used to move whole box
-                        html="<rect id='handleNE' x='"+(x+w-handleR)+"' y='"+(y-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // top-right square handle adjusts box width
+                        // DO ALL BOX RESIZING USING SE HANDLE
+                        // html="<rect id='handleNE' x='"+(x+w-handleR)+"' y='"+(y-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        // id('handles').innerHTML+=html; // top-right square handle adjusts box width
                         html="<rect id='handleSE' x='"+(x+w-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML+=html; // bottom-right handle adjusts box size keeping aspect ratio
-                        html="<rect id='handleSW' x='"+(x-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // bottom-left handle adjusts box height
+                        // html="<rect id='handleSW' x='"+(x-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        // id('handles').innerHTML+=html; // bottom-left handle adjusts box height
                         setSizes(false);
                         showSizes(true,(w==h)?'SQUARE':'BOX');
                         mode='edit';
@@ -1558,11 +1637,12 @@ id('graphic').addEventListener('touchend',function() {
                         getArc(d); // derive arc geometry from d
                         elementID=el.id;
                         var html="<circle id='handleCentre' cx="+arc.centreX+" cy="+arc.centreY+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // circle handle at arc centre
-                        html="<rect id='handleStart' x="+(arc.startX-handleR)+" y="+(arc.startY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // square handle at arc start...
+                        id('handles').innerHTML=html; // circle handle at arc centre
+                        // DO ARC SIZING USING END HANDLE
+                        // html="<rect id='handleStart' x="+(arc.startX-handleR)+" y="+(arc.startY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        // id('handles').innerHTML+=html; // square handle at arc start...
                         html="<rect id='handleEnd' x="+(arc.endX-handleR)+" y="+(arc.endY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // ...and end points
+                        id('handles').innerHTML+=html; // square handle at end point
                         // set up x0 & x for arc radius and included angle
                         var startAngle=Math.atan((arc.startY-arc.centreY)/(arc.startX-arc.centreX));
                         if(arc.startX<arc.centreX) startAngle+=Math.PI;
@@ -1588,10 +1668,12 @@ id('graphic').addEventListener('touchend',function() {
                         setSizes(false); // size of bounding box
                         var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
                         id('handles').innerHTML+=html; // circle handle moves whole element
+                        /*
                         id('blueBox').setAttribute('x',bounds.x);
                         id('blueBox').setAttribute('y',bounds.y);
                         id('blueBox').setAttribute('width',w);
                         id('blueBox').setAttribute('height',h);
+                        */
                         showSizes(true,'TEXT');
                         console.log('display text content: '+element.innerHTML);
                         console.log('show text dialog');
@@ -1602,10 +1684,44 @@ id('graphic').addEventListener('touchend',function() {
                         elementID=el.id;
                         mode='edit';
                         break;
+                    case 'combi':
+                        console.log('combi handle at anchor point');
+                        var bounds=el.getBBox();
+                        bounds.x=parseInt(el.getAttribute('x'));
+                        bounds.y=parseInt(el.getAttribute('y'));
+                        console.log('element '+el.id+' at '+el.getAttribute('x')+','+el.getAttribute('y'));
+                        console.log('combi bounds: '+bounds.width+'x'+bounds.height+' at '+bounds.x+','+bounds.y);
+                        /*
+                        x=-1;
+                        y=-1;
+                        var i=0;
+                        combi=null;
+                        while(i<combis.length && !combi) {
+                            console.log('combi '+i);
+                            if(combis[i].el==elementID) {
+                                combi=combis[i];
+                            }
+                            i++;
+                        }
+                        x=combi.x+combi.ax;
+                        y=combi.y+combi.ay;
+                        w=combi.w;
+                        h=combi.h;
+                        */
+                        id('blueBox').setAttribute('x',bounds.x);
+                        id('blueBox').setAttribute('y',bounds.y);
+                        id('blueBox').setAttribute('width',bounds.width);
+                        id('blueBox').setAttribute('height',bounds.height);
+                        var html="<circle id='handle' cx='"+bounds.x+"' cy='"+bounds.y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                        id('handles').innerHTML=html;
+                        setSizes();
+                        showSizes(true,'COMBI '+combi.name);
+                        mode='edit';
+                        break;
                 }
                 showEditTools(true);
             }
-            else {
+            else { // no selection
                 mode='select';
                 elementID=null;
                 selection=[];
@@ -1859,7 +1975,6 @@ id('second').addEventListener('change',function() {
             id('handleSize').setAttribute('y',(elY+val/2-handleR));
     }
 })
-
 // UTILITY FUNCTIONS
 function id(el) {
 	return document.getElementById(el);
@@ -1903,7 +2018,7 @@ function initialise() {
         id('svg').setAttribute('height',dwg.h+'in');
         id('ref').setAttribute('width',dwg.w+'in');
         id('ref').setAttribute('height',dwg.h+'in');
-        id('moveUnit').innerHTML='in';
+        id('gridUnit').innerHTML='in';
         id('radiusUnit').innerHTML='in';
     }
     var blues=document.getElementsByClassName('blue');
@@ -1967,6 +2082,9 @@ function type(el) {
     }
     else if(el instanceof SVGTextElement) {
         return 'text';
+    }
+    else if(el instanceof SVGSVGElement) {
+        return 'combi';
     }
 }
 function prompt(text) {
@@ -2038,6 +2156,88 @@ function setArc() {
 }
 function blueArc() {
     id('blueArc').setAttribute('d','M'+arc.centreX+','+arc.centreY+' M'+arc.startX+','+arc.startY+' A'+arc.radius+','+arc.radius+' 0 '+arc.major+','+arc.spin+' '+arc.endX+','+arc.endY);
+}
+function remove(el) {
+    elementID=el.id
+    // var elementNodes=nodes.filter(belong);
+    var n=nodes.length;
+    for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
+        if(nodes[i].el==elementID) nodes.splice(i,1);
+    }
+    console.log((n-nodes.length)+' nodes deleted');
+    id('dwg').removeChild(el); // remove element from SVG
+    var dbTransaction=db.transaction('elements',"readwrite");
+	// console.log("indexedDB transaction ready");
+	var dbObjectStore=dbTransaction.objectStore('elements');
+	// console.log("indexedDB objectStore ready");
+	var request=dbObjectStore.delete(elementID);
+	request.onsuccess=function(event) {
+	    console.log('element deleted from database');
+	}
+	request.onerror=function(event) {
+	    console.log("error deleting element");
+	};
+}
+function move(el,dx,dy) {
+    switch(type(el)) {
+        case 'polyline':
+            console.log('move all points by '+dx+','+dy);
+            for(var i=0;i<el.points.length;i++) {
+                el.points[i].x+=dx;
+                el.points[i].y+=dy;
+            }
+            // console.log(element.points.length+' points adjusted');
+            updateElement(el.id,'points',el.getAttribute('points'));
+            break;
+        case 'box':
+        case 'text':
+        case 'combi':
+            console.log('move by '+dx+','+dy);
+            var val=parseInt(el.getAttribute('x'));
+            val+=dx;
+            el.setAttribute('x',val);
+            updateElement(el.id,'x',val);
+            val=parseInt(el.getAttribute('y'));
+            val+=dy;
+            el.setAttribute('y',val);
+            updateElement(el.id,'y',val);
+            break;
+        case 'oval':
+            var val=parseInt(el.getAttribute('cx'));
+            val+=dx;
+            el.setAttribute('cx',val);
+            updateElement(el.id,'cx',val);
+            val=parseInt(el.getAttribute('cy'));
+            val+=dy;
+            el.setAttribute('cy',val);
+            updateElement(el.id,'cy',val);
+            break;
+        case 'arc':
+            // move centre, start and end points by moveX, moveY
+            var d=el.getAttribute('d');
+            getArc(d);
+            arc.centreX+=dx;
+            arc.centreY+=dy;
+            arc.startX+=dx;
+            arc.startY+=dy;
+            arc.endX+=dx;
+            arc.endY+=dy;
+            d=setArc();
+            el.setAttribute('d',d);
+            updateElement(el.id,'centreX',arc.centreX);
+            updateElement(el.id,'centreY',arc.centreY);
+            updateElement(el.id,'startX',arc.startX);
+            updateElement(el.id,'startY',arc.startY);
+            updateElement(el.id,'endX',arc.endX);
+            updateElement(el.id,'endY',arc.endY);
+            break;
+    }
+    for(var i=0;i<nodes.length;i++) {
+        if(nodes[i].el==el.id) { // move nodes
+            nodes[i].x+=dx;
+            nodes[i].y+=dy;
+        }
+    }
 }
 function belong(node) {
     return node.el==elementID;
@@ -2145,6 +2345,12 @@ function updateElement(id,attribute,val) {
 	        case 'opacity':
 	            el.opacity=val;
 	            break;
+	        case 'textSize':
+	            el.textSize=val;
+	            break;
+	        case 'textStyle':
+	            el.textStyle=val;
+	            break;
 	        // ALSO TEXT SIZE AND TRANSFORM
 	    }
 	    // console.log('element '+id+' '+attribute+' changed to '+val);
@@ -2163,14 +2369,9 @@ function updateElement(id,attribute,val) {
 // SAVE DRAWING AS SVG FILE _ PRINT AS PDF AT 100% SCALE
 function saveSVG() {
     id('datumGroup').style.display='none';
+    var fileName=id('printName').value+'.svg';
     var svg=id('drawing').innerHTML;
-	// WAS THIS... var svg=id('graphic').innerHTML;
-	// console.log("SVG: "+svg);
-	var fileName="drawing.svg";
-	// var saveName=id('saveName').value;
-	// if(saveName) fileName=saveName+".svg";
 	console.log("save as "+fileName);
-	// var json=JSON.stringify(data);
 	var blob=new Blob([svg], {type:"data:image/svg+xml"});
 	var a =document.createElement('a');
 	a.style.display='none';
@@ -2191,18 +2392,15 @@ request.onsuccess=function(event) {
     db=event.target.result;
     // console.log("ddDB open");
     var dbTransaction=db.transaction('elements',"readwrite");
-    console.log("indexedDB transaction ready");
     var dbObjectStore=dbTransaction.objectStore('elements');
-    // console.log("indexedDB objectStore ready");
-    // code to read elements from database
     nodes=[];
-    // console.log("node array ready");
     var request=dbObjectStore.openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
         if (cursor) {
             var el=cursor.value;
             var html="<"+el.type+" id='"+el.id+"' ";
+            console.log('load '+el.type+' element '+el.id);
             switch(el.type) {
                 case 'polyline':
                     html+="points='"+el.points+"' ";
@@ -2274,12 +2472,32 @@ request.onsuccess=function(event) {
                     html+=">"+el.text+"</text>";
                     console.log('html: '+html);
                     break;
+                case 'combi':
+                    console.log('load combi no. '+el.no);
+                    var val=el.id;
+                    console.log('id: '+val);
+                    // retrieve combi from combis database
+                    db.transaction('combis').objectStore('combis').get(el.no).onsuccess=function(event) {
+                        combi=event.target.result;
+                        console.log('combi '+combi.id+' is '+combi.name);
+                        var s=(combi.nts>0)?scale:1;
+                        var elementID='~'+elID;
+                        var html="<svg id='"+val+"' x='"+el.x+"' y='"+el.y+"' ax='"+(combi.ax*s)+"' ay='"+(combi.ay*s)+"'>";
+                        html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
+                        console.log('combi html: '+html);
+                        id('dwg').innerHTML+=html;
+                        /* NO NEED FOR combis ARRAY?
+                        combis.push({'el':val,'x':el.x,'y':el.y,'w':(combi.width*s),'h':(combi.height*s),'ax':(combi.ax*s),'ay':(combi.ay*s)});
+                        */
+                        elID++;
+                        nodes.push({'x':el.x,'y':el.y,'el':elementID});
+                    }
             }
             var len=nodes.length;
             console.log(len+ ' nodes');
             // for(var i=len-4;i<len;i++) console.log('node: '+nodes[i].x+','+nodes[i].y+' el:'+nodes[i].el);
             if(el.stroke=='blue') id('ref').innerHTML+=html; // blue lines go into <ref> layer
-            else id('dwg').innerHTML+=html; // ADD TO <defs> IF SYMBOL
+            else id('dwg').innerHTML+=html;
             elID=parseInt(el.id.substr(1))+1;
 	    	cursor.continue();  
         }
@@ -2287,10 +2505,33 @@ request.onsuccess=function(event) {
 		    console.log("No more entries. elID: "+elID);
 	    }
     };
+    console.log('all elements loaded');
+    var dbTransaction=db.transaction('combis',"readwrite");
+    console.log("indexedDB transaction ready");
+    var dbObjectStore=dbTransaction.objectStore('combis');
+    var request=dbObjectStore.openCursor();
+    request.onsuccess = function(event) {  
+	    var cursor=event.target.result;  
+        if(cursor) {
+            var combi=cursor.value;
+            // GET COMBI NAME AND ADD TO combiList AS AN OPTION
+            var name=combi.name;
+            console.log('add combi '+name);
+            var html="<option value="+combi.id+">"+name+"</option>";
+            id('combiList').innerHTML+=html;
+            console.log('added');
+	    	cursor.continue();  
+        }
+	    else {
+		    console.log("No more combis");
+	    }
+    };
 };
 request.onupgradeneeded=function(event) {
-	var dbObjectStore=event.currentTarget.result.createObjectStore("elements", { keyPath: 'id', autoIncrement: false });
+	var dbObjectStore=event.currentTarget.result.createObjectStore("elements",{ keyPath:'id',autoIncrement:false });
 	console.log("new elements ObjectStore created");
+	dbObjectStore=event.currentTarget.result.createObjectStore("combis",{ keyPath:'id',autoIncrement:true });
+	console.log("new combis ObjectStore created");
 };
 request.onerror=function(event) {
 	alert("indexedDB error");

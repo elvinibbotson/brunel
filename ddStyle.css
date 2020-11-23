@@ -25,7 +25,8 @@ body {
 }
 #tools {
     position: fixed;
-    left: 4px;
+    left: 6px;
+    /* WHEN TESTED MOVE TOOLS, STYLE BOX & EDIT TOOLS TO RH EDGE right: 6px;*/
     top: 48px;
     width: 32px;
     display: block;
@@ -43,10 +44,10 @@ body {
     position: absolute;
     top: 4px;
     left: 48px;
-    /* width: 50%; */
+    /*width: 50%; */
     height: 32px;
     padding: 4px;
-    border-radius: 3px;
+    /*border-radius: 3px;*/
     color: white;
     background-color: black;
     z-index: 10;
@@ -54,11 +55,20 @@ body {
 }
 #prompt {
     position: fixed;
-    left: 48px;
-    top: 48px;
+    left: 8px;
+    top: 8px;
+    /* AFTER TESTING MOVE TO BOTTOM?
+    left: 10px;
+    bottom: 10px;
+    */
+    border: 1px black solid;
+    border-radius: 3px;
+    background-color: white;
+    opacity: 1;
+    padding: 4px;
     font-size: 1.2em;
     display: none;
-    z-index: 10;
+    z-index: 13;
 }
 #checks {
     position: fixed;
@@ -101,7 +111,7 @@ input {
 	color: white;
 	background-color: dimgray;
 	border: 1px solid #CCCCCC;
-	border-radius: 3px;
+	/*border-radius: 3px;*/
 	font-size: 1.2em;
 }
 img {
@@ -148,7 +158,7 @@ select {
 #boxButton {
     background: url(svg/box.svg) center center no-repeat;
 }
-#roundboxButton {
+#squircleButton {
     background: url(svg/roundbox.svg) center center no-repeat;
 }
 #ovalButton {
@@ -164,7 +174,7 @@ select {
     background: url(svg/dimension.svg) center center no-repeat;
 }
 #combiButton {
-    background: url(svg/combo.svg) center center no-repeat;
+    background: url(svg/combi.svg) center center no-repeat;
 }
 #deleteButton {
     background: url(svg/cross.svg) center center no-repeat;
@@ -215,12 +225,6 @@ select {
     padding: 5px;
     border-radius: 3px;
 }
-#settingsDialog {
-    left: 48px;
-    top: 48px;
-    padding: 5px;
-    border-radius: 3px;
-}
 #createNewDrawing {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
@@ -228,6 +232,38 @@ select {
 #cancelNewDrawing {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
+}
+#loadCombiDialog {
+    left: 48px;
+    top: 48px;
+    display: none;
+}
+#cancelCombi {
+    float: left;
+    background: url(svg/cross.svg) center center no-repeat;
+}
+#combiDialog {
+    left: 48px;
+    top: 48px;
+}
+#printDialog {
+    left: 48px;
+    top: 48px;
+    display: none;
+}
+#cancelPrint {
+    float: left;
+    background: url(svg/cross.svg) center center no-repeat;
+}
+#confirmPrint {
+    float: right;
+    background: url(svg/tick.svg) center center no-repeat;
+}
+#settingsDialog {
+    left: 48px;
+    top: 48px;
+    padding: 5px;
+    border-radius: 3px;
 }
 #stylesDialog {
     left: 48px;
