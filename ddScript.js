@@ -309,28 +309,6 @@ id('deleteButton').addEventListener('click',function() {
     }
     else remove(element);
     element=elementID=null;
-    /*
-    var elementNodes=nodes.filter(belong);
-    for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
-        if(nodes[i].el==elementID) nodes.splice(i,1);
-    }
-    id('dwg').removeChild(element); // remove element from SVG
-    id('handles').innerHTML=''; // remove edit handles...
-    id('blueBox').setAttribute('width',0); // ...and text outline...
-    id('blueBox').setAttribute('height',0);
-    showDialog('textDialog',false); // ...and content (if shown)
-    var dbTransaction=db.transaction('elements',"readwrite");
-	// console.log("indexedDB transaction ready");
-	var dbObjectStore=dbTransaction.objectStore('elements');
-	// console.log("indexedDB objectStore ready");
-	var request=dbObjectStore.delete(elementID);
-	request.onsuccess=function(event) {
-	    console.log('element deleted from database');
-	}
-	request.onerror=function(event) {
-	    console.log("error deleting element");
-	};
-	*/
 	// id('dwg').removeChild(element); // remove element from SVG
     id('handles').innerHTML=''; // remove edit handles...
     id('selection').innerHTML=''; // ...selection shading,...
@@ -381,11 +359,18 @@ id('confirmMove').addEventListener('click',function() {
         moveX=moveD*Math.cos(moveA);
         moveY=moveD*Math.sin(moveA);
     }
+    if(selection.length<1) selection.push(elementID);
+    while(selection.length>0) {
+        element=id(selection.pop());
+        move(element,moveX,moveY);
+    }
+    /*
     if(selection.length>0) {
-        for(var i=0;i<selection.length;i++) move(election[i],moveX,moveY);
+        for(var i=0;i<selection.length;i++) move(selection[i],moveX,moveY);
         return;
     }
     else move(element,moveX,moveY);
+    */
     showDialog('moveDialog',false);
     id('blueBox').setAttribute('width',0);
     id('blueBox').setAttribute('height',0);
@@ -607,7 +592,14 @@ id('graphic').addEventListener('touchstart',function() {
     // TEST FOR TOUCHING EDIT HANDLES
     var val=event.target.id;
     console.log('touch on '+val);
-    if(val.startsWith('handle')) {
+    var holder=event.target.parentNode.id;
+    console.log('holder is '+holder);
+    if(holder=='selection') { // click on a blue box to move multiple selectin
+        console.log('move group selection');
+        mode='move';
+        prompt('drag to MOVE selection');
+    }
+    else if(val.startsWith('handle')) { // edit using handle
         console.log('HANDLE '+val);
         var handle=id(val);
         var bounds=element.getBBox();
@@ -833,9 +825,16 @@ id('graphic').addEventListener('touchmove',function() {
             datumY=y;
             break;
         case 'move':
-            console.log('move element '+elementID+' to '+x+','+y);
-            id('blueBox').setAttribute('x',(x+dx));
-            id('blueBox').setAttribute('y',(y+dy));
+            if(selection.length>0) { // move multiple selection
+                dx=x-x0;
+                dy=y-y0;
+                id('selection').setAttribute('transform','translate('+dx+','+dy+')');
+            }
+            else { // drag single element
+                // console.log('move element '+elementID+' to '+x+','+y);
+                id('blueBox').setAttribute('x',(x+dx));
+                id('blueBox').setAttribute('y',(y+dy));
+            }
             break;
         case 'boxSize':
             w=parseInt(element.getAttribute('width'));
@@ -1003,72 +1002,82 @@ id('graphic').addEventListener('touchend',function() {
         case 'move':
             // console.log('move element '+elementID+' ends at '+x+','+y);
             id('handles').innerHTML='';
-            dx=x-x0;
-            dy=y-y0;
-            console.log('moved by '+dx+','+dy);
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
-            var val=type(element);
-            console.log('element type: '+val);
-            switch(val) {
-                case 'polyline':
-                    console.log('move all points by '+dx+','+dy);
-                    for(var i=0;i<element.points.length;i++) {
-                        element.points[i].x+=dx;
-                        element.points[i].y+=dy;
-                    }
-                    // console.log(element.points.length+' points adjusted');
-                    updateElement(elementID,'points',element.getAttribute('points'));
-                    break;
-                case 'box':
-                case 'text':
-                case 'combi':
-                    element.setAttribute('x',x);
-                    element.setAttribute('y',y);
-                    console.log('set element '+elementID+' position to '+x+','+y);
-                    updateElement(elementID,'x',x);
-                    updateElement(elementID,'y',y);
-                    break;
-                case 'oval':
-                    element.setAttribute('cx',x);
-                    element.setAttribute('cy',y);
-                    updateElement(elementID,'cx',x);
-                    updateElement(elementID,'cy',y);
-                    break;
-                case 'arc':
-                    // move centre, start and end points by dx,dy
-                    var d=element.getAttribute('d');
-                    getArc(d);
-                    arc.centreX+=dx;
-                    arc.centreY+=dy;
-                    arc.startX+=dx;
-                    arc.startY+=dy;
-                    arc.endX+=dx;
-                    arc.endY+=dy;
-                    d=setArc();
-                    element.setAttribute('d',d);
-                    updateElement(elementID,'centreX',arc.centreX);
-                    updateElement(elementID,'centreY',arc.centreY);
-                    updateElement(elementID,'startX',arc.startX);
-                    updateElement(elementID,'startY',arc.startY);
-                    updateElement(elementID,'endX',arc.endX);
-                    updateElement(elementID,'endY',arc.endY);
-                    break;
-                /*
-                case 'text':
-                    element.setAttribute('x',x);
-                    element.setAttribute('y',y);
-                    updateElement(elementID,'x',x);
-                    updateElement(elementID,'y',y);
-                    break;
-                case 'combi':
-                */    
+            // var counter=selection.length; // move single or multiple selected elements
+            if(selection.length>0) {
+                dx=x-x0;
+                dy=y-y0;
+                console.log('selection moved by '+dx+','+dy);
             }
-            var elementNodes=nodes.filter(belong);
-            for(var i=0; i<elementNodes.length;i++) {
-                elementNodes[i].x+=dx;
-                elementNodes[i].y+=dy;
+            else selection.push(elementID); // move single element
+            dx=x-x0;
+            dy=y-y0;
+            console.log('move '+selection.length+' elements');
+            while(selection.length>0) {
+                elementID=selection.pop();
+                console.log('move element '+elementID);
+                element=id(elementID);
+                var val=type(element);
+                console.log('element type: '+val);
+                switch(val) {
+                    case 'polyline':
+                        console.log('move all points by '+dx+','+dy);
+                        for(var i=0;i<element.points.length;i++) {
+                            element.points[i].x+=dx;
+                            element.points[i].y+=dy;
+                        }
+                        // console.log(element.points.length+' points adjusted');
+                        updateElement(elementID,'points',element.getAttribute('points'));
+                        break;
+                    case 'box':
+                    case 'text':
+                    case 'combi':
+                        console.log('from '+element.getAttribute('x')+','+element.getAttribute('y')+'...');
+                        x=parseInt(element.getAttribute('x'))+dx;
+                        y=parseInt(element.getAttribute('y'))+dy;
+                        element.setAttribute('x',x);
+                        element.setAttribute('y',y);
+                        console.log('...to '+x+','+y);
+                        updateElement(elementID,'x',x);
+                        updateElement(elementID,'y',y);
+                        break;
+                    case 'oval':
+                        x=parseInt(element.getAttribute('cx'))+dx;
+                        y=parseInt(element.getAttribute('cy'))+dy;
+                        element.setAttribute('cx',x);
+                        element.setAttribute('cy',y);
+                        updateElement(elementID,'cx',x);
+                        updateElement(elementID,'cy',y);
+                        break;
+                    case 'arc':
+                        // move centre, start and end points by dx,dy
+                        var d=element.getAttribute('d');
+                        getArc(d);
+                        arc.centreX+=dx;
+                        arc.centreY+=dy;
+                        arc.startX+=dx;
+                        arc.startY+=dy;
+                        arc.endX+=dx;
+                        arc.endY+=dy;
+                        d=setArc();
+                        element.setAttribute('d',d);
+                        updateElement(elementID,'centreX',arc.centreX);
+                        updateElement(elementID,'centreY',arc.centreY);
+                        updateElement(elementID,'startX',arc.startX);
+                        updateElement(elementID,'startY',arc.startY);
+                        updateElement(elementID,'endX',arc.endX);
+                        updateElement(elementID,'endY',arc.endY);
+                        break;
+                }
+                var elementNodes=nodes.filter(belong);
+                for(var i=0; i<elementNodes.length;i++) {
+                    elementNodes[i].x+=dx;
+                    elementNodes[i].y+=dy;
+                }
             }
+            id('selection').setAttribute('transform','translate(0,0)');
+            id('selection').innerHTML='';
             mode='select';
             elementID=null;
             selection=[];
@@ -1372,7 +1381,6 @@ id('graphic').addEventListener('touchend',function() {
             break;
         case 'arcEnd':
             var html="<path id='~"+elID+"' d='"+setArc()+"' stroke="; // set arc path html from arc properties
-            /* "<path id='~"+elID+"' d='M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY+" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" "+arc.endX+","+arc.endY+"' stroke=";*/
             switch(lineType) {
                 case 'solid':
                     html+=lineShade;
@@ -1438,7 +1446,7 @@ id('graphic').addEventListener('touchend',function() {
             break;
         case 'select':
             id('blueBox').setAttribute('width',0);
-            selection=[];
+            // selection=[];
             console.log('box size: '+selectionBox.w+'x'+selectionBox.h);
             if((selectionBox.w>20)&&(selectionBox.h>20)) { // significant selection box size
                 console.log('GROUP SELECTION - box: '+selectionBox.w+'x'+selectionBox.h+' at '+selectionBox.x+','+selectionBox.y);
@@ -1451,17 +1459,6 @@ id('graphic').addEventListener('touchend',function() {
                         console.log('COMBI!'); // FOR COMBIS GET BOUNDS FROM combiBoxes
                         box.x=parseInt(items[i].getAttribute('x'));
                         box.y=parseInt(items[i].getAttribute('y'));
-                        /*
-                        for(var j=0;j<combis.length;j++) {
-                            if(combis[j].el==items[i].id) {
-                                box.x=combis[j].x;
-                                box.y=combis[j].y;
-                                // box.width=combis[j].w;
-                                // box.height=combis[j].h;
-                                console.log('combi '+combis[j].el+': '+box.width+'x'+box.height+' at '+box.x+','+box.y);
-                            }
-                        }
-                        */
                     }
                     console.log('bounds for '+items[i].id+": "+box.x+','+box.y);
                     console.log('item '+items[i].id+' box: '+box.width+'x'+box.height+' at '+box.x+','+box.y);
@@ -1469,23 +1466,25 @@ id('graphic').addEventListener('touchend',function() {
                     if(box.y<selectionBox.y) continue;
                     if((box.x+box.width)>(selectionBox.x+selectionBox.w)) continue;
                     if((box.y+box.height)>(selectionBox.y+selectionBox.h)) continue;
-                    selection.push(items[i]); // add to selection if passes tests
+                    selection.push(items[i].id); // add to selection if passes tests
                     console.log('select '+items[i].id);
                     var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
-                    html+="stroke='none' fill='blue' fill-opacity='0.25'/>";
+                    html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+items[i].id+"'/>";
                     id('selection').innerHTML+=html;
                 }
+                /* THIS DIDN'T ALLOW ADDING TO/REMOVING FROM SELECTION
                 if(selection.length>0) { // highlight selected elements
                     mode='edit';
                     showEditTools(true);
                 }
                 return;
+                */
             }
         case 'edit':
             var el=event.target;
             var hit=null;
             if(el.parentNode.id=='drawing') { // drawing background - check 10x10px zone
-                console.log('noting here - search locality');
+                console.log('nothing here - search locality');
                 var e=-5;
                 var n=-5;
                 while(e<6 && !hit) {
@@ -1507,13 +1506,15 @@ id('graphic').addEventListener('touchend',function() {
             if(hit) console.log('HIT: '+hit+' type: '+type(el));
             else console.log('MISS');
             console.log('selected: '+selection.length);
-            if(hit && selection.length<1) {
+            if(hit) { // ALLOW ADDING TO/REMOVING FROM SELECTION
+            // if(hit && selection.length<1) {
                 // IF BOX-SELECT ADD TO (OR REMOVE FROM) 'selection' ARRAY - LIST OF ELEMENT IDs
                 // OTHERWISE (CLICK-SELECT) JUST SELECT AN ELEMENT IN snap RANGE
                 element=el;
                 elementID=hit;
                 console.log('sort style then add handles');
-                if(type(el)!='combi') { // combis have no style
+                // if(type(el)!='combi')
+                if((selection.length<1)&&(type(el)!='combi')) { // combis have no style
                     var val=el.getAttribute('stroke-dasharray');
                     // console.log('element lineType (dasharray): '+val);
                     if(!val) {
@@ -1574,6 +1575,158 @@ id('graphic').addEventListener('touchend',function() {
                         if(val=='bold') id('textStyle').value='bold';
                     } 
                 }
+                if(selection.length<1) { // show handles for individual selection...
+                    id('handles').innerHTML=''; // clear any handles then add handles for selected element 
+                    console.log('add handles');
+                    switch(type(el)) {
+                    case 'polyline':
+                        var bounds=el.getBBox();
+                        w=bounds.width;
+                        h=bounds.height;
+                        var points=el.points;
+                        var n=points.length;
+                        // console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
+                        setSizes(false); // size of bounding box
+                        var html="<circle id='handle0' cx="+points[0].x+" cy="+points[0].y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                        id('handles').innerHTML+=html; // circle handle moves whole element
+                        for(var i=1;i<n;i++) {
+                            html="<rect id='handle"+i+"' x="+(points[i].x-handleR)+" y="+(points[i].y-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>";
+                            id('handles').innerHTML+=html; // remaining handles move nodes
+                        }
+                        showSizes(true,'LINE');
+                        elementID=el.id;
+                        mode='edit';
+                        break;
+                    case 'box':
+                        // console.log('box '+el.id+': '+el.getAttribute('x')+','+el.getAttribute('y')+' '+el.getAttribute('width')+'x'+el.getAttribute('height'));
+                        x=parseFloat(el.getAttribute('x'));
+                        y=parseFloat(el.getAttribute('y'));
+                        w=parseFloat(el.getAttribute('width'));
+                        h=parseFloat(el.getAttribute('height'));
+                        elementID=el.id;
+                        var html="<circle id='handleNW' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // top-left circle handle at top-left used to move whole box
+                        // DO ALL BOX RESIZING USING SE HANDLE
+                        // html="<rect id='handleNE' x='"+(x+w-handleR)+"' y='"+(y-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        // id('handles').innerHTML+=html; // top-right square handle adjusts box width
+                        html="<rect id='handleSE' x='"+(x+w-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // bottom-right handle adjusts box size keeping aspect ratio
+                        // html="<rect id='handleSW' x='"+(x-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        // id('handles').innerHTML+=html; // bottom-left handle adjusts box height
+                        setSizes(false);
+                        showSizes(true,(w==h)?'SQUARE':'BOX');
+                        mode='edit';
+                        break;
+                    case 'oval':
+                        // console.log('oval '+el.id);
+                        x=parseFloat(el.getAttribute('cx'));
+                        y=parseFloat(el.getAttribute('cy'));
+                        w=parseFloat(el.getAttribute('rx'))*2;
+                        h=parseFloat(el.getAttribute('ry'))*2;
+                        elementID=el.id;
+                        var html="<circle id='handleCentre' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // hollow circle handle at centre used to move whole box
+                        html="<rect id='handleSize' x="+(x+w/2-handleR)+" y="+(y+h/2-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // square handle adjusts ellipse size
+                        setSizes(false);
+                        showSizes(true,(w==h)?'CIRCLE':'OVAL');
+                        mode='edit';
+                        break;
+                    case 'arc':
+                        // console.log('arc '+el.id);
+                        var d=el.getAttribute('d');
+                        console.log('select arc - d: '+d);
+                        getArc(d); // derive arc geometry from d
+                        elementID=el.id;
+                        var html="<circle id='handleCentre' cx="+arc.centreX+" cy="+arc.centreY+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML=html; // circle handle at arc centre
+                        // DO ARC SIZING USING END HANDLE
+                        // html="<rect id='handleStart' x="+(arc.startX-handleR)+" y="+(arc.startY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        // id('handles').innerHTML+=html; // square handle at arc start...
+                        html="<rect id='handleEnd' x="+(arc.endX-handleR)+" y="+(arc.endY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        id('handles').innerHTML+=html; // square handle at end point
+                        // set up x0 & x for arc radius and included angle
+                        var startAngle=Math.atan((arc.startY-arc.centreY)/(arc.startX-arc.centreX));
+                        if(arc.startX<arc.centreX) startAngle+=Math.PI;
+                        // console.log('startAngle: '+startAngle);
+                        var angle=Math.atan((arc.endY-arc.centreY)/(arc.endX-arc.centreX));
+                        // console.log('angle: '+angle);
+                        if(arc.endX<arc.centreX) angle+=Math.PI;
+                        angle=Math.abs(angle-startAngle);
+                        // console.log('arc angle: '+Math.round(angle*180/Math.PI));
+                        x0=arc.centreX;
+                        y0=arc.centreY;
+                        x=x0+arc.radius*Math.cos(angle);
+                        y=y0+arc.radius*Math.sin(angle);
+                        setSizes(true,true);
+                        showSizes(true,'ARC');
+                        mode='edit';
+                        break;
+                    case 'text':
+                        var bounds=el.getBBox();
+                        w=Math.round(bounds.width);
+                        h=Math.round(bounds.height);
+                        // console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
+                        setSizes(false); // size of bounding box
+                        var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                        id('handles').innerHTML+=html; // circle handle moves whole element
+                        showSizes(true,'TEXT');
+                        console.log('display text content: '+element.innerHTML);
+                        console.log('show text dialog');
+                        id('textDialog').style.left=scr.x+'px';
+                        id('textDialog').style.top=scr.y+'px';
+                        id('text').value=element.innerHTML;
+                        id('textDialog').style.display='block';
+                        elementID=el.id;
+                        mode='edit';
+                        break;
+                    case 'combi':
+                        console.log('combi handle at anchor point');
+                        var bounds=el.getBBox();
+                        bounds.x=parseInt(el.getAttribute('x'));
+                        bounds.y=parseInt(el.getAttribute('y'));
+                        console.log('element '+el.id+' at '+el.getAttribute('x')+','+el.getAttribute('y'));
+                        console.log('combi bounds: '+bounds.width+'x'+bounds.height+' at '+bounds.x+','+bounds.y);
+                        id('blueBox').setAttribute('x',bounds.x);
+                        id('blueBox').setAttribute('y',bounds.y);
+                        id('blueBox').setAttribute('width',bounds.width);
+                        id('blueBox').setAttribute('height',bounds.height);
+                        var html="<circle id='handle' cx='"+bounds.x+"' cy='"+bounds.y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                        id('handles').innerHTML=html;
+                        setSizes();
+                        showSizes(true,'COMBI '+combi.name);
+                        mode='edit';
+                        break;
+                    }
+                }
+                else { // ADD TO SELECTION
+                    if(selection.indexOf(hit)<0) { // add to selection
+                        selection.push(hit);
+                        element=id(hit);
+                        var box=element.getBBox();
+                        if(type(element)=='combi') {
+                            console.log('COMBI!'); // FOR COMBIS GET BOUNDS FROM combiBoxes
+                            box.x=parseInt(element.getAttribute('x'));
+                            box.y=parseInt(element.getAttribute('y'));
+                        }
+                        var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
+                        html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+hit+"'/>";
+                        id('selection').innerHTML+=html;
+                    }
+                    /* REMOVING FROM SELECTION WAS UNRELIABLE
+                    else {
+                        console.log('REMOVE FROM SELECTION');
+                        var n=selection.indexOf(hit);
+                        selection.splice(n,1); // remove from selection
+                        var blues=id('selection').childNodes;
+                        console.log('selection has '+blues.length+' children');
+                        for(n=0;n<blues.length;n++) {
+                            if(blues[n].getAttribute('el')==hit) blues[n].remove();
+                        }
+                    }
+                    */
+                }
+                /* OLD CODE
                 id('handles').innerHTML=''; // clear any handles then add handles for selected element 
                 console.log('add handles');
                 switch(type(el)) {
@@ -1668,12 +1821,6 @@ id('graphic').addEventListener('touchend',function() {
                         setSizes(false); // size of bounding box
                         var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
                         id('handles').innerHTML+=html; // circle handle moves whole element
-                        /*
-                        id('blueBox').setAttribute('x',bounds.x);
-                        id('blueBox').setAttribute('y',bounds.y);
-                        id('blueBox').setAttribute('width',w);
-                        id('blueBox').setAttribute('height',h);
-                        */
                         showSizes(true,'TEXT');
                         console.log('display text content: '+element.innerHTML);
                         console.log('show text dialog');
@@ -1691,23 +1838,6 @@ id('graphic').addEventListener('touchend',function() {
                         bounds.y=parseInt(el.getAttribute('y'));
                         console.log('element '+el.id+' at '+el.getAttribute('x')+','+el.getAttribute('y'));
                         console.log('combi bounds: '+bounds.width+'x'+bounds.height+' at '+bounds.x+','+bounds.y);
-                        /*
-                        x=-1;
-                        y=-1;
-                        var i=0;
-                        combi=null;
-                        while(i<combis.length && !combi) {
-                            console.log('combi '+i);
-                            if(combis[i].el==elementID) {
-                                combi=combis[i];
-                            }
-                            i++;
-                        }
-                        x=combi.x+combi.ax;
-                        y=combi.y+combi.ay;
-                        w=combi.w;
-                        h=combi.h;
-                        */
                         id('blueBox').setAttribute('x',bounds.x);
                         id('blueBox').setAttribute('y',bounds.y);
                         id('blueBox').setAttribute('width',bounds.width);
@@ -1719,9 +1849,11 @@ id('graphic').addEventListener('touchend',function() {
                         mode='edit';
                         break;
                 }
+                */
                 showEditTools(true);
             }
-            else { // no selection
+            else if(selection.length<1) {
+            // else { // no selection
                 mode='select';
                 elementID=null;
                 selection=[];
@@ -2203,6 +2335,7 @@ function move(el,dx,dy) {
             updateElement(el.id,'y',val);
             break;
         case 'oval':
+            console.log('move oval by '+dx+','+dy);
             var val=parseInt(el.getAttribute('cx'));
             val+=dx;
             el.setAttribute('cx',val);
@@ -2486,9 +2619,6 @@ request.onsuccess=function(event) {
                         html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
                         console.log('combi html: '+html);
                         id('dwg').innerHTML+=html;
-                        /* NO NEED FOR combis ARRAY?
-                        combis.push({'el':val,'x':el.x,'y':el.y,'w':(combi.width*s),'h':(combi.height*s),'ax':(combi.ax*s),'ay':(combi.ay*s)});
-                        */
                         elID++;
                         nodes.push({'x':el.x,'y':el.y,'el':elementID});
                     }
