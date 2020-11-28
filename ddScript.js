@@ -1,4 +1,5 @@
 // GLOBAL VARIABLES
+var dbVersion=2;
 var saved=false; // flags whether drawing has been saved
 var aspect=null;
 var scale=1; // default scale is 1:1
@@ -24,7 +25,7 @@ var h=0;
 var datumX=0;
 var datumY=0;
 var arc={};
-var elID=0;
+// var elID=0;
 var selectionBox={}; // for box select
 var selection=[]; // list of elements in selectionBox
 var timer=null;
@@ -66,7 +67,7 @@ id('fileButton').addEventListener('click',function() { // SHOULD SHOW FILE MENU 
 });
 id('new').addEventListener('click',function() {
     if(!saved) alert('You may want to save your work before starting a new drawing');
-    report("show New Drawing dialog");
+    console.log("show newDrawingDialog");
     // showDialog('fileMenu',false);
     aspect=(scr.w>scr.h)?'landscape':'portrait';
     id('aspect').innerHTML=aspect;
@@ -99,7 +100,7 @@ id('createNewDrawing').addEventListener('click',function() {
 	request.onerror=function(event) {
 		console.log("error clearing database");
 	};
-    showDialog('newDrawing',false);
+    showDialog('newDrawingDialog',false);
     initialise();
 });
 id('loadCombi').addEventListener('click',function() {
@@ -250,7 +251,29 @@ id('text').addEventListener('change',function() {
     }
     else {
         console.log('add text '+text);
-        var html="<text id='~"+elID+"' x='"+x0+"' y='"+y0+"' ";
+        var el={}
+	    el.type='text';
+	    el.text=text;
+	    el.x=x0;
+        el.y=y0;
+        el.textSize=textSize;
+        el.textStyle=textStyle;
+	    el.fill=lineShade;
+	    el.opacity=opacity;
+	    var dbTransaction=db.transaction('elements',"readwrite");
+	    var dbObjectStore=dbTransaction.objectStore('elements');
+	    var request=dbObjectStore.add(el);
+	    request.onsuccess=function(event) {
+	        el.id=request.result;
+	        console.log("new text element added: "+el.id);
+	        drawElement(el);
+	    };
+	    request.onerror=function(event) {
+	        console.log("error adding new text element");
+	    };
+	    /* MOVE THIS TO drawElement FUNCTION
+	    el.id=saveElement(el);
+        var html="<text id='"+el.id+"' x='"+x0+"' y='"+y0+"' ";
         html+="font-size='"+(textSize*scale)+"' ";
         if(textStyle=='bold') html+="font-weight='bold' ";
         else if(textStyle=='italic') html+="font-style='italic' ";
@@ -258,33 +281,12 @@ id('text').addEventListener('change',function() {
         console.log('text html: '+html);
         id('dwg').innerHTML+=html;
         id('textDialog').style.display='none';
-        elementID='~'+elID;
+        elementID=el.id;
+        // elementID='~'+elID;
 	    element=id(elementID);
 	    // console.log('element is '+elementID);
 	    elID++;
-        // NO NODES FOR TEXT
-        // save text to database
-        var dbTransaction=db.transaction('elements',"readwrite");
-	    // console.log("indexedDB transaction ready");
-	    var dbObjectStore=dbTransaction.objectStore('elements');
-	    var el={}
-	    el.id=elementID;
-	    el.type='text';
-	    el.text=text;
-	    el.x=x0;
-        el.y=y0;
-        el.textSize=textSize;
-        el.textStyle=textStyle;
-	    el.fill=element.getAttribute('fill');
-	    el.opacity=element.getAttribute('fill-opacity');
-	    if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
-        var request=dbObjectStore.add(el);
-	    request.onsuccess=function(event) {
-	        console.log("new text element added: "+el.id);
-	    };
-	    request.onerror=function(event) {
-	        console.log("error adding new text element");
-	    };
+	    */
     }
     element=elementID=null;
     mode='select';
@@ -299,15 +301,18 @@ id('combiList').addEventListener('change',function() {
     console.log('combi '+combiID+' picked');
     mode='combi';
     prompt('COMBI: touch to place');
+    id('combiList').value=null; // clear selection for next time
     showDialog('combiDialog',false);
 })
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
     prompt('DELETE');
+    for(var i=0;i<selection.length;i++) console.log('delete '+selection[i]);
+    console.log('element is '+elementID);
     if(selection.length>0) {
         while(selection.length>0) remove(selection.pop());
     }
-    else remove(element);
+    else remove(elementID);
     element=elementID=null;
 	// id('dwg').removeChild(element); // remove element from SVG
     id('handles').innerHTML=''; // remove edit handles...
@@ -578,15 +583,13 @@ id('shadeMenu').addEventListener('click',function() {
         id('fillShade').style.backgroundColor=shade;
     }
 });
-// TOUCH - START
-id('graphic').addEventListener('touchstart',function() {
+// POINTER DOWN
+id('graphic').addEventListener('pointerdown',function() {
     event.preventDefault();
-    // console.log('dialog: '+currentDialog);
     if(currentDialog) showDialog(currentDialog,false); // clicking drawing removes any dialogs/menus
     id('shadeMenu').style.display='none';
-    // console.log('touch at '+event.touches[0].clientX+','+event.touches[0].clientY+' mode: '+mode);
-    scr.x=Math.round(event.touches[0].clientX);
-    scr.y=Math.round(event.touches[0].clientY);
+    scr.x=Math.round(event.clientX);
+    scr.y=Math.round(event.clientY);
     x=x0=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=y0=Math.round(scr.y*scaleF/zoom+dwg.y);
     // TEST FOR TOUCHING EDIT HANDLES
@@ -740,7 +743,7 @@ id('graphic').addEventListener('touchstart',function() {
             else if(arc.centreY<arc.startY) arc.spin=(x<arc.startX)?1:0;
             else if(arc.startX>arc.centreX) arc.spin=(y>arc.startY)?1:0;
             else arc.spin=(y>arc.startY)?0:1;
-            // console.log('MAJOR: '+arc.major+'; SPIN: '+arc.spin);
+            console.log('MAJOR: '+arc.major+'; SPIN: '+arc.spin);
             break;
         case 'text':
             console.log('show text dialog');
@@ -751,40 +754,29 @@ id('graphic').addEventListener('touchstart',function() {
             break;
         case 'combi':
             console.log('place combi '+combiID+' at '+x0+','+y0);
-            db.transaction('combis').objectStore('combis').get(combiID).onsuccess=function(event) {
+            var el={};
+	        el.type='combi';
+	        el.no=combiID;
+	        db.transaction('combis').objectStore('combis').get(combiID).onsuccess=function(event) {
                 combi=event.target.result;
                 console.log('combi '+combiID+' is '+combi.name);
                 var s=(combi.nts>0)?scale:1;
-                var elementID='~'+elID;
-                x0-=combi.ax*s;
-                y0-=combi.ay*s;
-                var html="<svg id='"+elementID+"' x='"+x0+"' y='"+y0+"'>";
-                html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
-                console.log('combi html: '+html);
-                id('dwg').innerHTML+=html;
-                // combis.push({'el':elementID,'x':x0,'y':y0,'w':(combi.width*s),'h':(combi.height*s),'ax':(combi.ax*s),'ay':(combi.ay*s)});
-                elID++;
-                console.log("DONE");
-                nodes.push({'x':x0,'y':y0,'el':elementID});
-                // save box to database
-                var dbTransaction=db.transaction('elements',"readwrite");
-	            // console.log("indexedDB transaction ready");
+	            el.x=x0-combi.ax*s;
+	            el.y=y0-combi.ax*s;
+	            // add to elements database
+	            var dbTransaction=db.transaction('elements',"readwrite");
 	            var dbObjectStore=dbTransaction.objectStore('elements');
-	            var el={};
-	            el.id=elementID
-	            el.type='combi';
-	            el.no=combiID;
-	            el.x=x0;
-	            el.y=y0;
-    		    var request=dbObjectStore.add(el);
-		        request.onsuccess=function(event) {
-			        console.log("new combi element added: "+request.result);
-		        };
-		        request.onerror=function(event) {
-		            console.log("error adding new combi element");
-		        };
-                mode='select';
+	            var request=dbObjectStore.add(el);
+	            request.onsuccess=function(event) {
+	                el.id=request.result;
+	                console.log('new combi element added - id: '+el.id);
+	                drawElement(el);
+                };
+	            request.onerror=function(event) {
+	                console.log('error adding new combi element');
+	            };
             }
+            mode='select';
             break;
         case 'select':
             id('blueBox').setAttribute('x',x0);
@@ -796,14 +788,20 @@ id('graphic').addEventListener('touchstart',function() {
     }
     event.stopPropagation();
 })
-// TOUCH - MOVE
-id('graphic').addEventListener('touchmove',function() {
+// POINTER MOVE
+id('graphic').addEventListener('pointermove',function() {
     // console.log('DRAG - offsets: '+dx+','+dy);
     event.preventDefault();
-    scr.x=Math.round(event.touches[0].clientX);
-    scr.y=Math.round(event.touches[0].clientY);
+    scr.x=Math.round(event.clientX);
+    scr.y=Math.round(event.clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
+    
+    // TRY THIS...
+    snap=snapCheck(); // snap to nearby nodes, datum,...
+    if(Math.abs(x-x0)<snapD) x=x0; // ...vertical...
+    if(Math.abs(y-y0)<snapD) y=y0; // ...or horizontal
+    
     if(mode.startsWith('movePoint')) {
         var n=parseInt(mode.substr(9));
         console.log('drag polyline point '+n);
@@ -975,8 +973,8 @@ id('graphic').addEventListener('touchmove',function() {
     }
     event.stopPropagation();
 })
-// TOUCH - END
-id('graphic').addEventListener('touchend',function() {
+// POINTER UP
+id('graphic').addEventListener('pointerup',function() {
     // console.log('touch-end at '+x+','+y);
     snap=snapCheck();
     if(mode.startsWith('movePoint')) { // move polyline point
@@ -1094,6 +1092,7 @@ id('graphic').addEventListener('touchend',function() {
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
             var elementNodes=nodes.filter(belong);
+            // THIS IS NO GOOD - RECALCULATE ALL 9 NODES
             for(var i=0; i<elementNodes.length;i++) {
                 elementNodes[i].x=x0+dx;
                 elementNodes[i].y=y0+dy;
@@ -1189,8 +1188,56 @@ id('graphic').addEventListener('touchend',function() {
             var d=Math.sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
             if(d<snapD) { // click/tap to finish polyline
                 console.log('end polyline');
+                // remove duplicate end-point
+                var points='';
+                for(var i=0;i<id('bluePolyline').points.length-1;i++) {
+                    points+=id('bluePolyline').points[i].x+','+id('bluePolyline').points[i].y+' ';
+                }
+                console.log('points: '+points);
+                // create polyline element
+                var graph={};
+	            graph.type='line';
+	            graph.points=points;
+	            graph.stroke=lineShade;
+	            graph.lineW=(pen*scale);
+	            graph.lineStyle=lineType;
+	            graph.fill='none';
+	            // and save to database
+	            /*
+	            var dbTransaction=db.transaction('elements',"readwrite");
+	            var dbObjectStore=dbTransaction.objectStore('elements');
+	            var request=dbObjectStore.add(el);
+	            */
+	            var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
+		        request.onsuccess=function(event) {
+		            graph.id=request.result;
+			        console.log("new polyline element added - id: "+graph.id);
+			        drawElement(graph);
+			        id('bluePolyline').setAttribute('points','0,0');
+			        /* MOVE TO drawElement FUNCTION
+			        var html="<polyline id='"+el.id+"' points='"+points+"' ";
+			        html+="stroke='"+lineShade+"' stroke-width='"+(pen*scale)+"' ";
+			        if(lineType=='dashed') html+="stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"' ";
+                    else if(lineType=='dotted') html+="stroke-dasharray='"+scale+" "+scale+"' ";
+			        html+="fill='none'/>";
+			        id('dwg').innerHTML+=html;
+			        */
+		        };
+		        request.onerror=function(event) {
+		            console.log("error adding new poly/line element");
+		        };
+	            /*
+	            if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
+	            el.fill=element.getAttribute('fill');
+	            if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
+                
                 var html="<polyline id='~"+elID+"' points='";
-                var points=id('bluePolyline').getAttribute('points');
+                // var points=id('bluePolyline').getAttribute('points');
+                var points=''; // build polyline points list omitting duplicated end point
+                for(var i=0;i<id('bluePolyline').points.length-1;i++) {
+                    points+=id('bluePolyline').points[i].x+','+id('bluePolyline').points[i].y+' ';
+                }
+                console.log('points: '+points);
                 html+=points+"' stroke='"+lineShade+"' stroke-width='"+(pen*scale)+"' ";
                 if(lineType=='dashed') html+="stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"' ";
                 else if(lineType=='dotted') html+="stroke-dasharray='"+scale+" "+scale+"' ";
@@ -1202,13 +1249,20 @@ id('graphic').addEventListener('touchend',function() {
                 id('bluePolyline').setAttribute('points','0,0');
 	            // console.log('element is '+elementID);
                 elID++;
-                for(var i=0;i<element.points.length;i++) {
+                for(i=0;i<element.points.length;i++) {
                     nodes.push({'x':element.points[i].x,'y':element.points[i].y,'el':elementID});
                     console.log('node added at '+element.points[i].x+','+element.points[i].y);
+                    if(i>0) { // add nodes at middle of each segment
+                        x=(element.points[i-1].x+element.points[i].x)/2;
+                        y=(element.points[i-1].y+element.points[i].y)/2;
+                        nodes.push({'x':x,'y':y,'el':elementID});
+                        console.log('intermediate node at '+x+','+y);
+                    }
                 }
-                // save poly/line to database
+                /* save poly/line to database
                 var dbTransaction=db.transaction('elements',"readwrite");
 	            var dbObjectStore=dbTransaction.objectStore('elements');
+	            /*
 	            var el={}
 	            el.id=elementID;
 	            el.type='polyline';
@@ -1226,12 +1280,70 @@ id('graphic').addEventListener('touchend',function() {
 		        request.onerror=function(event) {
 		            console.log("error adding new poly/line element");
 		        };
+		        */
                 element=elementID=null;
                 showSizes(false);
                 mode='select';
             }
             break;
         case 'box':
+            var graph={}
+	        graph.type='box';
+	        graph.x=(x>x0)?x0:x;
+	        graph.y=(y>y0)?y0:y;
+	        graph.width=Math.abs(x-x0);
+	        graph.height=Math.abs(y-y0);
+	        graph.radius=rad;
+	        graph.stroke=lineShade;
+	        graph.lineW=pen*scale;
+	        graph.lineStyle=lineType;
+	        graph.fill=fillShade;
+	        graph.opacity=opacity;
+	        /*
+            var dbTransaction=db.transaction('elements',"readwrite");
+	        var dbObjectStore=dbTransaction.objectStore('elements');
+	        var request=dbObjectStore.add(el);
+	        */
+	        var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
+            request.onsuccess=function(event) {
+                graph.id=request.result;
+			    console.log("new box element added to database - id: "+graph.id);
+			    drawElement(graph);
+			    /* MOVE TO drawElement FUNCTION
+			    var html="<rect id='"+el.id+"' x='"+((x<x0)?x:x0)+"' y='"+((y<y0)?y:y0)+"' width='"+w+"' height='"+h+"' rx='"+rad+"' stroke=";
+                switch(lineType) {
+                    case 'solid':
+                        html+=lineShade;
+                        break;
+                    case 'dashed':
+                        html+=lineShade+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"'";
+                        break;
+                    case 'dotted':
+                        html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
+                }
+                html+=" stroke-width='"+el.lineW+"' fill='"+el.fill+"' fill-opacity='"+opacity+"'>";
+                console.log('box svg: '+html);
+                id('dwg').innerHTML+=html;
+                element=id(el.id);
+                // nodes at corners...
+                nodes.push({'x':x,'y':y,'el':el.id});
+                nodes.push({'x':x+w,'y':y,'el':el.id});
+                nodes.push({'x':x,'y':y+h,'el':el.id});
+                nodes.push({'x':x+w,'y':y+h,'el':el.id});
+                // ...and centre and middle of each edges
+                nodes.push({'x':x+w/2,'y':y+h/2,'el':el.id});
+                nodes.push({'x':x+w/2,'y':y,'el':el.id});
+                nodes.push({'x':x+w/2,'y':y+h,'el':el.id});
+                nodes.push({'x':x,'y':y+h/2,'el':el.id});
+                nodes.push({'x':x+w,'y':y+h/2,'el':el.id});
+                */
+		    };
+		    request.onerror=function(event) {
+		        console.log("error adding new box element");
+		    };
+            id('blueBox').setAttribute('width',0);
+            id('blueBox').setAttribute('height',0);
+            /*
             var html="<rect id='~"+elID+"' x='"+((x<x0)?x:x0)+"' y='"+((y<y0)?y:y0)+"' width='"+w+"' height='"+h+"' rx='"+rad+"' stroke=";
             switch(lineType) {
                 case 'solid':
@@ -1261,18 +1373,21 @@ id('graphic').addEventListener('touchend',function() {
             y=parseInt(element.getAttribute('y'));
             w=parseInt(element.getAttribute('width'));
             h=parseInt(element.getAttribute('height'));
-            // console.log('x:'+x+' y:'+y+' w:'+w+' h:'+h);
+            // nodes at corners...
             nodes.push({'x':x,'y':y,'el':elementID});
             nodes.push({'x':x+w,'y':y,'el':elementID});
             nodes.push({'x':x,'y':y+h,'el':elementID});
             nodes.push({'x':x+w,'y':y+h,'el':elementID});
-            // save box to database
+            // ...and centre and middle of each edges
+            nodes.push({'x':x+w/2,'y':y+h/2,'el':elementID});
+            nodes.push({'x':x+w/2,'y':y,'el':elementID});
+            nodes.push({'x':x+w/2,'y':y+h,'el':elementID});
+            nodes.push({'x':x,'y':y+h/2,'el':elementID});
+            nodes.push({'x':x+w,'y':y+h/2,'el':elementID});
+            /* save box to database
             var dbTransaction=db.transaction('elements',"readwrite");
 	        // console.log("indexedDB transaction ready");
 	        var dbObjectStore=dbTransaction.objectStore('elements');
-	        // console.log("indexedDB objectStore ready");
-	        // console.log("save element "+elementID);
-	        // console.log('create object from '+html);
 	        var el={}
 	        el.id=elementID;
 	        el.type='rect';
@@ -1295,10 +1410,66 @@ id('graphic').addEventListener('touchend',function() {
 		    request.onerror=function(event) {
 		        console.log("error adding new box element");
 		    };
+		    */
             element=elementID=null;
             mode='select';
             break;
         case 'oval':
+            var el={}
+	        el.type='oval';
+	        el.cx=x0;
+	        el.cy=y0;
+	        el.rx=w/2;
+	        el.ry=h/2;
+	        el.stroke=lineShade
+	        el.lineStyle=lineType;
+	        el.lineW=pen*scale;
+	        // if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
+	        el.fill=fillShade;
+	        el.opacity=opacity;
+	        var dbTransaction=db.transaction('elements',"readwrite");
+	        var dbObjectStore=dbTransaction.objectStore('elements');
+	        var request=dbObjectStore.add(el);
+	        request.onsuccess=function(event) {
+	            el.id=request.result;
+			    console.log("new oval element added: "+el.id);
+			    drawElement(el);
+			    /* MOVE THIS TO drawElement FUNCTION
+			    var html="<ellipse id='"+el.id+"' cx='"+x0+"' cy='"+y0+"' rx='"+(w/2)+"' ry='"+(h/2)+"' stroke=";
+                switch(lineType) {
+                    case 'solid':
+                        html+=lineShade;
+                        break;
+                    case 'dashed':
+                        html+=lineShade+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"'";
+                        break;
+                    case 'dotted':
+                        html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
+                }
+                html+=" stroke-width="+el.lineW+" fill='";
+                // console.log('fillShade: '+fillShade);
+                html+=el.fill;
+                html+="' fill-opacity='"+opacity+"'>";
+                // console.log('oval svg: '+html);
+                id('dwg').innerHTML+=html;
+                // add nodes to nodes[] array
+                // x=parseInt(element.getAttribute('cx'));
+                // y=parseInt(element.getAttribute('cy'));
+                // w=parseInt(element.getAttribute('rx'));
+                // h=parseInt(element.getAttribute('ry'));
+                // console.log('x:'+x+' y:'+y+' w:'+w+' h:'+h);
+                nodes.push({'x':x,'y':y,'el':el.id});
+                nodes.push({'x':(x-w),'y':y,'el':el.id});
+                nodes.push({'x':(x+w),'y':y,'el':el.id});
+                nodes.push({'x':x,'y':(y-h),'el':el.id});
+                nodes.push({'x':x,'y':(y+h),'el':el.id});
+                // console.log('oval nodes added');
+                */
+		    };
+		    request.onerror=function(event) {
+		        console.log("error adding new oval element");
+		    };
+            /*
             var html="<ellipse id='~"+elID+"' cx='"+x0+"' cy='"+y0+"' rx='"+(w/2)+"' ry='"+(h/2)+"' stroke=";
             switch(lineType) {
                 case 'solid':
@@ -1363,6 +1534,9 @@ id('graphic').addEventListener('touchend',function() {
 		    request.onerror=function(event) {
 		        console.log("error adding new oval element");
 		    };
+		    */
+		    id('blueOval').setAttribute('rx',0);
+            id('blueOval').setAttribute('ry',0);
             element=elementID=null;
             mode='select';
             break;
@@ -1370,41 +1544,53 @@ id('graphic').addEventListener('touchend',function() {
             arc.centreX=x;
             arc.centreY=y;
             // console.log('arcCentre: '+arc.centreX+','+arc.centreY);
-            w=arc.startX-arc.centreX;
+            w=arc.startX-arc.centreX; // radii
             h=arc.startY-arc.centreY;
+            arc.startAngle=getAngle(arc.centreX,arc.centreY,arc.startX,arc.startY);
+            /* 
             arc.startAngle=Math.atan(h/w); // radians
             arc.startAngle*=(180/Math.PI); // -90 to +90 degrees
             arc.startAngle+=90; // compass bearing 0-180 degrees
             if(w<0) arc.startAngle+=180; // 0-360 range
+            */
             // console.log('arc start angle: '+arc.startAngle);
             mode='arcEnd';
             break;
         case 'arcEnd':
-            var html="<path id='~"+elID+"' d='"+setArc()+"' stroke="; // set arc path html from arc properties
-            switch(lineType) {
-                case 'solid':
-                    html+=lineShade;
-                    break;
-                case 'dashed':
-                    html+=lineShade+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"' ";
-                    break;
-                case 'dotted':
-                    html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
-            }
-            html+=" stroke-width="+(pen*scale)+" fill='none'"; // no fill
-            html+="' fill-opacity='"+opacity+"'>";
-            // console.log('arc svg: '+html);
-            id('dwg').innerHTML+=html;
-            // console.log("arc svg drawn");
-            elementID='~'+elID;
-	        element=id(elementID);
-            elID++;
+            var el={};
+            el.type='arc';
+	        el.cx=arc.centreX; // centre coordinates
+	        el.cy=arc.centreY;
+	        el.x1=arc.startX; // start point
+	        el.y1=arc.startY;
+	        el.x2=arc.endX; // end point
+	        el.y2=arc.endY;
+	        el.r=arc.radius; // radius
+	        // el.a1=angle(el.cx,el.cy,el.x1,el.y1); // angle of start
+	        // el.da=angle(el.cx,el.cy,el.x2,el.y2)-el.a1; // 
+	        el.spin=arc.spin; // direction of arc - 1: clockwise, 0: anticlockwise
+	        el.stroke=lineShade
+	        el.lineStyle=lineType;
+	        el.lineW=pen*scale;
+	        el.fill=fillShade;
+	        el.opacity=opacity;
+	        var dbTransaction=db.transaction('elements',"readwrite");
+	        var dbObjectStore=dbTransaction.objectStore('elements');
+	        var request=dbObjectStore.add(el);
+		    request.onsuccess=function(event) {
+		        el.id=request.result;
+			    console.log("new arc element added: "+el.id);
+			    drawElement(el.id);
+		    };
+		    request.onerror=function(event) {
+		        console.log("error adding new arc element");
+		    };
             id('blueArc').setAttribute('d','M0,0 M0,0 A0,0 0 0,0 0,0');
             id('blueLine').setAttribute('x1',0);
             id('blueLine').setAttribute('y1',0);
             id('blueLine').setAttribute('x2',0);
             id('blueLine').setAttribute('y2',0);
-            // create nodes for arc start, centre & end points
+            /* create nodes for arc start, centre & end points
             nodes.push({'x':arc.centreX,'y':arc.centreY,'el':elementID});
             nodes.push({'x':arc.startX,'y':arc.startY,'el':elementID});
             nodes.push({'x':arc.endX,'y':arc.endY,'el':elementID});
@@ -1419,15 +1605,22 @@ id('graphic').addEventListener('touchend',function() {
 	        el.id=elementID;
 	        // console.log('element is '+elementID+' ie: '+element);
 	        el.type='path';
-	        el.startX=arc.startX;
-	        el.startY=arc.startY;
-	        el.radius=arc.radius;
-	        el.centreX=arc.centreX;
-	        el.centreY=arc.centreY;
-	        el.major=arc.major;
-	        el.spin=arc.spin;
-	        el.endX=arc.endX;
-	        el.endY=arc.endY;
+	        el.cx=arc.centreX; // centre coordinates
+	        el.cy=arc.centreY;
+	        el.r=arc.radius; // radius
+	        if(arc.startX==arc.centreX) el.a0=(arc.startX>arc.centreX)?Math.PI/2:-Math.PI/2;
+	        else el.a0=Math.acos((arc.startX-arc.centreX)/arc.radius); // start angle
+	        var a=0;
+	        if(arc.endX==arc.centreX) a=(arc.endX>arc.centreX)?Math.PI/2:-Math.PI/2;
+	        else a=Math.acos((arc.endX-arc.centreX)/arc.radius); // end angle
+	        a=Math.abs(a-el.a0); // sweep angle
+	        el.a=(arc.spin>0)?a:-a; // negative sweep angle is anticlockwise
+	        // el.startX=arc.startX;
+	        // el.startY=arc.startY;
+	        // el.major=arc.major;
+	        // el.spin=arc.spin;
+	        // el.endX=arc.endX;
+	        // el.endY=arc.endY;
 	        el.stroke=element.getAttribute('stroke');
 	        el.lineW=element.getAttribute('stroke-width');
 	        if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
@@ -1441,6 +1634,7 @@ id('graphic').addEventListener('touchend',function() {
 		    request.onerror=function(event) {
 		        console.log("error adding new arc element");
 		    };
+		    */
             element=elementID=null;
             mode='select';
             break;
@@ -1472,13 +1666,11 @@ id('graphic').addEventListener('touchend',function() {
                     html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+items[i].id+"'/>";
                     id('selection').innerHTML+=html;
                 }
-                /* THIS DIDN'T ALLOW ADDING TO/REMOVING FROM SELECTION
                 if(selection.length>0) { // highlight selected elements
                     mode='edit';
                     showEditTools(true);
                 }
-                return;
-                */
+                // return; THIS DIDN'T ALLOW ADDING TO/REMOVING FROM SELECTION
             }
         case 'edit':
             var el=event.target;
@@ -1577,7 +1769,7 @@ id('graphic').addEventListener('touchend',function() {
                 }
                 if(selection.length<1) { // show handles for individual selection...
                     id('handles').innerHTML=''; // clear any handles then add handles for selected element 
-                    console.log('add handles');
+                    console.log('add handles and node markers');
                     switch(type(el)) {
                     case 'polyline':
                         var bounds=el.getBBox();
@@ -1697,6 +1889,12 @@ id('graphic').addEventListener('touchend',function() {
                         showSizes(true,'COMBI '+combi.name);
                         mode='edit';
                         break;
+                    };
+                    for(var i=0;i<nodes.length;i++) {
+                        if(nodes[i].el!=elementID) continue;
+                        // console.log('node '+i+': '+nodes[i].x+','+nodes[i].y);
+                        var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"' stroke='blue' stroke-width='"+0.25*scale+"' fill='none'/>";
+                        id('handles').innerHTML+=html;
                     }
                 }
                 else { // ADD TO SELECTION
@@ -1726,131 +1924,17 @@ id('graphic').addEventListener('touchend',function() {
                     }
                     */
                 }
-                /* OLD CODE
-                id('handles').innerHTML=''; // clear any handles then add handles for selected element 
-                console.log('add handles');
-                switch(type(el)) {
-                    case 'polyline':
-                        var bounds=el.getBBox();
-                        w=bounds.width;
-                        h=bounds.height;
-                        var points=el.points;
-                        var n=points.length;
-                        // console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
-                        setSizes(false); // size of bounding box
-                        var html="<circle id='handle0' cx="+points[0].x+" cy="+points[0].y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
-                        id('handles').innerHTML+=html; // circle handle moves whole element
-                        for(var i=1;i<n;i++) {
-                            html="<rect id='handle"+i+"' x="+(points[i].x-handleR)+" y="+(points[i].y-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>";
-                            id('handles').innerHTML+=html; // remaining handles move nodes
-                        }
-                        showSizes(true,'LINE');
-                        elementID=el.id;
-                        mode='edit';
-                        break;
-                    case 'box':
-                        // console.log('box '+el.id+': '+el.getAttribute('x')+','+el.getAttribute('y')+' '+el.getAttribute('width')+'x'+el.getAttribute('height'));
-                        x=parseFloat(el.getAttribute('x'));
-                        y=parseFloat(el.getAttribute('y'));
-                        w=parseFloat(el.getAttribute('width'));
-                        h=parseFloat(el.getAttribute('height'));
-                        elementID=el.id;
-                        var html="<circle id='handleNW' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // top-left circle handle at top-left used to move whole box
-                        // DO ALL BOX RESIZING USING SE HANDLE
-                        // html="<rect id='handleNE' x='"+(x+w-handleR)+"' y='"+(y-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        // id('handles').innerHTML+=html; // top-right square handle adjusts box width
-                        html="<rect id='handleSE' x='"+(x+w-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // bottom-right handle adjusts box size keeping aspect ratio
-                        // html="<rect id='handleSW' x='"+(x-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        // id('handles').innerHTML+=html; // bottom-left handle adjusts box height
-                        setSizes(false);
-                        showSizes(true,(w==h)?'SQUARE':'BOX');
-                        mode='edit';
-                        break;
-                    case 'oval':
-                        // console.log('oval '+el.id);
-                        x=parseFloat(el.getAttribute('cx'));
-                        y=parseFloat(el.getAttribute('cy'));
-                        w=parseFloat(el.getAttribute('rx'))*2;
-                        h=parseFloat(el.getAttribute('ry'))*2;
-                        elementID=el.id;
-                        var html="<circle id='handleCentre' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // hollow circle handle at centre used to move whole box
-                        html="<rect id='handleSize' x="+(x+w/2-handleR)+" y="+(y+h/2-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // square handle adjusts ellipse size
-                        setSizes(false);
-                        showSizes(true,(w==h)?'CIRCLE':'OVAL');
-                        mode='edit';
-                        break;
-                    case 'arc':
-                        // console.log('arc '+el.id);
-                        var d=el.getAttribute('d');
-                        console.log('select arc - d: '+d);
-                        getArc(d); // derive arc geometry from d
-                        elementID=el.id;
-                        var html="<circle id='handleCentre' cx="+arc.centreX+" cy="+arc.centreY+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML=html; // circle handle at arc centre
-                        // DO ARC SIZING USING END HANDLE
-                        // html="<rect id='handleStart' x="+(arc.startX-handleR)+" y="+(arc.startY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        // id('handles').innerHTML+=html; // square handle at arc start...
-                        html="<rect id='handleEnd' x="+(arc.endX-handleR)+" y="+(arc.endY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
-                        id('handles').innerHTML+=html; // square handle at end point
-                        // set up x0 & x for arc radius and included angle
-                        var startAngle=Math.atan((arc.startY-arc.centreY)/(arc.startX-arc.centreX));
-                        if(arc.startX<arc.centreX) startAngle+=Math.PI;
-                        // console.log('startAngle: '+startAngle);
-                        var angle=Math.atan((arc.endY-arc.centreY)/(arc.endX-arc.centreX));
-                        // console.log('angle: '+angle);
-                        if(arc.endX<arc.centreX) angle+=Math.PI;
-                        angle=Math.abs(angle-startAngle);
-                        // console.log('arc angle: '+Math.round(angle*180/Math.PI));
-                        x0=arc.centreX;
-                        y0=arc.centreY;
-                        x=x0+arc.radius*Math.cos(angle);
-                        y=y0+arc.radius*Math.sin(angle);
-                        setSizes(true,true);
-                        showSizes(true,'ARC');
-                        mode='edit';
-                        break;
-                    case 'text':
-                        var bounds=el.getBBox();
-                        w=Math.round(bounds.width);
-                        h=Math.round(bounds.height);
-                        // console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
-                        setSizes(false); // size of bounding box
-                        var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
-                        id('handles').innerHTML+=html; // circle handle moves whole element
-                        showSizes(true,'TEXT');
-                        console.log('display text content: '+element.innerHTML);
-                        console.log('show text dialog');
-                        id('textDialog').style.left=scr.x+'px';
-                        id('textDialog').style.top=scr.y+'px';
-                        id('text').value=element.innerHTML;
-                        id('textDialog').style.display='block';
-                        elementID=el.id;
-                        mode='edit';
-                        break;
-                    case 'combi':
-                        console.log('combi handle at anchor point');
-                        var bounds=el.getBBox();
-                        bounds.x=parseInt(el.getAttribute('x'));
-                        bounds.y=parseInt(el.getAttribute('y'));
-                        console.log('element '+el.id+' at '+el.getAttribute('x')+','+el.getAttribute('y'));
-                        console.log('combi bounds: '+bounds.width+'x'+bounds.height+' at '+bounds.x+','+bounds.y);
-                        id('blueBox').setAttribute('x',bounds.x);
-                        id('blueBox').setAttribute('y',bounds.y);
-                        id('blueBox').setAttribute('width',bounds.width);
-                        id('blueBox').setAttribute('height',bounds.height);
-                        var html="<circle id='handle' cx='"+bounds.x+"' cy='"+bounds.y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
-                        id('handles').innerHTML=html;
-                        setSizes();
-                        showSizes(true,'COMBI '+combi.name);
-                        mode='edit';
-                        break;
+                showEditTools(true);
+                // CHECK NODES
+                id('selection').innerHTML='';
+                /* MOVE TO HANDLES CODE ABOVE
+                for(var i=0;i<nodes.length;i++) {
+                    if(nodes[i].el!=elementID) continue;
+                    // console.log('node '+i+': '+nodes[i].x+','+nodes[i].y);
+                    var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"' stroke='blue' stroke-width='"+0.25*scale+"' fill='none'/>";
+                    id('selection').innerHTML+=html;
                 }
                 */
-                showEditTools(true);
             }
             else if(selection.length<1) {
             // else { // no selection
@@ -2105,6 +2189,45 @@ id('second').addEventListener('change',function() {
                 }
             }
             id('handleSize').setAttribute('y',(elY+val/2-handleR));
+            break;
+        case 'arc':
+            console.log('change arc angle to '+val);
+            var d=element.getAttribute('d');
+            getArc(d);
+            var sign=(arc.startX<arc.endX);
+            if(sign==0) sign=(arc.startY<arc.endY); // +sign is clockwise?
+            var startAngle=Math.atan((arc.startY-arc.centreY)/(arc.startX-arc.centreX));
+            if(arc.startX<arc.centreX) startAngle+=Math.PI;
+            console.log('startAngle: '+(startAngle*180/Math.PI));
+            val*=(Math.PI/180); // radians
+            var angle=startAngle+val; // end angle
+            console.log('end angle: '+(angle*180/Math.PI));
+            x0=arc.centreX;
+            y0=arc.centreY;
+            x=x0+arc.radius*Math.cos(angle);
+            y=y0+arc.radius*Math.sin(angle);
+            arc.endX=x;
+            arc.endY=y;
+            var newSign=(arc.startX>arc.endX);
+            if(newSign==0) newSign=(arc.startY>arc.endY);
+            if(newSign!=sign) arc.spin=(arc.spin>0)?0:1; // swop direction of arc
+            d=setArc();
+            element.setAttribute('d',d);
+            updateElement(elementID,'d',d);
+            updateElement('endX',x);
+            updateElement('endY',y);
+            updateElement('spin',arc.spin); 
+            var arcNodes=nodes.filter(belong);
+            for(var i=0;i<arcNodes.length;i++) { // end node
+                var node=arcNodes[i];
+                if((node.x!=arc.startX)&&(node.x!=arc.endX)&&(node.y!=arc.startY)&&(node.y!=arc.endY))
+                {
+                    node.x=x;
+                    node.y=y;
+                }
+            }
+            id('handleEnd').setAttribute('x',(x-handleR));
+            id('handleEnd').setAttribute('y',(y-handleR));
     }
 })
 // UTILITY FUNCTIONS
@@ -2238,7 +2361,8 @@ function setSizes(polar,arc) {
         r=Math.atan((y-y0)/(x-x0)); // radians
         r=Math.round(r*180/Math.PI); // degrees...
         if(!arc) r+=90; // ...as compass bearings
-        if(x<x0) r+=180; 
+        if(x<x0) r+=180;
+        // console.log('r: '+r);
         id('second').value=r;
         id('after').innerHTML='&deg;';
     }
@@ -2249,6 +2373,13 @@ function setSizes(polar,arc) {
         id('after').innerHTML=units;
     }
     // PUT ELEMENT SPIN INTO 'spin' BOX
+}
+function getAngle(fromX,fromY,toX,toY) {
+    var dx=toX-fromX;
+    var dy=toY-fromY;
+    var a=Math.atan(dy/dx); // range -PI/25 to +PI/2
+    if(dx<0) a+=Math.PI;
+    return a;
 }
 function getArc(d) {
     console.log('get arc from: '+d);
@@ -2278,36 +2409,38 @@ function getArc(d) {
     arc.endY=parseInt(d.substr(from));
     console.log('arc centre: '+arc.centreX+','+arc.centreY+' start: '+arc.startX+','+arc.startY+'; radius: '+arc.radius+'; major: '+arc.major+'; spin: '+arc.spin+'; end: '+arc.endX+','+arc.endY);
 }
-function setArc() {
+function setArc(el) {
     console.log('create arc path html from arc properties');
-    var d="M"+arc.centreX+","+arc.centreY+" M"+arc.startX+","+arc.startY;
-    d+=" A"+arc.radius+","+arc.radius+" 0 "+arc.major+","+arc.spin+" ";
-    d+=arc.endX+","+arc.endY;
+    var a1=getAngle(el.cx,el.cy,el.x1,el.y1); // angle of start from centre
+	var a2=getAngle(el.cx,el.cy,el.x2,el.y2); // angle of end from centre
+	var da=a2-a1; // swept angle
+	if(el.spin>0 && da<0) da+=Math.PI;
+	else if(spin<1 && da>0) da-=Math.PI;
+	var major=(Math.abs(da)>Math.PI)?1:0;
+    var d="M"+el.cx+","+el.cy+" M"+el.x1+","+el.y1;
+    d+=" A"+el.r+","+el.r+" 0 "+major+","+el.spin+" ";
+    d+=el.x2+","+el.y2;
     console.log('set arc d to: '+d);
     return d;
 }
 function blueArc() {
     id('blueArc').setAttribute('d','M'+arc.centreX+','+arc.centreY+' M'+arc.startX+','+arc.startY+' A'+arc.radius+','+arc.radius+' 0 '+arc.major+','+arc.spin+' '+arc.endX+','+arc.endY);
 }
-function remove(el) {
-    elementID=el.id
-    // var elementNodes=nodes.filter(belong);
+function remove(elID) {
+    console.log('remove element '+elID);
+    var el=id(elID);
     var n=nodes.length;
     for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
-        if(nodes[i].el==elementID) nodes.splice(i,1);
+        if(nodes[i].el==elID) nodes.splice(i,1);
     }
     console.log((n-nodes.length)+' nodes deleted');
-    id('dwg').removeChild(el); // remove element from SVG
-    var dbTransaction=db.transaction('elements',"readwrite");
-	// console.log("indexedDB transaction ready");
-	var dbObjectStore=dbTransaction.objectStore('elements');
-	// console.log("indexedDB objectStore ready");
-	var request=dbObjectStore.delete(elementID);
+    var request=db.transaction('graphs','readwrite').objectStore('graphs').delete(Number(elID));
 	request.onsuccess=function(event) {
-	    console.log('element deleted from database');
+	    console.log('graph '+elID+' deleted from database');
+	    id('dwg').removeChild(el); // remove element from SVG
 	}
 	request.onerror=function(event) {
-	    console.log("error deleting element");
+	    console.log("error deleting element "+el.id);
 	};
 }
 function move(el,dx,dy) {
@@ -2396,6 +2529,7 @@ function snapCheck() {
         return true;
     }
     // console.log('no snap-to-node');
+    // LOOK AT MOVING DATUM TO SNAP X,Y
     else if(Math.abs(x-datumX)<snapD) {
         x=datumX;
         return true;
@@ -2410,94 +2544,211 @@ function nearby(node) {
     return (node.x>x-snapD)&&(node.x<x+snapD)&&(node.y>y-snapD)&&(node.y<y+snapD);
 }
 function updateElement(id,attribute,val) {
-    var dbTransaction=db.transaction('elements',"readwrite");
-	// console.log("indexedDB transaction ready");
-	var dbObjectStore=dbTransaction.objectStore('elements');
-	// console.log("indexedDB objectStore ready");
-	var request=dbObjectStore.get(id);
+    console.log('adjust '+attribute+' of graph '+id+' to '+val);
+	var graphs=db.transaction('graphs','readwrite').objectStore('graphs');
+	var request=graphs.get(Number(id));
 	request.onsuccess=function(event) {
-	    var el=request.result;
+	    var graph=request.result;
+	    console.log('got graph '+graph.id);
 	    switch(attribute) {
 	        case 'x':
-	            el.x=val;
+	            graph.x=val;
 	            break;
 	        case 'y':
-	            el.y=val;
+	            graph.y=val;
 	            break;
 	        case 'width':
-	            el.width=val;
+	            graph.width=val;
+	            console.log('width is now '+graph.width);
 	            break;
 	        case 'height':
-	            el.height=val;
+	            graph.height=val;
 	            break;
 	        case 'points':
-	            el.points=val;
+	            graph.points=val;
+	            break;
+	        case 'd':
+	            graph.d=val;
 	            break;
 	        case 'cx':
-	            el.cx=val;
+	            graph.cx=val;
 	            break;
 	        case 'cy':
-	            el.cy=val;
+	            graph.cy=val;
 	            break;
 	        case 'rx':
-	            el.rx=val;
+	            graph.rx=val;
 	            break;
 	        case 'ry':
-	            el.ry=val;
+	            graph.ry=val;
 	            break;
-	        case 'centreX':
-	            el.centreX=val;
+	        case 'x1':
+	            graph.x1=val;
 	            break;
-	        case 'centreY':
-	            el.centreY=val;
+	        case 'y1':
+	            graph.y1=val;
 	            break;
-	        case 'startX':
-	            el.startX=val;
-	            break;
-	        case 'startY':
-	            el.startY=val;
-	            break;
-	        case 'endX':
-	            el.endX=val;
+	        case 'x2':
+	            graph.x2=val;
 	            break;
 	        case 'endY':
-	            el.endY=val;
+	            graph.y2=val;
 	            break;
 	        case 'stroke':
-	            el.stroke=val;
+	            graph.stroke=val;
 	            break;
 	        case 'lineW':
-	            el.lineW=val;
+	            graph.lineW=val;
 	            break;
 	        case 'lineStyle':
-	            el.lineStyle=val;
+	            graph.lineStyle=val;
 	            break;
 	        case 'fill':
-	            el.fill=val;
+	            graph.fill=val;
 	            break;
 	        case 'opacity':
-	            el.opacity=val;
+	            graph.opacity=val;
 	            break;
 	        case 'textSize':
-	            el.textSize=val;
+	            graph.textSize=val;
 	            break;
 	        case 'textStyle':
-	            el.textStyle=val;
+	            graph.textStyle=val;
 	            break;
 	        // ALSO TEXT SIZE AND TRANSFORM
 	    }
-	    // console.log('element '+id+' '+attribute+' changed to '+val);
-	    request=dbObjectStore.put(el);
-	    request.onsuccess=function(event) {
-			console.log('element '+id+' updated');
+	    request=graphs.put(graph);
+	        request.onsuccess=function(event) {
+			    console.log('graph '+id+' updated');
 		};
 		request.onerror=function(event) {
-		    console.log("PUT error updating element "+id);
+		    console.log("PUT ERROR updating graph "+id);
 		};
 	}
-	request.onerror=function(event) {
-	    console.log("GET error updating element");
-	};
+	request.onerror=function(event) {console.log('error updating '+id);};
+}
+function drawElement(el) {
+    console.log('draw '+el.type+' element '+el.id);
+    switch(el.type) {
+        case 'line':
+            var html="<polyline id='"+el.id+"' points='"+el.points+"' ";
+			html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
+			if(el.lineStyle=='dashed') html+="stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"' ";
+            else if(el.lineStyle=='dotted') html+="stroke-dasharray='"+scale+" "+scale+"' ";
+			html+="fill='"+el.fill+"'/>";
+			console.log('polyline html: '+html);
+			if(el.stroke=='blue') id('ref').innerHTML+=html;
+			else id('dwg').innerHTML+=html;
+			el=id(el.id); // get nodes from draw polyline
+			for(i=0;i<el.points.length;i++) {
+                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id});
+                // console.log('node added at '+element.points[i].x+','+element.points[i].y);
+                if(i>0) { // add nodes at middle of each segment
+                    x=(el.points[i-1].x+el.points[i].x)/2;
+                    y=(el.points[i-1].y+el.points[i].y)/2;
+                    nodes.push({'x':x,'y':y,'el':el.id});
+                    // console.log('intermediate node at '+x+','+y);
+                }
+            }
+            break;
+        case 'box':
+            console.log('draw box '+el.id);
+            var html="<rect id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' rx='"+el.radius+"' stroke=";
+            switch(el.lineStyle) {
+                    case 'solid':
+                        html+=el.stroke;
+                        break;
+                    case 'dashed':
+                        html+=el.stroke+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"'";
+                        break;
+                    case 'dotted':
+                        html+=el.stroke+" stroke-dasharray='"+scale+" "+scale+"'";
+                }
+                html+=" stroke-width='"+el.lineW+"' fill='"+el.fill+"' fill-opacity='"+el.opacity+"'>";
+                console.log('box svg: '+html);
+                if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
+                else id('dwg').innerHTML+=html;
+                // element=id(el.id);
+                // add nodes at corners...
+                nodes.push({'x':el.x,'y':el.y,'el':el.id});
+                nodes.push({'x':el.x+el.width,'y':el.y,'el':el.id});
+                nodes.push({'x':el.x,'y':el.y+el.height,'el':el.id});
+                nodes.push({'x':el.x+el.width,'y':el.y+el.height,'el':el.id});
+                // ...and centre and middle of each edges
+                nodes.push({'x':el.x+el.width/2,'y':el.y+el.height/2,'el':el.id});
+                nodes.push({'x':el.x+el.width/2,'y':el.y,'el':el.id});
+                nodes.push({'x':el.x+el.width/2,'y':el.y+el.height,'el':el.id});
+                nodes.push({'x':el.x,'y':el.y+el.height/2,'el':el.id});
+                nodes.push({'x':el.x+el.width,'y':el.y+el.height/2,'el':el.id});
+                break;
+            case 'oval':
+                var html="<ellipse id='"+el.id+"' cx='"+el.cx+"' cy='"+el.cy+"' rx='"+el.rx+"' ry='"+el.ry+"' stroke=";
+                switch(el.lineStyle) {
+                    case 'solid':
+                        html+=el.stroke;
+                        break;
+                    case 'dashed':
+                        html+=el.stroke+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"'";
+                        break;
+                    case 'dotted':
+                        html+=el.stroke+" stroke-dasharray='"+scale+" "+scale+"'";
+                }
+                html+=" stroke-width="+el.lineW+" fill='";
+                html+=el.fill;
+                html+="' fill-opacity='"+el.opacity+"'>";
+                console.log('oval svg: '+html);
+                if(el.stroke=='blue') id('ref').innerHTML+=html;
+                else id('dwg').innerHTML+=html;
+                nodes.push({'x':el.cx,'y':el.cy,'el':el.id});
+                nodes.push({'x':el.cx-el.rx,'y':el.cy,'el':el.id});
+                nodes.push({'x':el.cx+el.rx,'y':el.cy,'el':el.id});
+                nodes.push({'x':el.cx,'y':el.cy-el.ry,'el':el.id});
+                nodes.push({'x':el.cx,'y':el.cy+el.ry,'el':el.id});
+                // console.log('oval nodes added');
+                break;
+            case 'arc':
+                console.log('DRAW ARC');
+                var html="<path id='"+el.id+"' d='"+setArc(el)+"' stroke="; // set arc path html from arc properties
+                switch(el.lineStyle) {
+                    case 'solid':
+                        html+=el.stroke;
+                        break;
+                    case 'dashed':
+                        html+=el.stroke+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"'";
+                        break;
+                    case 'dotted':
+                        html+=el.stroke+" stroke-dasharray='"+scale+" "+scale+"'";
+                }
+                html+=" stroke-width='"+el.lineW+"' fill='"+el.fill+"' fill-opacity='"+el.opacity+"'>";
+                console.log('box svg: '+html);
+                if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
+                else id('dwg').innerHTML+=html;
+                // create nodes for arc start, centre & end points
+                nodes.push({'x':el.cx,'y':el.cy,'el':el.id});
+                nodes.push({'x':el.x1,'y':el.y1,'el':el.id});
+                nodes.push({'x':el.x2,'y':el.y2,'el':el.id});
+                break;
+            case 'text':
+                var html="<text id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' ";
+                html+="font-size='"+(el.textSize*scale)+"' ";
+                if(el.textStyle=='bold') html+="font-weight='bold' ";
+                else if(el.textStyle=='italic') html+="font-style='italic' ";
+                html+="stroke='none' fill='"+el.fill+"'>"+el.text+"</text>";
+                console.log('text html: '+html);
+                if(el.fill=='blue') id('ref').innerHTML+=html;
+                else id('dwg').innerHTML+=html;
+                id('textDialog').style.display='none';
+                break;
+            case 'combi':
+                var s=(combi.nts>0)?scale:1;
+                var html="<svg id='"+el.id+"' x='"+el.x+"' y='"+el.y+"'>";
+                html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
+                console.log('combi html: '+html);
+                id('dwg').innerHTML+=html;
+                nodes.push({'x':el.x,'y':el.y,'el':elementID});
+                console.log("DONE");
+                break;
+    }
 }
 // SAVE DRAWING AS SVG FILE _ PRINT AS PDF AT 100% SCALE
 function saveSVG() {
@@ -2516,24 +2767,30 @@ function saveSVG() {
 	alert(fileName+" saved to downloads folder");
 	id('datumGroup').style.display='block';
 }
-function report(text) {
-	console.log(text);
-}
 // START-UP CODE
-var request=window.indexedDB.open("ddDB");
+var request=window.indexedDB.open("ddDB",dbVersion);
 request.onsuccess=function(event) {
     db=event.target.result;
     // console.log("ddDB open");
-    var dbTransaction=db.transaction('elements',"readwrite");
-    var dbObjectStore=dbTransaction.objectStore('elements');
+    // var dbTransaction=db.transaction('elements',"readwrite");
+    // var dbObjectStore=dbTransaction.objectStore('elements');
     nodes=[];
-    var request=dbObjectStore.openCursor();
+    // var request=dbObjectStore.openCursor();
+    var request=db.transaction('graphs').objectStore('graphs').openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
         if (cursor) {
-            var el=cursor.value;
-            var html="<"+el.type+" id='"+el.id+"' ";
-            console.log('load '+el.type+' element '+el.id);
+            var graph=cursor.value;
+            console.log('load '+graph.type+' id: '+graph.id);
+            if(graph.type=='combi') { // load combi from 'combis' database
+                db.transaction('combis').objectStore('combis').get(graph.no).onsuccess=function(event) {
+                    combi=event.target.result;
+                    console.log('combi '+combi.id+' is '+combi.name);
+                    drawElement(graph);
+                }
+            }
+            else drawElement(graph);
+            /* ALL THIS IS DONE BY drawElement FUNCTION
             switch(el.type) {
                 case 'polyline':
                     html+="points='"+el.points+"' ";
@@ -2581,10 +2838,16 @@ request.onsuccess=function(event) {
                     nodes.push({'x':el.cx,'y':el.cy+el.ry,'el':el.id});
                     break;
                 case 'path':
-                    html+=" d='M"+el.centreX+","+el.centreY+" M"+el.startX+","+el.startY+" A"+el.radius+","+el.radius+" 0 "+el.major+","+el.spin+" "+el.endX+","+el.endY+"' ";
+                    arc.startX=el.cx+el.r*Math.cos(el.a0);
+                    arc.startY=el.cy+el.r*Math.sin(el.a0);
+                    arc.endX=el.cx+el.r*Math.cos(el.a-el.a);
+                    arc.endY=el.cy+Math.sin(el.a-el.a0);
+                    arc.major=(Math.abs(el.a)>Math.PI)?1:0;
+                    arc.spin=(el.a>0)?1:0;
+                    html+=" d='M"+el.cx+","+el.cy+" M"+el.startX+","+el.startY+" A"+el.r+","+el.r+" 0 "+arc.major+","+arc.spin+" "+arc.endX+","+arc.endY+"' ";
+                    // html+=" d='M"+el.centreX+","+el.centreY+" M"+el.startX+","+el.startY+" A"+el.radius+","+el.radius+" 0 "+el.major+","+el.spin+" "+el.endX+","+el.endY+"' ";
                     html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
                     if(el.lineStyle) html+="stroke-dasharray='"+el.lineStyle+"' ";
-                    // html+="stroke-opacity='"+el.opacity+"' ";
                     html+="fill='"+el.fill+"' ";
                     html+="fill-opacity='"+el.opacity+"' ";
                     if(el.transform) html+="transform='"+el.transform+"'";
@@ -2614,12 +2877,12 @@ request.onsuccess=function(event) {
                         combi=event.target.result;
                         console.log('combi '+combi.id+' is '+combi.name);
                         var s=(combi.nts>0)?scale:1;
-                        var elementID='~'+elID;
+                        // var elementID='~'+elID;
                         var html="<svg id='"+val+"' x='"+el.x+"' y='"+el.y+"' ax='"+(combi.ax*s)+"' ay='"+(combi.ay*s)+"'>";
                         html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
                         console.log('combi html: '+html);
                         id('dwg').innerHTML+=html;
-                        elID++;
+                        // elID++;
                         nodes.push({'x':el.x,'y':el.y,'el':elementID});
                     }
             }
@@ -2628,18 +2891,22 @@ request.onsuccess=function(event) {
             // for(var i=len-4;i<len;i++) console.log('node: '+nodes[i].x+','+nodes[i].y+' el:'+nodes[i].el);
             if(el.stroke=='blue') id('ref').innerHTML+=html; // blue lines go into <ref> layer
             else id('dwg').innerHTML+=html;
-            elID=parseInt(el.id.substr(1))+1;
+            // elID=parseInt(el.id.substr(1))+1;
+            */
 	    	cursor.continue();  
         }
 	    else {
-		    console.log("No more entries. elID: "+elID);
+		    console.log("No more entries");
 	    }
     };
-    console.log('all elements loaded');
+    console.log('all graphs loaded');
+    /*
     var dbTransaction=db.transaction('combis',"readwrite");
     console.log("indexedDB transaction ready");
     var dbObjectStore=dbTransaction.objectStore('combis');
     var request=dbObjectStore.openCursor();
+    */
+    var request=db.transaction('combis').objectStore('combis').openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
         if(cursor) {
@@ -2658,16 +2925,24 @@ request.onsuccess=function(event) {
     };
 };
 request.onupgradeneeded=function(event) {
-	var dbObjectStore=event.currentTarget.result.createObjectStore("elements",{ keyPath:'id',autoIncrement:false });
-	console.log("new elements ObjectStore created");
-	dbObjectStore=event.currentTarget.result.createObjectStore("combis",{ keyPath:'id',autoIncrement:true });
-	console.log("new combis ObjectStore created");
+    var db=event.target.result;
+    // TEMPORARY TO SWITCH FROM elements TO graphs
+    // db.deleteObjectStore('elements');
+    if (!db.objectStoreNames.contains('graphs')) {
+        var graphs=db.createObjectStore('graphs',{keyPath:'id',autoIncrement:true});
+    }
+    if (!db.objectStoreNames.contains('combis')) {
+        var combis=db.createObjectStore("combis",{keyPath:'id',autoIncrement:true});
+    }
+	// var dbObjectStore=event.currentTarget.result.createObjectStore("elements",{ keyPath:'id',autoIncrement:true });
+	// console.log("new elements ObjectStore created");
+	// dbObjectStore=event.currentTarget.result.createObjectStore("combis",{ keyPath:'id',autoIncrement:true });
+	// console.log("new combis ObjectStore created");
 };
 request.onerror=function(event) {
 	alert("indexedDB error");
 };
-
-// implement service worker if browser is PWA friendly
+// SERVICE WORKER
 if (navigator.serviceWorker.controller) {
 	console.log('Active service worker found, no need to register')
 }
