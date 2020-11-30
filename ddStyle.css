@@ -9,6 +9,9 @@ body {
 	width: 100%;
 	height: 100%;
 	background: white;
+	pointer-events: auto;
+	touch-action: none;
+	mouse-events: none;
 }
 #ref {
     position: absolute;
@@ -134,8 +137,8 @@ select {
     border-radius: 3px;
     color: white;
 }
-#fileButton {
-    background: url(svg/file.svg) center center no-repeat;
+#docButton {
+    background: url(svg/document.svg) center center no-repeat;
 }
 #zoomInButton {
     background: url(svg/zoomin.svg) center center no-repeat;
@@ -170,7 +173,8 @@ select {
 #textButton {
     background: url(svg/text.svg) center center no-repeat;
 }
-#dimensionButton {
+#dimButton {
+    /* pointer-events: auto; */
     background: url(svg/dimension.svg) center center no-repeat;
 }
 #combiButton {

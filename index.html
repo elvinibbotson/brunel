@@ -22,14 +22,18 @@
 		        <marker id='endArrow' markerWidth='10' markerHeight='20' refX='10' refY='10' orient='auto'>
 		            <path d='M0,0 L10,10 L0,20' stroke='gray' fill='none'/>
 		        </marker>
+		        <marker id='arcArrows' markerWidth='20' markerHeight='20' refX='20' refY='10' orient='auto'>
+		            <path d='M5,5 L10,0 L15,5' stroke='blue' fill='none'/>
+		            <path d='M5,15 L10,20 L15,15' stroke='blue' fill='none'/>
+		        </marker>
 		        <clipPath id='clipper'>
 		            <rect x='0' y='0' width='297' height='210'/>
 		        </clipPath>
 		    </defs>
-		    <g id='datumGroup'>
-		        <circle id='datum' cx='0' cy='0' r='3' stroke='none' fill='silver'/>
-                <line id='datumH' x1='-1000' y1='0' x2='2000' y2='0' stroke='gray' stroke-width='0.25'/>
-                <line id='datumV' x1='0' y1='-1000' x2='0' y2='2000' stroke='gray' stroke-width='0.25'/>
+		    <g id='datumSet'>
+		        <circle id='datum' cx='0' cy='0' r='3' stroke='blue' stroke-width='0.25' fill='silver'/>
+                <line id='datumH' x1='-1000' y1='0' x2='2000' y2='0' stroke='blue' stroke-width='0.25'/>
+                <line id='datumV' x1='0' y1='-1000' x2='0' y2='2000' stroke='blue' stroke-width='0.25'/>
             </g>
 		    <g id='dwg' style="clip-path: url(#clipper);"></g>
 		    <g id='selection'></g>
@@ -40,13 +44,14 @@
 		        <ellipse class='blue' id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/>
 		        <path class='blue' id='blueArc' d='M0,0 A0,0 0 0,0 0,0' stroke='blue' fill='none'/>
 		        <line class='blue' id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue' fill='none'/>
+		        <line class='blue' id='blueRadius' x1='0' y1='0' x2='-10' y2='-10' marker-end='url(#arcArrows)' stroke='blue' fill='none'/>
 		    </g>
 		    <!--TEST DIMENSION line x1='100' y1='100' x2='200' y2='150' marker-start='url(#startArrow)' marker-end='url(#endArrow)' stroke='gray' stroke-width='0.25' fill='none'/-->
 		    </svg>
 		</div>
 	</div>
     <div id='tools'>
-        <button id='fileButton' class='iconButton'></button>
+        <button id='docButton' class='iconButton'></button>
         <button id='zoomInButton' class='iconButton'></button>
         <button id='zoomOutButton' class='iconButton'></button>
         <button id='extentsButton' class='iconButton'></button>
@@ -57,7 +62,7 @@
         <button id='ovalButton' class='iconButton'></button>
         <button id='arcButton' class='iconButton'></button>
         <button id='textButton' class='iconButton'></button>
-        <button id='dimensionButton' class='iconButton'></button>
+        <button id='dimButton' class='iconButton'></button>
         <button id='combiButton' class='iconButton'></button>
     </div>
     <div id='editTools'>
@@ -98,7 +103,7 @@
             <button id='confirmPrint' class='iconButton'></button>
         </p>
 	</div>
-    <div id='newDrawing' class='dialog'>
+    <div id='newDrawingDialog' class='dialog'>
         <p>new drawing</p>
         <p>size: A4 (<span id='aspect'></span>)</p>
         <!--input type='radio' name='aspect' id='landscape' value='landscape' checked>

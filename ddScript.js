@@ -59,10 +59,10 @@ if(!aspect) {
     showDialog('newDrawing',true);
 }
 else initialise();
-
+// disable annoying pop-up menu
+document.addEventListener('contextmenu', event => event.preventDefault());
 // TOOLS
-// file
-id('fileButton').addEventListener('click',function() { // SHOULD SHOW FILE MENU BUT FOR NOW...
+id('docButton').addEventListener('click',function() { // SHOULD SHOW FILE MENU BUT FOR NOW...
     showDialog('fileMenu',true);
 });
 id('new').addEventListener('click',function() {
@@ -247,26 +247,29 @@ id('text').addEventListener('change',function() {
     if(elementID) { // change selected text
         element=id(elementID);
         element.innerHTML=text;
-        updateElement(elementID,'text',text);
+        updateGraph(elementID,'text',text);
     }
     else {
         console.log('add text '+text);
-        var el={}
-	    el.type='text';
-	    el.text=text;
-	    el.x=x0;
-        el.y=y0;
-        el.textSize=textSize;
-        el.textStyle=textStyle;
-	    el.fill=lineShade;
-	    el.opacity=opacity;
+        var graph={}
+	    graph.type='text';
+	    graph.text=text;
+	    graph.x=x0;
+        graph.y=y0;
+        graph.textSize=textSize;
+        graph.textStyle=textStyle;
+	    graph.fill=lineShade;
+	    graph.opacity=opacity;
+	    /*
 	    var dbTransaction=db.transaction('elements',"readwrite");
 	    var dbObjectStore=dbTransaction.objectStore('elements');
 	    var request=dbObjectStore.add(el);
+	    */
+	    var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
 	    request.onsuccess=function(event) {
-	        el.id=request.result;
-	        console.log("new text element added: "+el.id);
-	        drawElement(el);
+	        graph.id=request.result;
+	        console.log("new text element added: "+graph.id);
+	        drawElement(graph);
 	    };
 	    request.onerror=function(event) {
 	        console.log("error adding new text element");
@@ -385,7 +388,6 @@ id('confirmMove').addEventListener('click',function() {
     mode='select';
     elementID=null;
 });
-
 // STYLES
 id('line').addEventListener('click',function() {
     showDialog('stylesDialog',true);
@@ -412,7 +414,7 @@ id('lineType').addEventListener('change',function() {
         }
         // console.log('set element '+element.id+' line style to '+type);
         element.setAttribute('stroke-dasharray',val);
-        updateElement(elementID,'lineStyle',val);
+        updateGraph(elementID,'lineStyle',val);
     }
     else { // change default line type
         lineType=type;
@@ -433,7 +435,7 @@ id('penSelect').addEventListener('change',function() {
         element=id(elementID);
         element.setAttribute('stroke-width',val*scale);
         // console.log('set element '+element.id+' pen to '+val);
-        updateElement(element.id,'lineW',val);
+        updateGraph(element.id,'lineW',val);
     }
     else { // change default pen width
         pen=val;
@@ -452,7 +454,7 @@ id('textSize').addEventListener('change',function() {
         if(type(element)=='text') {
             element.setAttribute('font-size',val*scale);
             // console.log('set element '+element.id+' text size to '+val);
-            updateElement(element.id,'textSize',val);
+            updateGraph(element.id,'textSize',val);
         }
     }
     else { // change default pen width
@@ -481,7 +483,7 @@ id('textStyle').addEventListener('change',function() {
                     element.setAttribute('font-style','italic');
                     element.setAttribute('font-weight','normal');
             }
-            updateElement(element.id,'textStyle',val);
+            updateGraph(element.id,'textStyle',val);
         }
     }
     else { // change default pen width
@@ -516,7 +518,7 @@ id('opacity').addEventListener('change',function() {
     if(elementID) { // change selected element
         element=id(elementID);
         element.setAttribute('fill-opacity',val);
-        updateElement(elementID,'opacity',val);
+        updateGraph(elementID,'opacity',val);
     }
     else opacity=val; // change default opacity
     id('fill').style.opacity=val;
@@ -537,14 +539,14 @@ id('shadeMenu').addEventListener('click',function() {
             if(type(element)=='text') { // text is filled not stroked
             console.log('change text colour to '+val);
                 element.setAttribute('fill',val);
-                updateElement(element.id,'fill',val);
+                updateGraph(element.id,'fill',val);
             }
             else {
                 element.setAttribute('stroke',val);
-                updateElement(element.id,'stroke',val);
+                updateGraph(element.id,'stroke',val);
                 if(val='blue') { // move element into <ref> layer...
                     element.setAttribute('stroke-width',0.25*scale); // ...with thin lines...
-                    updateElement(element.id,'stroke-width',0.25*scale);
+                    updateGraph(element.id,'stroke-width',0.25*scale);
                     element.setAttribute('fill','none'); // ...and no fill
                 }
             }
@@ -572,7 +574,7 @@ id('shadeMenu').addEventListener('click',function() {
             element=id(elementID);
             element.setAttribute('fill',shade);
             // console.log('set element '+element.id+' fill shade to '+shade);
-            updateElement(element.id,'fill',shade);
+            updateGraph(element.id,'fill',shade);
         }
         else { // change default fill shade
             // console.log('fill shade: '+shade);
@@ -650,8 +652,8 @@ id('graphic').addEventListener('pointerdown',function() {
                     mode='arcSize';
                     var d=element.getAttribute('d');
                     getArc(d);
-                    x0=arc.centreX;
-                    y0=arc.centreY;
+                    x0=arc.cx;
+                    y0=arc.cy;
                     console.log('arc centre: '+x0+','+y0);
                     id('blueBox').setAttribute('width',0);
                     id('blueBox').setAttribute('height',0);
@@ -722,28 +724,17 @@ id('graphic').addEventListener('pointerdown',function() {
             break;
         case 'arc':
             // console.log('arc starts at '+x0+','+y0);
-            arc.startX=x0;
-            arc.startY=y0;
+            arc.x1=x0;
+            arc.y1=y0;
             prompt('ARC: drag to centre');
-            id('blueLine').setAttribute('x1',arc.startX);
-            id('blueLine').setAttribute('y1',arc.startY);
-            id('blueLine').setAttribute('x2',arc.startX);
-            id('blueLine').setAttribute('y2',arc.startY);
+            id('blueLine').setAttribute('x1',arc.x1);
+            id('blueLine').setAttribute('y1',arc.y1);
+            id('blueLine').setAttribute('x2',arc.x1);
+            id('blueLine').setAttribute('y2',arc.y1);
             break;
         case 'arcEnd':
-            id('blueLine').setAttribute('x1',arc.centreX);  // hide circle and line
-            id('blueLine').setAttribute('y1',arc.centreY);
-            id('blueOval').setAttribute('rx',0);
+            id('blueOval').setAttribute('rx',0); // hide blue circle
             id('blueOval').setAttribute('ry',0);
-            arc.major=0; // always starts with minor arc
-            x0=arc.centreX;
-            y0=arc.centreY;
-            // set direction of arc - clockwise (spin=1) or anticlockwise (spin=0)
-            if(arc.centreY>arc.startY) arc.spin=(x>arc.startX)?1:0;
-            else if(arc.centreY<arc.startY) arc.spin=(x<arc.startX)?1:0;
-            else if(arc.startX>arc.centreX) arc.spin=(y>arc.startY)?1:0;
-            else arc.spin=(y>arc.startY)?0:1;
-            console.log('MAJOR: '+arc.major+'; SPIN: '+arc.spin);
             break;
         case 'text':
             console.log('show text dialog');
@@ -754,23 +745,26 @@ id('graphic').addEventListener('pointerdown',function() {
             break;
         case 'combi':
             console.log('place combi '+combiID+' at '+x0+','+y0);
-            var el={};
-	        el.type='combi';
-	        el.no=combiID;
+            var graph={};
+	        graph.type='combi';
+	        graph.no=combiID;
 	        db.transaction('combis').objectStore('combis').get(combiID).onsuccess=function(event) {
                 combi=event.target.result;
                 console.log('combi '+combiID+' is '+combi.name);
                 var s=(combi.nts>0)?scale:1;
-	            el.x=x0-combi.ax*s;
-	            el.y=y0-combi.ax*s;
-	            // add to elements database
+	            graph.x=x0-combi.ax*s;
+	            graph.y=y0-combi.ax*s;
+	            // add to graphs database
+	            /*
 	            var dbTransaction=db.transaction('elements',"readwrite");
 	            var dbObjectStore=dbTransaction.objectStore('elements');
 	            var request=dbObjectStore.add(el);
+	            */
+	            var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
 	            request.onsuccess=function(event) {
-	                el.id=request.result;
-	                console.log('new combi element added - id: '+el.id);
-	                drawElement(el);
+	                graph.id=request.result;
+	                console.log('new combi graph added - id: '+graph.id);
+	                drawElement(graph);
                 };
 	            request.onerror=function(event) {
 	                console.log('error adding new combi element');
@@ -817,8 +811,6 @@ id('graphic').addEventListener('pointermove',function() {
             id('datumH').setAttribute('y2',y);
             id('datumV').setAttribute('x1',x);
             id('datumV').setAttribute('x2',x);
-            // nodes[0].x=x;
-            // nodes[0].y=y;
             datumX=x;
             datumY=y;
             break;
@@ -920,11 +912,12 @@ id('graphic').addEventListener('pointermove',function() {
             if(Math.abs(y-y0)<snapD) y=y0; // snap to horizontal
             w=x-x0;
             h=y-y0;
-            arc.centreX=x;
-            arc.centreY=y;
+            if((Math.abs(w)<2)&&(Math.abs(h)<2)) break; // wait for significant movement
+            arc.cx=x;
+            arc.cy=y;
             arc.radius=Math.round(Math.sqrt(w*w+h*h));
-            id('blueLine').setAttribute('x2',arc.centreX);
-            id('blueLine').setAttribute('y2',arc.centreY);
+            id('blueLine').setAttribute('x2',arc.cx);
+            id('blueLine').setAttribute('y2',arc.cy);
             id('blueOval').setAttribute('cx',x);
             id('blueOval').setAttribute('cy',y);
             id('blueOval').setAttribute('rx',arc.radius);
@@ -934,28 +927,54 @@ id('graphic').addEventListener('pointermove',function() {
         case 'arcEnd':
             if(Math.abs(x-x0)<snapD) x=x0; // snap to vertical
             if(Math.abs(y-y0)<snapD) y=y0; // snap to horizontal
-            w=x-arc.centreX;
-            h=y-arc.centreY;
+            dx=x-x0;
+            dy=y-y0;
+            if((Math.abs(dx)<2)&&(Math.abs(dy)<2)) break; // wait for significant movement
+            if(!arc.spin) {
+                console.log('set arc spin direction');
+                if(Math.abs(y-arc.cy)>Math.abs(x-arc.cx)) { // get spin from horizontal movement
+                    if((y-arc.cy)<0) arc.spin=(x>arc.x1)?1:0; // above...
+                    else arc.spin=(x<arc.x1)?1:0; // ...or below centre of arc
+                }
+                else {
+                    if((x-arc.cx)<0) arc.spin=(y<arc.y1)?1:0; // left or...
+                    else arc.spin=(y>arc.y1)?1:0; // ...right of centre of arc
+                }
+                console.log('ARC SPIN SET TO '+arc.spin);
+            }
+            w=x-arc.cx;
+            h=y-arc.cy;
             // console.log('arc end - '+w+','+h);
-            var a=Math.atan(h/w); // -PI/2 to +PI/2 radians
-            if(w<0) a+=Math.PI; // -PI/2 to +3PI/2 radians
-            arc.endX=Math.round(arc.centreX+arc.radius*Math.cos(a));
-            arc.endY=Math.round(arc.centreY+arc.radius*Math.sin(a));
-            x=arc.endX;
-            y=arc.endY;
-            setSizes(true);
+            arc.a2=Math.atan(h/w); // radians clockwise from x-axis
+            // arc.a2=getAngle(arc.cx,arc.cy,x,y); // end angle (as compass bearing)
+            console.log('arc radius: '+arc.r+'; end angle: '+arc.a2);
+            arc.x2=Math.round(arc.cx+arc.r*Math.cos(arc.a2));
+            arc.y2=Math.round(arc.cy+arc.r*Math.sin(arc.a2));
+            x=arc.x2;
+            y=arc.y2;
+            console.log('end point: '+arc.x2+','+arc.y2);
+            // WHEN WORKING... setSizes(true,true);
+            /* ALREADY DONE
             a*=(180/Math.PI); // -90 to +270 degrees
             a+=90; // compass bearing 0-360 degrees
             // console.log('end angle: '+a+' spin: '+arc.spin+' major: '+arc.major);
-            a-=arc.startAngle; // angle of arc
+            */
+            var a=arc.a2-arc.a1; // angle of arc - radians
+            if(arc.spin<1) a=Math.PI*2-a;
+            arc.major=(a>Math.PI)?1:0;
+            /*
             if(a<0) a+=360; // keep in range 0-360 degrees
             if(arc.spin>0) arc.major=(a>180)?1:0; // clockwise arc
             else arc.major=(a<180)?1:0; // anticlockwise arc
-            // console.log('a: '+a+'; spin: '+arc.spin+'; major: '+arc.major);
+            */
+            console.log('arc angle: '+a+'; spin: '+arc.spin+'; major: '+arc.major);
+            
             // console.log('angle: '+(a*180/Math.PI));
-            id('blueLine').setAttribute('x2',x);
-            id('blueLine').setAttribute('y2',y);
-            blueArc();
+            id('blueRadius').setAttribute('x2',x);
+            id('blueRadius').setAttribute('y2',y);
+            var d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.spin+' '+arc.x2+','+arc.y2;
+            id('blueArc').setAttribute('d',d);
+            // blueArc();
             break;
         case 'select':
             var boxX=(x<x0)?x:x0;
@@ -984,7 +1003,7 @@ id('graphic').addEventListener('pointerup',function() {
         element.points[n].x=x;
         element.points[n].y=y;
         id('bluePolyline').setAttribute('points','0,0');
-        updateElement(elementID,'points',element.getAttribute('points'));
+        updateGraph(elementID,'points',element.getAttribute('points'));
         var polylineNodes=nodes.filter(belong);
         for(var i=0; i<polylineNodes.length;i++) {
             polylineNodes[i].x=element.points[i].x;
@@ -1026,7 +1045,7 @@ id('graphic').addEventListener('pointerup',function() {
                             element.points[i].y+=dy;
                         }
                         // console.log(element.points.length+' points adjusted');
-                        updateElement(elementID,'points',element.getAttribute('points'));
+                        updateGraph(elementID,'points',element.getAttribute('points'));
                         break;
                     case 'box':
                     case 'text':
@@ -1037,35 +1056,35 @@ id('graphic').addEventListener('pointerup',function() {
                         element.setAttribute('x',x);
                         element.setAttribute('y',y);
                         console.log('...to '+x+','+y);
-                        updateElement(elementID,'x',x);
-                        updateElement(elementID,'y',y);
+                        updateGraph(elementID,'x',x);
+                        updateGraph(elementID,'y',y);
                         break;
                     case 'oval':
                         x=parseInt(element.getAttribute('cx'))+dx;
                         y=parseInt(element.getAttribute('cy'))+dy;
                         element.setAttribute('cx',x);
                         element.setAttribute('cy',y);
-                        updateElement(elementID,'cx',x);
-                        updateElement(elementID,'cy',y);
+                        updateGraph(elementID,'cx',x);
+                        updateGraph(elementID,'cy',y);
                         break;
                     case 'arc':
                         // move centre, start and end points by dx,dy
                         var d=element.getAttribute('d');
                         getArc(d);
-                        arc.centreX+=dx;
-                        arc.centreY+=dy;
-                        arc.startX+=dx;
-                        arc.startY+=dy;
-                        arc.endX+=dx;
-                        arc.endY+=dy;
-                        d=setArc();
+                        arc.cx+=dx;
+                        arc.cy+=dy;
+                        arc.x1+=dx;
+                        arc.y1+=dy;
+                        arc.x2+=dx;
+                        arc.y2+=dy;
+                        d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.spin+' '+arc.x2+','+arc.y2;
                         element.setAttribute('d',d);
-                        updateElement(elementID,'centreX',arc.centreX);
-                        updateElement(elementID,'centreY',arc.centreY);
-                        updateElement(elementID,'startX',arc.startX);
-                        updateElement(elementID,'startY',arc.startY);
-                        updateElement(elementID,'endX',arc.endX);
-                        updateElement(elementID,'endY',arc.endY);
+                        updateGraph(elementID,'cx',arc.cx);
+                        updateGraph(elementID,'cy',arc.cy);
+                        updateGraph(elementID,'x1',arc.x1);
+                        updateGraph(elementID,'y1',arc.y1);
+                        updateGraph(elementID,'x2',arc.x2);
+                        updateGraph(elementID,'y2',arc.y2);
                         break;
                 }
                 var elementNodes=nodes.filter(belong);
@@ -1086,17 +1105,19 @@ id('graphic').addEventListener('pointerup',function() {
             console.log('touchEnd - box size: '+dx+'x'+dy);
             id('handles').innerHTML='';
             element.setAttribute('width',dx);
-            updateElement(elementID,'width',dx);
+            updateGraph(elementID,'width',dx);
             element.setAttribute('height',dy);
-            updateElement(elementID,'height',dy);
+            updateGraph(elementID,'height',dy);
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
-            var elementNodes=nodes.filter(belong);
-            // THIS IS NO GOOD - RECALCULATE ALL 9 NODES
-            for(var i=0; i<elementNodes.length;i++) {
-                elementNodes[i].x=x0+dx;
-                elementNodes[i].y=y0+dy;
-            }
+            var elNodes=nodes.filter(belong);
+            elNodes[0].x=elNodes[2].x=elNodes[5].x=element.getAttribute('x'); // left edge
+            elNodes[0].y=elNodes[1].y=elNodes[4].y=element.getAttribute('y'); // top edge
+            elNodes[1].x=elNodes[3].x=elNodes[6].x=element.getAttribute('x')+element.getAttribute('width'); //right edge
+            elNodes[2].y=elNodes[3].y=elNodes[7].y=element.getAttribute('y')+element.getAttribute('height'); // bottom edge
+            elNodes[4].x=elNodes[7].x=elNodes[8].x=element.getAttribute('x')+element.getAttribute('width')/2; // mid-width
+            elNodes[5].y=elNodes[6].y=elNodes[8].y=element.getAttribute('y')+element.getAttribute('height')/2; // mid-height
+            elNodes[0].el=elNodes[1].el=elNodes[2].el=elNodes[3].el=elNodes[4].el=elNodes[5].el=elNodes[6].el=elNodes[7].el=elNodes[8].el=elementID;
             mode='select';
             elementID=null;
             selection=[];
@@ -1107,9 +1128,9 @@ id('graphic').addEventListener('pointerup',function() {
             console.log('touchEnd - radii: '+dx+'x'+dy);
             id('handles').innerHTML='';
             element.setAttribute('rx',dx);
-            updateElement(elementID,'rx',dx);
+            updateGraph(elementID,'rx',dx);
             element.setAttribute('ry',dy);
-            updateElement(elementID,'ry',dy);
+            updateGraph(elementID,'ry',dy);
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
             var elementNodes=nodes.filter(belong);
@@ -1126,40 +1147,40 @@ id('graphic').addEventListener('pointerup',function() {
         case 'arcSize':
             dx=x-x0;
             dy=y-y0;
-            var r=Math.sqrt((dx*dx)+(dy*dy));
+            arc.r=Math.sqrt((dx*dx)+(dy*dy));
             console.log('touch end - radius: '+r);
             id('handles').innerHTML='';
             // adjust arc start...
-            dx=arc.startX-arc.centreX;
-            dy=arc.startY-arc.centreY;
-            dx*=r/arc.radius;
-            dy*=r/arc.radius;
-            arc.startX=arc.centreX+dx;
-            arc.startY=arc.centreY+dy;
+            dx=arc.x1-arc.cx;
+            dy=arc.y1-arc.cy;
+            dx*=r/arc.r;
+            dy*=r/arc.r;
+            arc.x1=arc.cx+dx;
+            arc.y1=arc.cy+dy;
             // ...and end points...
-            dx=arc.endX-arc.centreX;
-            dy=arc.endY-arc.centreY;
-            dx*=r/arc.radius;
-            dy*=r/arc.radius;
-            arc.endX=arc.centreX+dx;
-            arc.endY=arc.centreY+dy;
+            dx=arc.x2-arc.cx;
+            dy=arc.y2-arc.cy;
+            dx*=r/arc.r;
+            dy*=r/arc.r;
+            arc.x2=arc.cx+dx;
+            arc.y2=arc.cy+dy;
             // ...and radius 
-            arc.radius=r;
-            var d=setArc();
+            arc.r=r;
+            var d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.spin+' '+arc.x2+','+arc.y2;
             element.setAttribute('d',d);
-            updateElement(elementID,'startX',arc.startX);
-            updateElement(elementID,'startY',arc.startY);
-            updateElement(elementID,'endX',arc.endX);
-            updateElement(elementID,'endY',arc.endY);
-            updateElement(elementID,'radius',r);
+            updateGraph(elementID,'x1',arc.x1);
+            updateGraph(elementID,'y1',arc.y1);
+            updateGraph(elementID,'x2',arc.x2);
+            updateGraph(elementID,'y2',arc.y2);
+            updateGraph(elementID,'a1',r);
             var arcNodes=nodes.filter(belong);
             console.log(arcNodes.length+' arc nodes');
-            arcNodes[0].x=arc.centreX;
-            arcNodes[0].y=arc.centreY;
-            arcNodes[1].x=arc.startX;
-            arcNodes[1].y=arc.startY;
-            arcNodes[2].x=arc.endX;
-            arcNodes[2].y=arc.endY;
+            arcNodes[0].x=arc.cx;
+            arcNodes[0].y=arc.cy;
+            arcNodes[1].x=arc.x1;
+            arcNodes[1].y=arc.y1;
+            arcNodes[2].x=arc.x2;
+            arcNodes[2].y=arc.y2;
             id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
             mode='select';
@@ -1415,138 +1436,50 @@ id('graphic').addEventListener('pointerup',function() {
             mode='select';
             break;
         case 'oval':
-            var el={}
-	        el.type='oval';
-	        el.cx=x0;
-	        el.cy=y0;
-	        el.rx=w/2;
-	        el.ry=h/2;
-	        el.stroke=lineShade
-	        el.lineStyle=lineType;
-	        el.lineW=pen*scale;
-	        // if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
-	        el.fill=fillShade;
-	        el.opacity=opacity;
-	        var dbTransaction=db.transaction('elements',"readwrite");
+            var graph={};
+	        graph.type='oval';
+	        graph.cx=x0;
+	        graph.cy=y0;
+	        graph.rx=w/2;
+	        graph.ry=h/2;
+	        graph.stroke=lineShade
+	        graph.lineStyle=lineType;
+	        graph.lineW=pen*scale;
+	        graph.fill=fillShade;
+	        graph.opacity=opacity;
+	        /*
+	        var dbTransaction=db.transaction('graphs',"readwrite");
 	        var dbObjectStore=dbTransaction.objectStore('elements');
 	        var request=dbObjectStore.add(el);
+	        */
+	        var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
 	        request.onsuccess=function(event) {
-	            el.id=request.result;
-			    console.log("new oval element added: "+el.id);
-			    drawElement(el);
-			    /* MOVE THIS TO drawElement FUNCTION
-			    var html="<ellipse id='"+el.id+"' cx='"+x0+"' cy='"+y0+"' rx='"+(w/2)+"' ry='"+(h/2)+"' stroke=";
-                switch(lineType) {
-                    case 'solid':
-                        html+=lineShade;
-                        break;
-                    case 'dashed':
-                        html+=lineShade+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"'";
-                        break;
-                    case 'dotted':
-                        html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
-                }
-                html+=" stroke-width="+el.lineW+" fill='";
-                // console.log('fillShade: '+fillShade);
-                html+=el.fill;
-                html+="' fill-opacity='"+opacity+"'>";
-                // console.log('oval svg: '+html);
-                id('dwg').innerHTML+=html;
-                // add nodes to nodes[] array
-                // x=parseInt(element.getAttribute('cx'));
-                // y=parseInt(element.getAttribute('cy'));
-                // w=parseInt(element.getAttribute('rx'));
-                // h=parseInt(element.getAttribute('ry'));
-                // console.log('x:'+x+' y:'+y+' w:'+w+' h:'+h);
-                nodes.push({'x':x,'y':y,'el':el.id});
-                nodes.push({'x':(x-w),'y':y,'el':el.id});
-                nodes.push({'x':(x+w),'y':y,'el':el.id});
-                nodes.push({'x':x,'y':(y-h),'el':el.id});
-                nodes.push({'x':x,'y':(y+h),'el':el.id});
-                // console.log('oval nodes added');
-                */
+	            graph.id=request.result;
+			    console.log("new oval graph added: "+graph.id);
+			    drawElement(graph);
 		    };
 		    request.onerror=function(event) {
 		        console.log("error adding new oval element");
 		    };
-            /*
-            var html="<ellipse id='~"+elID+"' cx='"+x0+"' cy='"+y0+"' rx='"+(w/2)+"' ry='"+(h/2)+"' stroke=";
-            switch(lineType) {
-                case 'solid':
-                    html+=lineShade;
-                    break;
-                case 'dashed':
-                    html+=lineShade+" stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"'";
-                    break;
-                case 'dotted':
-                    html+=lineShade+" stroke-dasharray='"+scale+" "+scale+"'";
-            }
-            html+=" stroke-width="+(pen*scale)+" fill='";
-            // console.log('fillShade: '+fillShade);
-            html+=fillShade;
-            html+="' fill-opacity='"+opacity+"'>";
-            // console.log('oval svg: '+html);
-            id('dwg').innerHTML+=html;
-            // console.log("oval svg drawn: "+w+" x "+h+" at "+x0+","+y0);
-            elementID='~'+elID;
-	        element=id(elementID);
-	        // console.log('element is '+elementID);
-            elID++;
-            id('blueOval').setAttribute('rx',0);
-            id('blueOval').setAttribute('ry',0);
-            // add nodes to nodes[] array
-            x=parseInt(element.getAttribute('cx'));
-            y=parseInt(element.getAttribute('cy'));
-            w=parseInt(element.getAttribute('rx'));
-            h=parseInt(element.getAttribute('ry'));
-            // console.log('x:'+x+' y:'+y+' w:'+w+' h:'+h);
-            nodes.push({'x':x,'y':y,'el':elementID});
-            nodes.push({'x':(x-w),'y':y,'el':elementID});
-            nodes.push({'x':(x+w),'y':y,'el':elementID});
-            nodes.push({'x':x,'y':(y-h),'el':elementID});
-            nodes.push({'x':x,'y':(y+h),'el':elementID});
-            // console.log('oval nodes added');
-            // save oval to database
-            var dbTransaction=db.transaction('elements',"readwrite");
-	        // console.log("indexedDB transaction ready");
-	        var dbObjectStore=dbTransaction.objectStore('elements');
-	        // console.log("indexedDB objectStore ready");
-	        // console.log("save element "+elementID);
-	        // console.log('create object from '+html);
-	        var el={}
-	        el.id=elementID;
-	        el.type='ellipse';
-	        el.cx=x;
-	        el.cy=y;
-	        el.rx=w;
-	        el.ry=h;
-	        el.stroke=element.getAttribute('stroke');
-	        el.lineW=element.getAttribute('stroke-width');
-	        if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
-	        el.fill=element.getAttribute('fill');
-	        // if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
-	        if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
-	        // console.log('element data object id: '+el.id+'; type: '+el.type+'; radii: '+el.rx+'x'+el.ry);
-    		var request=dbObjectStore.add(el);
-		    request.onsuccess=function(event) {
-			    console.log("new oval element added: "+el.id);
-		    };
-		    request.onerror=function(event) {
-		        console.log("error adding new oval element");
-		    };
-		    */
 		    id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
             element=elementID=null;
             mode='select';
             break;
         case 'arc':
-            arc.centreX=x;
-            arc.centreY=y;
+            arc.cx=x;
+            arc.cy=y;
             // console.log('arcCentre: '+arc.centreX+','+arc.centreY);
-            w=arc.startX-arc.centreX; // radii
-            h=arc.startY-arc.centreY;
-            arc.startAngle=getAngle(arc.centreX,arc.centreY,arc.startX,arc.startY);
+            w=arc.x1-arc.cx; // radii
+            h=arc.y1-arc.cy;
+            arc.r=Math.sqrt(w*w+h*h); // arc radius
+            arc.a1=Math.atan(h/w); // start angle - radians clockwise from x-axis
+            console.log('radius: '+arc.r+'; start angle: '+arc.a1);
+            arc.spin=null; // determine spin when move pointer
+            arc.major=0; // always starts with minor arc
+            x0=arc.cx;
+            y0=arc.cy;
+            // arc.a1=getAngle(arc.cx,arc.cy,arc.x1,arc.y1);
             /* 
             arc.startAngle=Math.atan(h/w); // radians
             arc.startAngle*=(180/Math.PI); // -90 to +90 degrees
@@ -1554,87 +1487,54 @@ id('graphic').addEventListener('pointerup',function() {
             if(w<0) arc.startAngle+=180; // 0-360 range
             */
             // console.log('arc start angle: '+arc.startAngle);
+            id('blueLine').setAttribute('x1',0);  // hide blue line
+            id('blueLine').setAttribute('y1',0);
+            id('blueLine').setAttribute('x2',0);
+            id('blueLine').setAttribute('y2',0);
+            id('blueRadius').setAttribute('x1',arc.cx); // draw blue arc radius with arrows
+            id('blueRadius').setAttribute('y1',arc.cy); 
+            id('blueRadius').setAttribute('x2',arc.x1); 
+            id('blueRadius').setAttribute('y2',arc.y1);
             mode='arcEnd';
             break;
         case 'arcEnd':
-            var el={};
-            el.type='arc';
-	        el.cx=arc.centreX; // centre coordinates
-	        el.cy=arc.centreY;
-	        el.x1=arc.startX; // start point
-	        el.y1=arc.startY;
-	        el.x2=arc.endX; // end point
-	        el.y2=arc.endY;
-	        el.r=arc.radius; // radius
+            var graph={};
+            graph.type='arc';
+	        graph.cx=arc.cx; // centre coordinates
+	        graph.cy=arc.cy;
+	        graph.x1=arc.x1; // start point
+	        graph.y1=arc.y1;
+	        graph.x2=arc.x2; // end point
+	        graph.y2=arc.y2;
+	        graph.r=arc.r; // radius
+	        graph.major=arc.major; // major/minor arc - 1/0
 	        // el.a1=angle(el.cx,el.cy,el.x1,el.y1); // angle of start
-	        // el.da=angle(el.cx,el.cy,el.x2,el.y2)-el.a1; // 
-	        el.spin=arc.spin; // direction of arc - 1: clockwise, 0: anticlockwise
-	        el.stroke=lineShade
-	        el.lineStyle=lineType;
-	        el.lineW=pen*scale;
-	        el.fill=fillShade;
-	        el.opacity=opacity;
+	        // el.da=angle(graph.cx,graph.cy,graph.x2,graph.y2)-graph.a1; // 
+	        graph.spin=arc.spin; // direction of arc - 1: clockwise, 0: anticlockwise
+	        graph.stroke=lineShade
+	        graph.lineStyle=lineType;
+	        graph.lineW=pen*scale;
+	        graph.fill=fillShade;
+	        graph.opacity=opacity;
+	        /*
 	        var dbTransaction=db.transaction('elements',"readwrite");
 	        var dbObjectStore=dbTransaction.objectStore('elements');
 	        var request=dbObjectStore.add(el);
+	        */
+	        var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
 		    request.onsuccess=function(event) {
-		        el.id=request.result;
-			    console.log("new arc element added: "+el.id);
-			    drawElement(el.id);
+		        graph.id=request.result;
+			    console.log("new arc element added: "+graph.id);
+			    drawElement(graph);
 		    };
 		    request.onerror=function(event) {
 		        console.log("error adding new arc element");
 		    };
             id('blueArc').setAttribute('d','M0,0 M0,0 A0,0 0 0,0 0,0');
-            id('blueLine').setAttribute('x1',0);
-            id('blueLine').setAttribute('y1',0);
-            id('blueLine').setAttribute('x2',0);
-            id('blueLine').setAttribute('y2',0);
-            /* create nodes for arc start, centre & end points
-            nodes.push({'x':arc.centreX,'y':arc.centreY,'el':elementID});
-            nodes.push({'x':arc.startX,'y':arc.startY,'el':elementID});
-            nodes.push({'x':arc.endX,'y':arc.endY,'el':elementID});
-            // add arc to database
-            var dbTransaction=db.transaction('elements',"readwrite");
-	        // console.log("indexedDB transaction ready");
-	        var dbObjectStore=dbTransaction.objectStore('elements');
-	        // console.log("indexedDB objectStore ready");
-	        // console.log("save element "+elementID);
-	        // console.log('create object from '+html);
-	        var el={}
-	        el.id=elementID;
-	        // console.log('element is '+elementID+' ie: '+element);
-	        el.type='path';
-	        el.cx=arc.centreX; // centre coordinates
-	        el.cy=arc.centreY;
-	        el.r=arc.radius; // radius
-	        if(arc.startX==arc.centreX) el.a0=(arc.startX>arc.centreX)?Math.PI/2:-Math.PI/2;
-	        else el.a0=Math.acos((arc.startX-arc.centreX)/arc.radius); // start angle
-	        var a=0;
-	        if(arc.endX==arc.centreX) a=(arc.endX>arc.centreX)?Math.PI/2:-Math.PI/2;
-	        else a=Math.acos((arc.endX-arc.centreX)/arc.radius); // end angle
-	        a=Math.abs(a-el.a0); // sweep angle
-	        el.a=(arc.spin>0)?a:-a; // negative sweep angle is anticlockwise
-	        // el.startX=arc.startX;
-	        // el.startY=arc.startY;
-	        // el.major=arc.major;
-	        // el.spin=arc.spin;
-	        // el.endX=arc.endX;
-	        // el.endY=arc.endY;
-	        el.stroke=element.getAttribute('stroke');
-	        el.lineW=element.getAttribute('stroke-width');
-	        if(element.getAttribute('stroke-dasharray')) el.lineStyle=val;
-	        el.fill=element.getAttribute('fill');
-	        // if(element.getAttribute('stroke-opacity')) el.opacity=element.getAttribute('stroke-opacity');
-	        if(element.getAttribute('transform')) el.transform=element.getAttribute('transform');
-	        var request=dbObjectStore.add(el);
-		    request.onsuccess=function(event) {
-			    console.log("new arc element added: "+el.id);
-		    };
-		    request.onerror=function(event) {
-		        console.log("error adding new arc element");
-		    };
-		    */
+            id('blueRadius').setAttribute('x1',0);
+            id('blueRadius').setAttribute('y1',0);
+            id('blueRadius').setAttribute('x2',0);
+            id('blueRadius').setAttribute('y2',0);
             element=elementID=null;
             mode='select';
             break;
@@ -1830,26 +1730,26 @@ id('graphic').addEventListener('pointerup',function() {
                         console.log('select arc - d: '+d);
                         getArc(d); // derive arc geometry from d
                         elementID=el.id;
-                        var html="<circle id='handleCentre' cx="+arc.centreX+" cy="+arc.centreY+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
+                        var html="<circle id='handleCentre' cx="+arc.cx+" cy="+arc.cy+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML=html; // circle handle at arc centre
                         // DO ARC SIZING USING END HANDLE
                         // html="<rect id='handleStart' x="+(arc.startX-handleR)+" y="+(arc.startY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
                         // id('handles').innerHTML+=html; // square handle at arc start...
-                        html="<rect id='handleEnd' x="+(arc.endX-handleR)+" y="+(arc.endY-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
+                        html="<rect id='handleEnd' x="+(arc.x2-handleR)+" y="+(arc.y2-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
                         id('handles').innerHTML+=html; // square handle at end point
                         // set up x0 & x for arc radius and included angle
-                        var startAngle=Math.atan((arc.startY-arc.centreY)/(arc.startX-arc.centreX));
-                        if(arc.startX<arc.centreX) startAngle+=Math.PI;
-                        // console.log('startAngle: '+startAngle);
-                        var angle=Math.atan((arc.endY-arc.centreY)/(arc.endX-arc.centreX));
+                        var a1=Math.atan((arc.y1-arc.cy)/(arc.x1-arc.cx));
+                        if(arc.x1<arc.cx) a1+=Math.PI;
+                        // console.log('a1: '+startAngle);
+                        var angle=Math.atan((arc.y2-arc.cy)/(arc.x2-arc.cx));
                         // console.log('angle: '+angle);
-                        if(arc.endX<arc.centreX) angle+=Math.PI;
-                        angle=Math.abs(angle-startAngle);
+                        if(arc.x2<arc.cx) angle+=Math.PI;
+                        angle=Math.abs(angle-a1);
                         // console.log('arc angle: '+Math.round(angle*180/Math.PI));
-                        x0=arc.centreX;
-                        y0=arc.centreY;
-                        x=x0+arc.radius*Math.cos(angle);
-                        y=y0+arc.radius*Math.sin(angle);
+                        x0=arc.cx;
+                        y0=arc.cy;
+                        x=x0+arc.a1*Math.cos(angle);
+                        y=y0+arc.a1*Math.sin(angle);
                         setSizes(true,true);
                         showSizes(true,'ARC');
                         mode='edit';
@@ -1998,7 +1898,7 @@ id('first').addEventListener('change',function() {
 	                pts.push(points[i].x);
 	                pts.push(points[i].y);
 	            }
-                updateElement(elementID,'points',pts); // UPDATE DB
+                updateGraph(elementID,'points',pts); // UPDATE DB
                 break;
             } // otherwise adjust length of latest line segment
             var n=element.points.length;
@@ -2022,7 +1922,7 @@ id('first').addEventListener('change',function() {
         case 'box':
             // console.log('change width of element '+elementID);
             element.setAttribute('width',val);
-            updateElement(elementID,'width',val);
+            updateGraph(elementID,'width',val);
             var elX=parseInt(element.getAttribute('x'));
             // console.log('move nodes and handles');
             var boxNodes=nodes.filter(belong);
@@ -2037,7 +1937,7 @@ id('first').addEventListener('change',function() {
             break;
         case 'oval':
             element.setAttribute('rx',val/2);
-            updateElement(elementID,'rx',val/2);
+            updateGraph(elementID,'rx',val/2);
             var elX=parseInt(element.getAttribute('cx'));
             var ovalNodes=nodes.filter(belong);
             for(var i=0;i<ovalNodes.length;i++) { // adjust two RH nodes...
@@ -2052,42 +1952,42 @@ id('first').addEventListener('change',function() {
             console.log('adjust arc radius to '+val);
             d=element.getAttribute('d');
             getArc(d);
-            dx=arc.startX-arc.centreX;
-            dy=arc.startY-arc.centreY;
-            dx*=val/arc.radius;
-            dy*=val/arc.radius;
-            arc.startX=arc.centreX+dx;
-            arc.startY=arc.centreY+dy;
+            dx=arc.x1-arc.cx;
+            dy=arc.y1-arc.cy;
+            dx*=val/arc.r;
+            dy*=val/arc.r;
+            arc.x1=arc.cx+dx;
+            arc.y1=arc.cy+dy;
             // ...and end points...
-            dx=arc.endX-arc.centreX;
-            dy=arc.endY-arc.centreY;
-            dx*=val/arc.radius;
-            dy*=val/arc.radius;
-            arc.endX=arc.centreX+dx;
-            arc.endY=arc.centreY+dy;
+            dx=arc.x2-arc.cx;
+            dy=arc.y2-arc.cy;
+            dx*=val/arc.r;
+            dy*=val/arc.r;
+            arc.x2=arc.cx+dx;
+            arc.y2=arc.cy+dy;
             // ...and radius
             console.log('diameter: '+(val*2));
-            arc.radius=val;
-            console.log('arc radius:'+arc.radius+' centre:'+arc.centreX+','+arc.centreY+' start:'+arc.startX+','+arc.startY+' end:'+arc.endX+','+arc.endY);
-            var d=setArc();
+            arc.r=val;
+            console.log('arc radius:'+arc.r+' centre:'+arc.cx+','+arc.cy+' start:'+arc.x1+','+arc.y1+' end:'+arc.x2+','+arc.y2);
+            var d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.spin+' '+arc.x2+','+arc.y2;
             element.setAttribute('d',d);
-            updateElement(elementID,'startX',arc.startX);
-            updateElement(elementID,'startY',arc.startY);
-            updateElement(elementID,'endX',arc.endX);
-            updateElement(elementID,'endY',arc.endY);
-            updateElement(elementID,'radius',r);
-            id('handleStart').setAttribute('x',arc.startX-handleR);
-            id('handleStart').setAttribute('y',arc.startY-handleR);
-            id('handleEnd').setAttribute('x',arc.endX-handleR);
-            id('handleEnd').setAttribute('y',arc.endY-handleR);
+            updateGraph(elementID,'x1',arc.x1);
+            updateGraph(elementID,'y1',arc.y1);
+            updateGraph(elementID,'x2',arc.x2);
+            updateGraph(elementID,'y2',arc.y2);
+            updateGraph(elementID,'r',r);
+            id('handleStart').setAttribute('x',arc.x1-handleR);
+            id('handleStart').setAttribute('y',arc.y1-handleR);
+            id('handleEnd').setAttribute('x',arc.x2-handleR);
+            id('handleEnd').setAttribute('y',arc.y2-handleR);
             arcNodes=nodes.filter(belong);
             console.log(arcNodes.length+' arc nodes');
-            arcNodes[0].x=arc.centreX;
-            arcNodes[0].y=arc.centreY;
-            arcNodes[1].x=arc.startX;
-            arcNodes[1].y=arc.startY;
-            arcNodes[2].x=arc.endX;
-            arcNodes[2].y=arc.endY;
+            arcNodes[0].x=arc.cx;
+            arcNodes[0].y=arc.cy;
+            arcNodes[1].x=arc.x1;
+            arcNodes[1].y=arc.y1;
+            arcNodes[2].x=arc.x2;
+            arcNodes[2].y=arc.y2;
             break;
     }
 })
@@ -2122,7 +2022,7 @@ id('second').addEventListener('change',function() {
 	                pts.push(points[i].x);
 	                pts.push(points[i].y);
 	            }
-                updateElement(elementID,'points',pts);
+                updateGraph(elementID,'points',pts);
                 break;
             } // otherwise adjust angle of latest line segment
             var n=element.points.length;
@@ -2163,7 +2063,7 @@ id('second').addEventListener('change',function() {
             // console.log('box height is '+element.getAttribute('height'));
             // console.log('set to '+val);
             element.setAttribute('height',val);
-            updateElement(elementID,'height',val);
+            updateGraph(elementID,'height',val);
             var elY=parseInt(element.getAttribute('y'));
             // console.log('move nodes and handles');
             var boxNodes=nodes.filter(belong);
@@ -2179,7 +2079,7 @@ id('second').addEventListener('change',function() {
         case 'oval':
             // console.log('change oval height');
             element.setAttribute('ry',val/2);
-            updateElement(elementID,'ry',val/2);
+            updateGraph(elementID,'ry',val/2);
             var elY=parseInt(element.getAttribute('cy'));
             var ovalNodes=nodes.filter(belong);
             for(var i=0;i<ovalNodes.length;i++) { // adjust top & bottom nodes...
@@ -2194,33 +2094,33 @@ id('second').addEventListener('change',function() {
             console.log('change arc angle to '+val);
             var d=element.getAttribute('d');
             getArc(d);
-            var sign=(arc.startX<arc.endX);
-            if(sign==0) sign=(arc.startY<arc.endY); // +sign is clockwise?
-            var startAngle=Math.atan((arc.startY-arc.centreY)/(arc.startX-arc.centreX));
-            if(arc.startX<arc.centreX) startAngle+=Math.PI;
-            console.log('startAngle: '+(startAngle*180/Math.PI));
+            var sign=(arc.x1<arc.x2);
+            if(sign==0) sign=(arc.y1<arc.y2); // +sign is clockwise?
+            var a1=Math.atan((arc.y1-arc.cy)/(arc.x1-arc.cx));
+            if(arc.x1<arc.cx) a1+=Math.PI;
+            console.log('a1: '+(a1*180/Math.PI));
             val*=(Math.PI/180); // radians
-            var angle=startAngle+val; // end angle
+            var angle=a1+val; // end angle
             console.log('end angle: '+(angle*180/Math.PI));
-            x0=arc.centreX;
-            y0=arc.centreY;
-            x=x0+arc.radius*Math.cos(angle);
-            y=y0+arc.radius*Math.sin(angle);
-            arc.endX=x;
-            arc.endY=y;
-            var newSign=(arc.startX>arc.endX);
-            if(newSign==0) newSign=(arc.startY>arc.endY);
+            x0=arc.cx;
+            y0=arc.cy;
+            x=x0+arc.r*Math.cos(angle);
+            y=y0+arc.r*Math.sin(angle);
+            arc.x2=x;
+            arc.y2=y;
+            var newSign=(arc.x1>arc.x2);
+            if(newSign==0) newSign=(arc.y1>arc.y2);
             if(newSign!=sign) arc.spin=(arc.spin>0)?0:1; // swop direction of arc
-            d=setArc();
+            d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.spin+' '+arc.x2+','+arc.y2;
             element.setAttribute('d',d);
-            updateElement(elementID,'d',d);
-            updateElement('endX',x);
-            updateElement('endY',y);
-            updateElement('spin',arc.spin); 
+            updateGraph(elementID,'d',d);
+            updateGraph('x2',x);
+            updateGraph('y2',y);
+            updateGraph('spin',arc.spin); 
             var arcNodes=nodes.filter(belong);
             for(var i=0;i<arcNodes.length;i++) { // end node
                 var node=arcNodes[i];
-                if((node.x!=arc.startX)&&(node.x!=arc.endX)&&(node.y!=arc.startY)&&(node.y!=arc.endY))
+                if((node.x!=arc.x1)&&(node.x!=arc.x2)&&(node.y!=arc.y1)&&(node.y!=arc.y2))
                 {
                     node.x=x;
                     node.y=y;
@@ -2353,16 +2253,16 @@ function showSizes(visible,promptText) {
 }
 function setSizes(polar,arc) {
     if(polar) {
-        w=Math.abs(x-x0);
-        h=Math.abs(y-y0);
+        w=x-x0;
+        h=y-y0;
         var r=Math.round(Math.sqrt(w*w+h*h));
         id('first').value=r;
         id('between').innerHTML=units;
-        r=Math.atan((y-y0)/(x-x0)); // radians
+        r=Math.atan(h/w); // radians
         r=Math.round(r*180/Math.PI); // degrees...
         if(!arc) r+=90; // ...as compass bearings
         if(x<x0) r+=180;
-        // console.log('r: '+r);
+        console.log('r: '+r);
         id('second').value=r;
         id('after').innerHTML='&deg;';
     }
@@ -2374,58 +2274,54 @@ function setSizes(polar,arc) {
     }
     // PUT ELEMENT SPIN INTO 'spin' BOX
 }
-function getAngle(fromX,fromY,toX,toY) {
-    var dx=toX-fromX;
-    var dy=toY-fromY;
+function getAngle(x0,y0,x1,y1) {
+    var dx=x1-x0;
+    var dy=y1-y0;
     var a=Math.atan(dy/dx); // range -PI/25 to +PI/2
-    if(dx<0) a+=Math.PI;
+    a*=180/Math.PI; // -90 to +90 degrees
+    a+=90; // 0-180
+    if(dx<0) a+=180; // 0-360
     return a;
 }
 function getArc(d) {
     console.log('get arc from: '+d);
     var from=1;
     var to=d.indexOf(',');
-    arc.centreX=parseInt(d.substr(from,to));
+    arc.cx=parseInt(d.substr(from,to));
     from=to+1;
     to=d.indexOf(' ',from);
-    arc.centreY=parseInt(d.substr(from,to));
+    arc.cy=parseInt(d.substr(from,to));
     from=d.indexOf('M',to)+1;
     to=d.indexOf(',',from);
-    arc.startX=parseInt(d.substr(from,to));
+    arc.x1=parseInt(d.substr(from,to));
     from=to+1;
     to=d.indexOf(' ',from);
-    arc.startY=parseInt(d.substr(from,to));
+    arc.y1=parseInt(d.substr(from,to));
     from=d.indexOf('A')+1;
     to=d.indexOf(',',from);
-    arc.radius=parseInt(d.substr(from,to));
+    arc.r=parseInt(d.substr(from,to));
     from=to+1;
     to=d.indexOf(',',from);
     arc.major=parseInt(d.charAt(to-1));
     arc.spin=parseInt(d.charAt(to+1));
     from=d.indexOf(' ',to);
     to=d.indexOf(',',from);
-    arc.endX=parseInt(d.substr(from,to));
+    arc.x2=parseInt(d.substr(from,to));
     from=to+1;
-    arc.endY=parseInt(d.substr(from));
-    console.log('arc centre: '+arc.centreX+','+arc.centreY+' start: '+arc.startX+','+arc.startY+'; radius: '+arc.radius+'; major: '+arc.major+'; spin: '+arc.spin+'; end: '+arc.endX+','+arc.endY);
+    arc.y2=parseInt(d.substr(from));
+    console.log('arc centre: '+arc.cx+','+arc.cy+' start: '+arc.x1+','+arc.y1+'; radius: '+arc.r+'; major: '+arc.major+'; spin: '+arc.spin+'; end: '+arc.x2+','+arc.y2);
 }
-function setArc(el) {
+/* function setArc() {
     console.log('create arc path html from arc properties');
-    var a1=getAngle(el.cx,el.cy,el.x1,el.y1); // angle of start from centre
-	var a2=getAngle(el.cx,el.cy,el.x2,el.y2); // angle of end from centre
-	var da=a2-a1; // swept angle
-	if(el.spin>0 && da<0) da+=Math.PI;
-	else if(spin<1 && da>0) da-=Math.PI;
-	var major=(Math.abs(da)>Math.PI)?1:0;
-    var d="M"+el.cx+","+el.cy+" M"+el.x1+","+el.y1;
-    d+=" A"+el.r+","+el.r+" 0 "+major+","+el.spin+" ";
-    d+=el.x2+","+el.y2;
+    var d="M"+arc.cx+","+arc.cy+" M"+arc.x1+","+arc.y1;
+    d+=" A"+arc.r+","+arc.r+" 0 "+arc.major+","+arc.spin+" ";
+    d+=arc.x2+","+arc.y2;
     console.log('set arc d to: '+d);
     return d;
-}
-function blueArc() {
-    id('blueArc').setAttribute('d','M'+arc.centreX+','+arc.centreY+' M'+arc.startX+','+arc.startY+' A'+arc.radius+','+arc.radius+' 0 '+arc.major+','+arc.spin+' '+arc.endX+','+arc.endY);
-}
+} */
+/* function blueArc() {
+    id('blueArc').setAttribute('d','M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.spin+' '+arc.x2+','+arc.y2);
+} */
 function remove(elID) {
     console.log('remove element '+elID);
     var el=id(elID);
@@ -2452,7 +2348,7 @@ function move(el,dx,dy) {
                 el.points[i].y+=dy;
             }
             // console.log(element.points.length+' points adjusted');
-            updateElement(el.id,'points',el.getAttribute('points'));
+            updateGraph(el.id,'points',el.getAttribute('points'));
             break;
         case 'box':
         case 'text':
@@ -2461,41 +2357,41 @@ function move(el,dx,dy) {
             var val=parseInt(el.getAttribute('x'));
             val+=dx;
             el.setAttribute('x',val);
-            updateElement(el.id,'x',val);
+            updateGraph(el.id,'x',val);
             val=parseInt(el.getAttribute('y'));
             val+=dy;
             el.setAttribute('y',val);
-            updateElement(el.id,'y',val);
+            updateGraph(el.id,'y',val);
             break;
         case 'oval':
             console.log('move oval by '+dx+','+dy);
             var val=parseInt(el.getAttribute('cx'));
             val+=dx;
             el.setAttribute('cx',val);
-            updateElement(el.id,'cx',val);
+            updateGraph(el.id,'cx',val);
             val=parseInt(el.getAttribute('cy'));
             val+=dy;
             el.setAttribute('cy',val);
-            updateElement(el.id,'cy',val);
+            updateGraph(el.id,'cy',val);
             break;
         case 'arc':
             // move centre, start and end points by moveX, moveY
             var d=el.getAttribute('d');
             getArc(d);
-            arc.centreX+=dx;
-            arc.centreY+=dy;
-            arc.startX+=dx;
-            arc.startY+=dy;
-            arc.endX+=dx;
-            arc.endY+=dy;
-            d=setArc();
+            arc.cx+=dx;
+            arc.cy+=dy;
+            arc.x1+=dx;
+            arc.y1+=dy;
+            arc.x2+=dx;
+            arc.y2+=dy;
+            d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.spin+' '+arc.x2+','+arc.y2;
             el.setAttribute('d',d);
-            updateElement(el.id,'centreX',arc.centreX);
-            updateElement(el.id,'centreY',arc.centreY);
-            updateElement(el.id,'startX',arc.startX);
-            updateElement(el.id,'startY',arc.startY);
-            updateElement(el.id,'endX',arc.endX);
-            updateElement(el.id,'endY',arc.endY);
+            updateGraph(el.id,'cx',arc.cx);
+            updateGraph(el.id,'cy',arc.cy);
+            updateGraph(el.id,'x1',arc.x1);
+            updateGraph(el.id,'y1',arc.y1);
+            updateGraph(el.id,'x2',arc.x2);
+            updateGraph(el.id,'y2',arc.y2);
             break;
     }
     for(var i=0;i<nodes.length;i++) {
@@ -2543,7 +2439,7 @@ function snapCheck() {
 function nearby(node) {
     return (node.x>x-snapD)&&(node.x<x+snapD)&&(node.y>y-snapD)&&(node.y<y+snapD);
 }
-function updateElement(id,attribute,val) {
+function updateGraph(id,attribute,val) {
     console.log('adjust '+attribute+' of graph '+id+' to '+val);
 	var graphs=db.transaction('graphs','readwrite').objectStore('graphs');
 	var request=graphs.get(Number(id));
@@ -2552,50 +2448,59 @@ function updateElement(id,attribute,val) {
 	    console.log('got graph '+graph.id);
 	    switch(attribute) {
 	        case 'x':
-	            graph.x=val;
+	            graph.x=val; // box, text or combi position
 	            break;
 	        case 'y':
 	            graph.y=val;
 	            break;
-	        case 'width':
+	        case 'width': // box size
 	            graph.width=val;
 	            console.log('width is now '+graph.width);
 	            break;
 	        case 'height':
 	            graph.height=val;
 	            break;
-	        case 'points':
+	        case 'points': // line points
 	            graph.points=val;
 	            break;
-	        case 'd':
+	        case 'd': // arc definition
 	            graph.d=val;
 	            break;
-	        case 'cx':
+	        case 'cx': // oval or arc centre
 	            graph.cx=val;
 	            break;
 	        case 'cy':
 	            graph.cy=val;
 	            break;
-	        case 'rx':
+	        case 'rx': // oval radii
 	            graph.rx=val;
 	            break;
 	        case 'ry':
 	            graph.ry=val;
 	            break;
-	        case 'x1':
+	        case 'x1': // arc start point
 	            graph.x1=val;
 	            break;
 	        case 'y1':
 	            graph.y1=val;
 	            break;
-	        case 'x2':
+	        case 'x2': // arc end point
 	            graph.x2=val;
 	            break;
-	        case 'endY':
+	        case 'y2':
 	            graph.y2=val;
 	            break;
+	        case 'r':
+	            graph.r=val; // arc radius
+	            break;
+	        case 'textSize':
+	            graph.textSize=val; // text settings
+	            break;
+	        case 'textStyle':
+	            graph.textStyle=val;
+	            break;
 	        case 'stroke':
-	            graph.stroke=val;
+	            graph.stroke=val; // universal style settings
 	            break;
 	        case 'lineW':
 	            graph.lineW=val;
@@ -2609,13 +2514,7 @@ function updateElement(id,attribute,val) {
 	        case 'opacity':
 	            graph.opacity=val;
 	            break;
-	        case 'textSize':
-	            graph.textSize=val;
-	            break;
-	        case 'textStyle':
-	            graph.textStyle=val;
-	            break;
-	        // ALSO TEXT SIZE AND TRANSFORM
+	        // ALSO TRANSFORMS AND DIMENSION SETTINGS
 	    }
 	    request=graphs.put(graph);
 	        request.onsuccess=function(event) {
@@ -2708,7 +2607,7 @@ function drawElement(el) {
                 break;
             case 'arc':
                 console.log('DRAW ARC');
-                var html="<path id='"+el.id+"' d='"+setArc(el)+"' stroke="; // set arc path html from arc properties
+                var html="<path id='"+el.id+"' d='M"+el.cx+","+el.cy+" M"+el.x1+","+el.y1+" A"+el.r+","+el.r+" 0 "+el.major+","+el.spin+" "+el.x2+","+el.y2+"' stroke="; // set arc path html from arc properties
                 switch(el.lineStyle) {
                     case 'solid':
                         html+=el.stroke;
@@ -2720,7 +2619,7 @@ function drawElement(el) {
                         html+=el.stroke+" stroke-dasharray='"+scale+" "+scale+"'";
                 }
                 html+=" stroke-width='"+el.lineW+"' fill='"+el.fill+"' fill-opacity='"+el.opacity+"'>";
-                console.log('box svg: '+html);
+                // console.log('arc svg: '+html);
                 if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
                 else id('dwg').innerHTML+=html;
                 // create nodes for arc start, centre & end points
