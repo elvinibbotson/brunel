@@ -26,10 +26,10 @@ body {
 	top: 0;
     z-index: 2;
 }
+/*
 #tools {
     position: fixed;
     left: 6px;
-    /* WHEN TESTED MOVE TOOLS, STYLE BOX & EDIT TOOLS TO RH EDGE right: 6px;*/
     top: 48px;
     width: 32px;
     display: block;
@@ -47,10 +47,8 @@ body {
     position: absolute;
     top: 4px;
     left: 48px;
-    /*width: 50%; */
     height: 32px;
     padding: 4px;
-    /*border-radius: 3px;*/
     color: white;
     background-color: black;
     z-index: 10;
@@ -58,14 +56,8 @@ body {
 }
 #prompt {
     position: fixed;
-    left: 8px;
+    left: 400px;
     top: 8px;
-    /* AFTER TESTING MOVE TO BOTTOM?
-    left: 10px;
-    bottom: 10px;
-    */
-    border: 1px black solid;
-    border-radius: 3px;
     background-color: white;
     opacity: 1;
     padding: 4px;
@@ -108,6 +100,7 @@ body {
     background: none;
     z-index: 12;
 }
+*/
 input {
     width: 64px;
 	height: 24px;
@@ -208,13 +201,17 @@ select {
     background: url(svg/repeat.svg) center center no-repeat;
 }
 #fileMenu {
-    left: 48px;
-    top: 48px;
+ /*   left: 48px;
+    top: 48px; */
     padding: 5px;
     border-radius: 3px;
 }
+/*
 .dialog {
-	position: absolute;
+	position: fixed;
+	left: 48px;
+	right: null;
+	top: 48px;
 	padding: 5px;
 	border: none;
 	border-radius: 3px;
@@ -223,9 +220,10 @@ select {
 	background-color: black;
 	z-index: 10;
 }
+*/
 #newDrawingDialog {
-    left: 48px;
-    top: 48px;
+    /* left: 48px;
+    top: 48px; */
     padding: 5px;
     border-radius: 3px;
 }
@@ -238,8 +236,8 @@ select {
     background: url(svg/cross.svg) center center no-repeat;
 }
 #loadCombiDialog {
-    left: 48px;
-    top: 48px;
+    /* left: 48px;
+    top: 48px; */
     display: none;
 }
 #cancelCombi {
@@ -247,12 +245,12 @@ select {
     background: url(svg/cross.svg) center center no-repeat;
 }
 #combiDialog {
-    left: 48px;
-    top: 48px;
+    /* left: 48px;
+    top: 48px; */
 }
 #printDialog {
-    left: 48px;
-    top: 48px;
+    /* left: 48px;
+    top: 48px; */
     display: none;
 }
 #cancelPrint {
@@ -264,37 +262,54 @@ select {
     background: url(svg/tick.svg) center center no-repeat;
 }
 #settingsDialog {
-    left: 48px;
-    top: 48px;
+    /* left: 48px;
+    top: 48px; */
     padding: 5px;
     border-radius: 3px;
+}
+#cancelSettings {
+    float: left;
+    background: url(svg/cross.svg) center center no-repeat;
+}
+#confirmSettings {
+    float: right;
+    background: url(svg/tick.svg) center center no-repeat;
 }
 #stylesDialog {
-    left: 48px;
-    top: 48px;
-    /*
-    padding: 5px;
-    border-radius: 3px;
-    */
+    /* left: 48px;
+    top: 48px; */
     display: none;
 }
+/*
 #boxDialog {
     left: 48px;
     top: 330px;
     display: none;
 }
+*/
 #moveDialog {
-    left: 48px;
-    top: 48px;
+    /* left: 48px;
+    top: 48px; */
     display: none;
+}
+#cancelMove {
+    float: left;
+    background: url(svg/cross.svg) center center no-repeat;
 }
 #confirmMove {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
-#cancelMove {
+#repeatDialog {
+    display: none;
+}
+#cancelRepeat {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
+}
+#confirmRepeat  {
+    float: right;
+    background: url(svg/tick.svg) center center no-repeat;
 }
 #lineShade {
     width: 24px;

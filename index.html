@@ -4,6 +4,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>A4|2D|DigitalDrawing</title>
 	<link rel="stylesheet" type="text/css" href="ddStyle.css">
+	<link rel="stylesheet" id='swop' type="text/css" href="ddStyleLeft.css">
   	<link rel="manifest" href="manifest.json">
   	<meta name="application-name" content="A4|2D|DigitalDrawing">
   	<meta name="msapplication-square150x150logo" content="icons/icon150.png">
@@ -31,9 +32,9 @@
 		        </clipPath>
 		    </defs>
 		    <g id='datumSet'>
-		        <circle id='datum' cx='0' cy='0' r='3' stroke='blue' stroke-width='0.25' fill='silver'/>
-                <line id='datumH' x1='-1000' y1='0' x2='2000' y2='0' stroke='blue' stroke-width='0.25'/>
-                <line id='datumV' x1='0' y1='-1000' x2='0' y2='2000' stroke='blue' stroke-width='0.25'/>
+		        <!--circle id='datum' cx='0' cy='0' r='3' stroke='blue' stroke-width='0.25' fill='silver'/-->
+                <line id='datumH' x1='-1000' y1='0' x2='2000' y2='0' stroke='blue' stroke-width='0.25' stroke-opacity='0.25'/>
+                <line id='datumV' x1='0' y1='-1000' x2='0' y2='2000' stroke='blue' stroke-width='0.25' stroke-opacity='0.25'/>
             </g>
 		    <g id='dwg' style="clip-path: url(#clipper);"></g>
 		    <g id='selection'></g>
@@ -42,7 +43,6 @@
 		        <polyline class='blue' id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
 		        <rect class='blue' id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
 		        <ellipse class='blue' id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/>
-		        <path class='blue' id='blueArc' d='M0,0 A0,0 0 0,0 0,0' stroke='blue' fill='none'/>
 		        <line class='blue' id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue' fill='none'/>
 		        <line class='blue' id='blueRadius' x1='0' y1='0' x2='-10' y2='-10' marker-end='url(#arcArrows)' stroke='blue' fill='none'/>
 		    </g>
@@ -120,11 +120,11 @@
             <option value='50'>1:50</option>
             <option value='100'>1:100</option>
         </select>
-        <p>units:</p>
+        <!--p>units:</p>
         <input type='radio' name='units' id='mm' value='mm' checked>
         <label for='mm'>millimeters</label><br>
         <input type='radio' name='units' id='inches' value='in'>
-        <label for='in'>inches</label>
+        <label for='in'>inches</label-->
         <p>
             <button id='cancelNewDrawing' class='iconButton'></button>
             <button id='createNewDrawing' class='iconButton'></button>
@@ -145,11 +145,20 @@
         </select></p>
     </div>
     <div id='settingsDialog' class='dialog'>
-        <p>settings</p>
-        <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' value=0></p>
-        <p><input type='number' id='gridSize' value=10> <span id='gridUnit'>mm</span></p>
+        <p>SETTINGS</p>
+        <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' checked=false></p>
+        <p><input type='number' id='gridSize' value=10> mm</p>
         <p>box corner radius</p>
         <p><input type='number' id='boxRadius' value='5'/> <span id='radiusUnit'>mm</span></p>
+        <p>layout</p>
+        <label for='leftLayout'>left-hand</label>
+        <input type='radio' name='hand' id='leftLayout' value='left' checked>
+        <label for='rightLayout'>right-hand</label>
+        <input type='radio' name='hand' id='rightLayout' value='right'>
+        <p>
+            <button id='cancelSettings' class='iconButton'></button>
+            <button id='confirmSettings' class='iconButton'></button>
+        </p>
     </div>
     <div id='stylesDialog' class='dialog'>
         <!--div id='lineStyle'-->
@@ -192,13 +201,22 @@
         <!--/div-->
     </div>
     <div id='moveDialog' class='dialog'>
-        <p>move...</p>
+        <p>MOVE</p>
         <p><input type='number' id='moveRight'/><img src='svg/right.svg'/>
         <input type='number' id='moveDown'/><img src='svg/down.svg'/></p>
         <p>...or <input type='number' id='moveDist'/> @ <input type='number' id='moveAngle'/> &deg;</p>
         <p>
             <button id='cancelMove' class='iconButton'></button>
             <button id='confirmMove' class='iconButton'></button>
+        </p>
+    </div>
+    <div id='repeatDialog' class='dialog'>
+        <p>REPEAT</p>
+        <p><input type='number' id='countH'/>@<input type='number' id='distH'/>mm<img src='svg/right.svg'/></p>
+        <p><input type='number' id='countV'/>@<input type='number' id='distV'/>mm<img src='svg/down.svg'/></p>
+        <p>
+            <button id='cancelRepeat' class='iconButton'></button>
+            <button id='confirmRepeat' class='iconButton'></button>
         </p>
     </div>
     <div id='shadeMenu'>
