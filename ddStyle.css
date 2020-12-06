@@ -300,6 +300,9 @@ select {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
+#flipDialog {
+    display: none;
+}
 #repeatDialog {
     display: none;
 }

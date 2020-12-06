@@ -210,6 +210,13 @@
             <button id='confirmMove' class='iconButton'></button>
         </p>
     </div>
+    <div id='flipDialog' class='dialog'>
+        <p>FLIP</p>
+        <label for='static'>in place</label><input type='checkbox' id='static'/>
+        <div id='flipOptions'>
+            <img src='svg/left.svg'/><img src='svg/right.svg'/><img src='svg/up.svg'/><img src='svg/down.svg'/>   
+        </div>
+    </div>
     <div id='repeatDialog' class='dialog'>
         <p>REPEAT</p>
         <p><input type='number' id='countH'/>@<input type='number' id='distH'/>mm<img src='svg/right.svg'/></p>
@@ -221,7 +228,8 @@
     </div>
     <div id='shadeMenu'>
         <svg width='96' height='24'>
-            <line x1='0' y1='24' x2='24' y2='0' stroke='blue' fill='none'/>
+            <rect id='blueWhite' x='0' y='0' width='24' height='24' stroke='none' fill='whiter'/>
+            <!--line x1='0' y1='24' x2='24' y2='0' stroke='blue' fill='none'/-->
             <rect x='24' y='0' width='24' height='24' stroke='none' fill='silver'/>
             <rect x='48' y='0' width='24' height='24' stroke='none' fill='gray'/>
             <rect x='72' y='0' width='24' height='24' stroke='none' fill='black'/>
