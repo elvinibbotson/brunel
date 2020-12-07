@@ -397,65 +397,177 @@ id('confirmMove').addEventListener('click',function() {
     elementID=null;
 });
 id('flipButton').addEventListener('click',function() {
+    /* ALLOW MULTIPLE FLIP
     if(selection.length>0) {
         prompt('Sorry. Cannot flip multiple selection');
         return;
     }
+    */
     console.log('show flip dialog');
+    id('copy').checked=false;
     showDialog('flipDialog',true);
 });
 id('flipOptions').addEventListener('click',function() {
     var opt=Math.floor((event.clientX-parseInt(id('flipDialog').offsetLeft)+5)/32);
     console.log('click on '+opt);
-    var static=id('static').checked; // flip in place?
-    element=id(elementID);
-    if(static) { // flip in place - horizontally or vertically, using transform
-        var transform=element.getAttribute('transform');
-        console.log('current transform: '+transform);
-        if(!transform) transform='';
-        var anchor=0;
-        if(opt<2) {
-            switch(type(element)) {
-                case 'line':
-                    anchor=element.points[0].x;
-                    break;
-                case 'box':
-                case 'text':
-                case 'combi':
-                    anchor=parseInt(element.getAttribute('x'));
-                    break;
-                case 'oval':
-                case 'arc':
-                    anchor=parseInt(element.getAttribute('cx'));
-            }
-            transform+='translate('+(2*anchor)+',0) scale(-1,1)';
+    var copy=id('copy').checked;
+    var axis={};
+    var box=null;
+    var elNodes=null;
+    if(selection.length>0) {
+        box=id(selection[0]).getBBox();
+        var minX=box.x;
+        var maxX=box.x+box.width;
+        var minY=box.y;
+        var maxY=box.y+box.height;
+        for(var i=1;i<selection.length;i++) {
+            box=id(selection[i]).getBBox();
+            if(box.x<minX) minX=box.x;
+            if((box.x+box.width)>maxX) maxX=box.x+box.width;
+            if(box.y<minY) minY=box.y;
+            if((box.y+box.height)>maxY) maxY=box.y+box.height;
         }
-        else {
-            switch(type(element)) {
-                case 'line':
-                    anchor=element.points[0].y;
+        if(copy) { // mirror copy
+            switch(opt) {
+                case 0: // flip copy to left
+                    axis.x=minX-snapD;
                     break;
-                case 'box':
-                case 'text':
-                case 'combi':
-                    anchor=parseInt(element.getAttribute('y'));
+                case 1: // flip copy to right
+                    axis.x=maxX+snapD;
                     break;
-                case 'oval':
-                case 'arc':
-                    anchor=parseInt(element.getAttribute('cy'));
+                case 2: // flip copy above
+                    axis.y=minY-snapD;
+                    break;
+                case 3: // flip copy below
+                    axis.y=maxY+snapD;
             }
-            transform+='translate(0,'+(2*anchor)+') scale(1,-1)';
         }
-        element.setAttribute('transform',transform);
+        else { // flip in-situ about mid-point
+            axis.x=(minX+maxX)/2;
+            axis.y=(minY+maxY)/2;
+        }
+        for(i=0;i<selection.length;i++) {
+                var transform=id(selection[i]).getAttribute('transform');
+                if(!transform) transform='';
+                if(opt<2) transform+='translate('+2*anchor.x+',0) scale(-1,1)';
+                else transform+='translate(0,'+2*anchor.y+') scale(1,-1)';
+                id(selection[i].setAttribute('transform',transform));
+            }
     }
-    else { // flipped copy
-        
+    else { // flip just one element
+        element=id(elementID);
+        box=element.getBBox();
+        if(copy) { // mirror copy
+            switch(opt) {
+                case 0: //flip copy to left
+                    axis.x=box.x-snapD;
+                    break;
+                case 1: // flip copy to right
+                    axis.x=box.x+box.width+snapD;
+                    break;
+                case 2: // flip copy above
+                    axis.y=box.y-snapD;
+                    break;
+                case 3: // flip copy below
+                    axis.y=box.y+box.height+snapD;
+            }
+        }
+        else { // flip in-sito about mid-point
+            axis.x=box.x+box.width/2;
+            axis.y=box.y+box.height/2;
+            switch (type(element)) {
+                case 'line': // reverse x-coord of each point and each node
+                    var points=element.points;
+                    elNodes=nodes.filter(belong);
+                    for(i=0;i<points.length;i++) {
+                        if(opt<2) {
+                            dx=points[i].x-axis.x;
+                            points[i].x=axis.x-dx;
+                        }
+                        else {
+                            dy=points[i].y-axis.y;
+                            points[i].y=axis.y-dy;
+                        }
+                    }
+                    for(i=0;i<elNodes.length;i++) {
+                        if(opt<2) {
+                            dx=elNodes[i].x-axis.x;
+                            elNodes[i].x=axis.x-dx;
+                        }
+                        else {
+                            dy=elNodes[i].y-axis.y;
+                            elNodes[i].y=axis.y-dy;
+                        }
+                    }
+                    updateGraph(elementID,['points',element.getAttribute('points')]);
+                    break;
+                case 'box': // only if has spin - mirror spin...
+                case 'oval': // ...otherwise no action
+                    if(element.getAttribute('transform')) console.log('NEED TO MIRROR SPIN')
+                    break;
+                case 'arc': // reverse x-coords and sweep of arc
+                    elNodes=nodes.filter(belong);
+                    var d=element.getAttribute('d');
+                    console.log('box: '+box.width+'x'+box.height+' at '+box.x+','+box.y+' axis: '+axis.x+','+axis.y);
+                    getArc(d);
+                    if(opt<2) { // flip left-right
+                        dx=arc.cx-axis.x;
+                        arc.cx=axis.x-dx;
+                        dx=arc.x1-axis.x;
+                        arc.x1=axis.x-dx;
+                        dx=arc.x2-axis.x;
+                        arc.x2=axis.x-dx;
+                        arc.sweep=(arc.sweep<1)? 1:0;
+                        updateGraph(elementID,['cx',arc.cx,'x1',arc.x1,'x2',arc.x2,'sweep',arc.sweep]);
+                    }
+                    else { // flip top-bottom
+                        dy=arc.cy-axis.y;
+                        arc.cy=axis.y-dy;
+                        dy=arc.y1-axis.y;
+                        arc.y1=axis.y-dy;
+                        dy=arc.y2-axis.y;
+                        arc.y2=axis.y-dy;
+                        arc.sweep=(arc.sweep<1)? 1:0;
+                    }
+                    d="M"+arc.cx+","+arc.cy+" M"+arc.x1+","+arc.y1+" A"+arc.r+","+arc.r+" 0 "+arc.major+","+arc.sweep+" "+arc.x2+","+arc.y2;
+                    element.setAttribute('d',d);
+                    updateGraph(elementID,['cy',arc.cy,'y1',arc.y1,'y2',arc.y2,'sweep',arc.sweep]);
+                    break;
+                case 'text': // flip using transform
+                    showDialog('textDialog',false);
+                case 'combi':
+                    var transform=element.getAttribute('transform');
+                    console.log('current transform: '+transform);
+                    if(!transform) transform='';
+                    elNodes=nodes.filter(belong);
+                    console.log(elNodes.length+' nodes');
+                    if(opt<2) { // flip left-right
+                        transform+='translate('+(2*axis.x)+',0) scale(-1,1)';
+                        if(elNodes.length>0) {
+                            dx=elNodes[0].x-axis.x; // text and combis have just one node
+                            elNodes[0].x=axis.x-dx;
+                        }
+                    }
+                    else { // flip top-bottom
+                        transform+='translate(0,'+(2*axis.y)+') scale(1,-1)';
+                        if(elNodes.length>0) {
+                            dy=elNodes[0].y-axis.y; // text and combis have just one node
+                            elNodes[0].y=axis.y-dy;
+                        }
+                    }
+                    console.log('transform is '+transform);
+                    element.setAttribute('transform',transform);
+                    updateGraph(elementID,['transform',transform]);
+                    break;
+            }
+        }
     }
-    mode='select';
+    selection=[];
     element=elementID=null;
     id('handles').innerHTML='';
     showDialog('flipDialog',false);
-})
+    mode='select';
+});
 id('repeatButton').addEventListener('click',function() {
     if(selection.length>0) {
         prompt('Sorry. Cannot repeat multiple selection');
@@ -853,14 +965,6 @@ id('graphic').addEventListener('pointerdown',function() {
         }
         return;
     }
-    /*
-    else if(val=='datum') {
-        console.log('move datum');
-        mode='datum';
-        prompt('DATUM: drag to move');
-        return;
-    }
-    */
     snap=snapCheck();
     if(snap) { // snap start/centre to snap target
         x0=x;
@@ -934,18 +1038,9 @@ id('graphic').addEventListener('pointerdown',function() {
                 var s=(combi.nts>0)?scale:1;
 	            graph.x=x0-combi.ax*s;
 	            graph.y=y0-combi.ax*s;
+	            graph.ax=x0;
+	            graph.ay=y0;
 	            addGraph(graph);
-                /*
-	            var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
-	            request.onsuccess=function(event) {
-	                graph.id=request.result;
-	                console.log('new combi graph added - id: '+graph.id);
-	                drawElement(graph);
-                };
-	            request.onerror=function(event) {
-	                console.log('error adding new combi element');
-	            };
-	            */
             }
             mode='select';
             break;
@@ -1810,7 +1905,7 @@ id('graphic').addEventListener('pointerup',function() {
                         id('blueBox').setAttribute('y',bounds.y);
                         id('blueBox').setAttribute('width',bounds.width);
                         id('blueBox').setAttribute('height',bounds.height);
-                        var html="<circle id='handle' cx='"+bounds.x+"' cy='"+bounds.y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                        var html="<circle id='handle' cx='"+el.getAttribute('ax')+"' cy='"+el.getAttribute('ay')+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
                         id('handles').innerHTML=html;
                         setSizes();
                         showSizes(true,'COMBI '+combi.name);
@@ -1857,14 +1952,6 @@ id('graphic').addEventListener('pointerup',function() {
                 showEditTools(true);
                 // CHECK NODES
                 id('selection').innerHTML='';
-                /* MOVE TO HANDLES CODE ABOVE
-                for(var i=0;i<nodes.length;i++) {
-                    if(nodes[i].el!=elementID) continue;
-                    // console.log('node '+i+': '+nodes[i].x+','+nodes[i].y);
-                    var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"' stroke='blue' stroke-width='"+0.25*scale+"' fill='none'/>";
-                    id('selection').innerHTML+=html;
-                }
-                */
             }
             else if(selection.length<1) {
             // else { // no selection
@@ -2497,6 +2584,7 @@ function updateGraph(id,parameters) {
 	    while(parameters.length>0) {
 	        var attribute=parameters.shift();
 	        val=parameters.shift();
+	        console.log('set '+attribute+' to '+val);
 	        eval('graph.'+attribute+'="'+val+'"');
 	    }
 	    
@@ -2604,11 +2692,14 @@ function drawElement(el) {
 			html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
 			if(el.lineStyle=='dashed') html+="stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"' ";
             else if(el.lineStyle=='dotted') html+="stroke-dasharray='"+scale+" "+scale+"' ";
-			html+="fill='"+el.fill+"'/>";
+			html+="fill='"+el.fill;
+			if(el.transform) html+="' transform='"+el.transform;
+			html+="'/>";
 			console.log('polyline html: '+html);
 			if(el.stroke=='blue') id('ref').innerHTML+=html;
 			else id('dwg').innerHTML+=html;
 			el=id(el.id); // get nodes from draw polyline
+			console.log('el '+el.id+' points: '+el.points);
 			for(i=0;i<el.points.length;i++) {
                 nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id});
                 // console.log('node added at '+element.points[i].x+','+element.points[i].y);
@@ -2702,7 +2793,9 @@ function drawElement(el) {
                 html+="font-size='"+(el.textSize*scale)+"' ";
                 if(el.textStyle=='bold') html+="font-weight='bold' ";
                 else if(el.textStyle=='italic') html+="font-style='italic' ";
-                html+="stroke='none' fill='"+el.fill+"'>"+el.text+"</text>";
+                html+="stroke='none' fill='"+el.fill;
+                if(el.transform) html+="' transform='"+el.transform;
+			    html+="'>"+el.text+"</text>";
                 console.log('text html: '+html);
                 if(el.fill=='blue') id('ref').innerHTML+=html;
                 else id('dwg').innerHTML+=html;
@@ -2710,11 +2803,11 @@ function drawElement(el) {
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;
-                var html="<svg id='"+el.id+"' x='"+el.x+"' y='"+el.y+"'>";
+                var html="<svg id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' ax='"+el.ax+"' ay='"+el.ay+"'>";
                 html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
                 console.log('combi html: '+html);
                 id('dwg').innerHTML+=html;
-                nodes.push({'x':el.x,'y':el.y,'el':elementID});
+                nodes.push({'x':el.ax,'y':el.ay,'el':elementID});
                 console.log("DONE");
                 break;
     }
@@ -2740,11 +2833,7 @@ function saveSVG() {
 var request=window.indexedDB.open("ddDB",dbVersion);
 request.onsuccess=function(event) {
     db=event.target.result;
-    // console.log("ddDB open");
-    // var dbTransaction=db.transaction('elements',"readwrite");
-    // var dbObjectStore=dbTransaction.objectStore('elements');
     nodes=[];
-    // var request=dbObjectStore.openCursor();
     var request=db.transaction('graphs').objectStore('graphs').openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
@@ -2752,7 +2841,7 @@ request.onsuccess=function(event) {
             var graph=cursor.value;
             console.log('load '+graph.type+' id: '+graph.id);
             if(graph.type=='combi') { // load combi from 'combis' database
-                db.transaction('combis').objectStore('combis').get(graph.no).onsuccess=function(event) {
+                db.transaction('combis').objectStore('combis').get(Number(graph.no)).onsuccess=function(event) {
                     combi=event.target.result;
                     console.log('combi '+combi.id+' is '+combi.name);
                     drawElement(graph);
@@ -2766,12 +2855,6 @@ request.onsuccess=function(event) {
 	    }
     };
     console.log('all graphs loaded');
-    /*
-    var dbTransaction=db.transaction('combis',"readwrite");
-    console.log("indexedDB transaction ready");
-    var dbObjectStore=dbTransaction.objectStore('combis');
-    var request=dbObjectStore.openCursor();
-    */
     var request=db.transaction('combis').objectStore('combis').openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
