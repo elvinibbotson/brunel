@@ -41,7 +41,7 @@
 }
 #checks {
     position: fixed;
-    left: 4px;
+    left: 6px;
     top: 4px;
     width: 32px;
     height: 32px;
@@ -51,7 +51,7 @@
 }
 #fill {
     position: fixed;
-    left: 4px;
+    left: 6px;
     top: 4px;
     width: 32px;
     height: 32px;
@@ -63,7 +63,7 @@
 }
 #line {
    position: fixed;
-    left: 4px;
+    left: 6px;
     top: 4px;
     width: 32px;
     height: 32px;
