@@ -444,7 +444,8 @@ id('flipOptions').addEventListener('click',function() {
     }
     console.log('axis: '+axis.x+','+axis.y);
     while(selection.length>0) { // for each selected item...
-        el=id(selection.shift());
+        elID=selection.shift();
+        el=id(elID);
         console.log('flip '+type(el)+' element '+el.id);
         switch (type(el)) {
             case 'line': // reverse x-coord of each point and each node
@@ -495,7 +496,7 @@ id('flipOptions').addEventListener('click',function() {
                     }
                     updateGraph(elID,['points',element.getAttribute('points')]);                    }
                 break;
-            case 'box': // flip box?
+            case 'box':
                 if(copy) {
                     var g={}; // new graph for copy/copies
                     g.type='box';
@@ -507,12 +508,12 @@ id('flipOptions').addEventListener('click',function() {
                     var right=left+g.width;
                     var bottom=top+g.height;
                     console.log('box '+left+'-'+right+'x'+top+'-'+bottom);
-                    if(opt<2) { // mirror copy left or right
+                    if(opt<2) { // mirror copy left or right...
                         dx=right-axis.x;
                         g.x=axis.x-dx;
                         g.y=top;
                     }
-                    else {
+                    else { // ...above or below
                         g.x=left;
                         dy=bottom-axis.y;
                         g.y=axis.y-dy;
@@ -521,8 +522,6 @@ id('flipOptions').addEventListener('click',function() {
                     request.onsuccess=function(event) {
                         var graph=request.result;
                         console.log('retrieved graph '+graph.type);
-                        // g.width=graph.width;
-                        // g.height=graph.height;
                         g.radius=graph.radius;
                         g.stroke=graph.stroke;
                         g.lineW=graph.lineW;
@@ -541,44 +540,91 @@ id('flipOptions').addEventListener('click',function() {
                     }
                 }
                 break;
-        }
-    }
-    /*
-    switch (type(el)) {
-                case 'line': // reverse x-coord of each point and each node
-                    var points=element.points;
-                    elNodes=nodes.filter(belong);
-                    for(i=0;i<points.length;i++) {
-                        if(opt<2) {
-                            dx=points[i].x-axis.x;
-                            points[i].x=axis.x-dx;
-                        }
-                        else {
-                            dy=points[i].y-axis.y;
-                            points[i].y=axis.y-dy;
-                        }
+            case 'oval':
+                if(copy) {
+                    var g={};
+                    g.type='oval';
+                    if(opt<2) { // mirror copy left or right...
+                        dx=parseInt(el.getAttribute('cx'))-axis.x;
+                        g.cx=axis.x-dx;
+                        g.cy=parseInt(el.getAttribute('cy'));
                     }
-                    for(i=0;i<elNodes.length;i++) {
-                        if(opt<2) {
-                            dx=elNodes[i].x-axis.x;
-                            elNodes[i].x=axis.x-dx;
-                        }
-                        else {
-                            dy=elNodes[i].y-axis.y;
-                            elNodes[i].y=axis.y-dy;
-                        }
+                    else { // ...above or below
+                        g.cx=parseInt(el.getAttribute('cx'));
+                        dy=parseInt(el.getAttribute('cy'))-axis.y;
+                        g.cy=axis.y-dy;
                     }
-                    updateGraph(elID,['points',element.getAttribute('points')]);
-                    break;
-                case 'box': // only if has spin - mirror spin...
-                case 'oval': // ...otherwise no action
-                    if(element.getAttribute('transform')) console.log('NEED TO MIRROR SPIN')
-                    break;
-                case 'arc': // reverse x-coords and sweep of arc
+                    var request=db.transaction('graphs').objectStore('graphs').get(Number(el.id));
+                    request.onsuccess=function(event) {
+                        var graph=request.result;
+                        console.log('retrieved graph '+graph.type);
+                        g.rx=graph.rx;
+                        g.ry=graph.ry;
+                        g.stroke=graph.stroke;
+                        g.lineW=graph.lineW;
+                        g.lineStyle=graph.lineStyle;
+                        g.fill=graph.fill;
+                        g.opacity=graph.opacity;
+                        addGraph(g);
+                    }
+                    request.onerror=function(event) {
+                        console.log('get failed');
+                    }
+                }
+                else { // no action if flip in-situ unless has spin
+                    if(el.getAttribute('transform')) {
+                        // FLIP BY MIRRORING SPIN
+                    }
+                }
+                break;
+            case 'arc':
+                var d=el.getAttribute('d');
+                getArc(d);
+                if(copy) {
+                    g={};
+                    g.type='arc';
+                    if(opt<2) { // mirror copy left or right...
+                        dx=arc.cx-axis.x;
+                        g.cx=axis.x-dx;
+                        g.cy=arc.cy;
+                        dx=arc.x1-axis.x;
+                        g.x1=axis.x-dx;
+                        g.y1=arc.y1;
+                        dx=arc.x2-axis.x;
+                        g.x2=axis.x-dx;
+                        g.y2=arc.y2;
+                    }
+                    else { // ...above or below
+                        g.cx=arc.cx;
+                        dy=arc.cy-axis.y;
+                        g.cy=axis.y-dy;
+                        g.x1=arc.x1;
+                        dy=arc.y1-axis.y;
+                        g.y1=axis.y-dy;
+                        g.x2=arc.x2;
+                        dy=arc.y2-axis.y;
+                        g.y2=axis.y-dy;
+                    }
+                    g.r=arc.r;
+                    g.major=arc.major;
+                    g.sweep=(arc.sweep<1)? 1:0;
+                    var request=db.transaction('graphs').objectStore('graphs').get(Number(el.id));
+                    request.onsuccess=function(event) {
+                        var graph=request.result;
+                        console.log('retrieved graph '+graph.type);
+                        g.stroke=graph.stroke;
+                        g.lineW=graph.lineW;
+                        g.lineStyle=graph.lineStyle;
+                        g.fill=graph.fill;
+                        g.opacity=graph.opacity;
+                        addGraph(g);
+                    }
+                    request.onerror=function(event) {
+                        console.log('get failed');
+                    }
+                }
+                else { // flip in-situ
                     elNodes=nodes.filter(belong);
-                    var d=element.getAttribute('d');
-                    console.log('box: '+box.width+'x'+box.height+' at '+box.x+','+box.y+' axis: '+axis.x+','+axis.y);
-                    getArc(d);
                     if(opt<2) { // flip left-right
                         dx=arc.cx-axis.x;
                         arc.cx=axis.x-dx;
@@ -586,188 +632,80 @@ id('flipOptions').addEventListener('click',function() {
                         arc.x1=axis.x-dx;
                         dx=arc.x2-axis.x;
                         arc.x2=axis.x-dx;
-                        arc.sweep=(arc.sweep<1)? 1:0;
-                        updateGraph(elID,['cx',arc.cx,'x1',arc.x1,'x2',arc.x2,'sweep',arc.sweep]);
                     }
-                    else { // flip top-bottom
+                    else {
                         dy=arc.cy-axis.y;
                         arc.cy=axis.y-dy;
                         dy=arc.y1-axis.y;
                         arc.y1=axis.y-dy;
                         dy=arc.y2-axis.y;
                         arc.y2=axis.y-dy;
-                        arc.sweep=(arc.sweep<1)? 1:0;
                     }
+                    arc.sweep=(arc.sweep<1)? 1:0;
+                    updateGraph(elID,['cx',arc.cx,'x1',arc.x1,'x2',arc.x2,'sweep',arc.sweep]);
                     d="M"+arc.cx+","+arc.cy+" M"+arc.x1+","+arc.y1+" A"+arc.r+","+arc.r+" 0 "+arc.major+","+arc.sweep+" "+arc.x2+","+arc.y2;
                     element.setAttribute('d',d);
-                    updateGraph(elID,['cy',arc.cy,'y1',arc.y1,'y2',arc.y2,'sweep',arc.sweep]);
-                    break;
-                case 'text': // flip using transform
-                    showDialog('textDialog',false);
-                case 'combi':
-                    var transform=element.getAttribute('transform');
-                    console.log('current transform: '+transform);
-                    if(!transform) transform='';
-                    elNodes=nodes.filter(belong);
-                    console.log(elNodes.length+' nodes');
-                    if(opt<2) { // flip left-right
-                        transform+='translate('+(2*axis.x)+',0) scale(-1,1)';
-                        if(elNodes.length>0) {
-                            dx=elNodes[0].x-axis.x; // text and combis have just one node
-                            elNodes[0].x=axis.x-dx;
-                        }
-                    }
-                    else { // flip top-bottom
-                        transform+='translate(0,'+(2*axis.y)+') scale(1,-1)';
-                        if(elNodes.length>0) {
-                            dy=elNodes[0].y-axis.y; // text and combis have just one node
-                            elNodes[0].y=axis.y-dy;
-                        }
-                    }
-                    console.log('transform is '+transform);
-                    element.setAttribute('transform',transform);
-                    updateGraph(elID,['transform',transform]);
-                    break;
-            }  
-    }
-    */
-    /*
-    if(selection.length>0) {
-        box=id(selection[0]).getBBox();
-        var minX=box.x;
-        var maxX=box.x+box.width;
-        var minY=box.y;
-        var maxY=box.y+box.height;
-        for(var i=1;i<selection.length;i++) {
-            box=id(selection[i]).getBBox();
-            if(box.x<minX) minX=box.x;
-            if((box.x+box.width)>maxX) maxX=box.x+box.width;
-            if(box.y<minY) minY=box.y;
-            if((box.y+box.height)>maxY) maxY=box.y+box.height;
-        }
-        if(copy) { // mirror copy
-            switch(opt) {
-                case 0: // flip copy to left
-                    axis.x=minX-snapD;
-                    break;
-                case 1: // flip copy to right
-                    axis.x=maxX+snapD;
-                    break;
-                case 2: // flip copy above
-                    axis.y=minY-snapD;
-                    break;
-                case 3: // flip copy below
-                    axis.y=maxY+snapD;
-            }
-        }
-        else { // flip in-situ about mid-point
-            axis.x=(minX+maxX)/2;
-            axis.y=(minY+maxY)/2;
-        }
-        for(i=0;i<selection.length;i++) {
-                var transform=id(selection[i]).getAttribute('transform');
+                    elNodes[0].x=arc.cx;
+                    elNodes[0].y=arc.cy;
+                    elNodes[1].x=arc.x1;
+                    elNodes[1].y=arc.y1;
+                    elNodes[2].x=arc.x2;
+                    elNodes[2].y=arc.y2;
+                }
+                break;
+            case 'combi':
+                var transform=el.firstChild.getAttribute('transform');
+                console.log('current transform: '+transform);
                 if(!transform) transform='';
-                if(opt<2) transform+='translate('+2*axis.x+',0) scale(-1,1)';
-                else transform+='translate(0,'+2*axis.y+') scale(1,-1)';
-                id(selection[i].setAttribute('transform',transform));
-            }
-    }
-    else { // flip just one element
-        element=id(elID);
-        box=element.getBBox();
-        if(copy) { // mirror copy
-            switch(opt) {
-                case 0: //flip copy to left
-                    axis.x=box.x-snapD;
-                    break;
-                case 1: // flip copy to right
-                    axis.x=box.x+box.width+snapD;
-                    break;
-                case 2: // flip copy above
-                    axis.y=box.y-snapD;
-                    break;
-                case 3: // flip copy below
-                    axis.y=box.y+box.height+snapD;
-            }
-        }
-        else { // flip in-sito about mid-point
-            axis.x=box.x+box.width/2;
-            axis.y=box.y+box.height/2;
-            switch (type(element)) {
-                case 'line': // reverse x-coord of each point and each node
-                    var points=element.points;
-                    elNodes=nodes.filter(belong);
-                    for(i=0;i<points.length;i++) {
-                        if(opt<2) {
-                            dx=points[i].x-axis.x;
-                            points[i].x=axis.x-dx;
-                        }
-                        else {
-                            dy=points[i].y-axis.y;
-                            points[i].y=axis.y-dy;
-                        }
+                if(copy) {
+                    var g={};
+                    g.type='combi';
+                    if(opt<2) { // mirror copy left or right...
+                        dx=parseInt(el.getAttribute('x'))-axis.x;
+                        g.x=axis.x-dx;
+                        g.y=parseInt(el.getAttribute('y'));
+                        dx=parseInt(el.getAttribute('ax'))-axis.x;
+                        g.ax=axis.x-dx;
+                        g.ay=parseInt(el.getAttribute('ay'));
+                        g.flip='x';
                     }
-                    for(i=0;i<elNodes.length;i++) {
-                        if(opt<2) {
-                            dx=elNodes[i].x-axis.x;
-                            elNodes[i].x=axis.x-dx;
-                        }
-                        else {
-                            dy=elNodes[i].y-axis.y;
-                            elNodes[i].y=axis.y-dy;
-                        }
+                    else { // ...above or below
+                        g.x=parseInt(el.getAttribute('x'));
+                        dy=parseInt(el.getAttribute('y'))-axis.y;
+                        g.y=axis.y-dy;
+                        g.ax=parseInt(el.getAttribute('ax'));
+                        dy=parseInt(el.getAttribute('ay'))-axis.y;
+                        g.ay=axis.y-dy;
+                        g.flip='y';
                     }
-                    updateGraph(elID,['points',element.getAttribute('points')]);
-                    break;
-                case 'box': // only if has spin - mirror spin...
-                case 'oval': // ...otherwise no action
-                    if(element.getAttribute('transform')) console.log('NEED TO MIRROR SPIN')
-                    break;
-                case 'arc': // reverse x-coords and sweep of arc
-                    elNodes=nodes.filter(belong);
-                    var d=element.getAttribute('d');
-                    console.log('box: '+box.width+'x'+box.height+' at '+box.x+','+box.y+' axis: '+axis.x+','+axis.y);
-                    getArc(d);
-                    if(opt<2) { // flip left-right
-                        dx=arc.cx-axis.x;
-                        arc.cx=axis.x-dx;
-                        dx=arc.x1-axis.x;
-                        arc.x1=axis.x-dx;
-                        dx=arc.x2-axis.x;
-                        arc.x2=axis.x-dx;
-                        arc.sweep=(arc.sweep<1)? 1:0;
-                        updateGraph(elID,['cx',arc.cx,'x1',arc.x1,'x2',arc.x2,'sweep',arc.sweep]);
+                    var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
+                    request.onsuccess=function(event) {
+                        var graph=request.result;
+                        console.log('retrieved graph '+graph.type+' combi no. '+graph.no);
+                        // if(graph.type=='combi') console.log('combi no. '+graph.no);
+                        g.no=graph.no;
+                        g.width=graph.width;
+                        g.height=graph.height;
+                        addGraph(g);
                     }
-                    else { // flip top-bottom
-                        dy=arc.cy-axis.y;
-                        arc.cy=axis.y-dy;
-                        dy=arc.y1-axis.y;
-                        arc.y1=axis.y-dy;
-                        dy=arc.y2-axis.y;
-                        arc.y2=axis.y-dy;
-                        arc.sweep=(arc.sweep<1)? 1:0;
+                    request.onerror=function(event) {
+                        console.log('get failed');
                     }
-                    d="M"+arc.cx+","+arc.cy+" M"+arc.x1+","+arc.y1+" A"+arc.r+","+arc.r+" 0 "+arc.major+","+arc.sweep+" "+arc.x2+","+arc.y2;
-                    element.setAttribute('d',d);
-                    updateGraph(elID,['cy',arc.cy,'y1',arc.y1,'y2',arc.y2,'sweep',arc.sweep]);
-                    break;
-                case 'text': // flip using transform
-                    showDialog('textDialog',false);
-                case 'combi':
-                    var transform=element.getAttribute('transform');
-                    console.log('current transform: '+transform);
-                    if(!transform) transform='';
+                }
+                else { // flip in-situ
                     elNodes=nodes.filter(belong);
                     console.log(elNodes.length+' nodes');
                     if(opt<2) { // flip left-right
-                        transform+='translate('+(2*axis.x)+',0) scale(-1,1)';
+                        var flip='x'; // flip horizontally
+                        transform+='scale(-1,1)';
                         if(elNodes.length>0) {
                             dx=elNodes[0].x-axis.x; // text and combis have just one node
                             elNodes[0].x=axis.x-dx;
                         }
                     }
                     else { // flip top-bottom
-                        transform+='translate(0,'+(2*axis.y)+') scale(1,-1)';
+                        var flip='y'; // flip vertically
+                        transform+='scale(1,-1)';
                         if(elNodes.length>0) {
                             dy=elNodes[0].y-axis.y; // text and combis have just one node
                             elNodes[0].y=axis.y-dy;
@@ -775,12 +713,11 @@ id('flipOptions').addEventListener('click',function() {
                     }
                     console.log('transform is '+transform);
                     element.setAttribute('transform',transform);
-                    updateGraph(elID,['transform',transform]);
-                    break;
-            }
+                    updateGraph(elID,['flip',flip]);
+                }
+                break;
         }
     }
-    */
     selection=[];
     element=elID=null;
     id('handles').innerHTML='';
@@ -1236,6 +1173,8 @@ id('graphic').addEventListener('pointerdown',function() {
                 var s=(combi.nts>0)?scale:1;
 	            graph.x=x0-combi.ax*s;
 	            graph.y=y0-combi.ax*s;
+	            graph.width=combi.width;
+	            graph.height=combi.height;
 	            graph.ax=x0;
 	            graph.ay=y0;
 	            addGraph(graph);
@@ -2868,8 +2807,14 @@ function drawElement(el) {
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;
+                if(el.flip=='x') var t='translate('+el.width+',0) scale(-'+s+','+s+')';
+                else if(el.flip=='y') var t='translate(0,'+el.height+') scale('+s+',-'+s+')';
+                else var t='scale('+s+','+s+')';
+                console.log('apply transform '+t);
                 var html="<svg id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' ax='"+el.ax+"' ay='"+el.ay+"'>";
-                html+="<g transform='scale("+s+")'>"+combi.svg+"</g></svg>";
+                // html+="<g transform='scale("+s+") "+el.transform+"'>"+combi.svg+"</g></svg>";
+                html+="<g transform='"+t+"'>"+combi.svg+"</g></svg>";
+                
                 console.log('combi html: '+html);
                 id('dwg').innerHTML+=html;
                 nodes.push({'x':el.ax,'y':el.ay,'el':elID});
