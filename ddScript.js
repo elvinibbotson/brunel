@@ -656,6 +656,60 @@ id('flipOptions').addEventListener('click',function() {
                 }
                 break;
             case 'text':
+                if(copy) {
+                    var g={};
+                    g.type='text';
+                    // box=getBounds(el);
+                    if(opt<2) { // mirror copy left or right...
+                        dx=parseInt(el.getAttribute('x'))-axis.x;
+                        g.x=axis.x-dx;
+                        g.y=parseInt(el.getAttribute('y'));
+                        g.flip=parseInt(el.getAttribute('flip'))^1;
+                    }
+                    else { // ...above or below
+                        g.x=parseInt(el.getAttribute('x'));
+                        dy=parseInt(el.getAttribute('y'))-axis.y;
+                        g.y=axis.y-dx;
+                        g.flip=parseInt(el.getAttribute('flip'))^2;
+                    }
+                    var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
+                    request.onsuccess=function(event) {
+                        var graph=request.result;
+                        console.log('retrieved graph '+graph.type);
+                        g.text=graph.text;
+                        g.textSize=graph.textSize;
+                        g.textStyle=graph.textStyle;
+                        g.fill=graph.fill;
+                        g.opacity=graph.opacity;
+                        addGraph(g);
+                    }
+                    request.onerror=function(event) {
+                        console.log('get failed');
+                    }
+                }
+                else { // flip in-situ
+                    showDialog('textDialog',false);
+                    var flip=parseInt(el.getAttribute('flip'));
+                    if(opt<2) { // flip left-right
+                        console.log('current flip: '+flip);
+                        flip^=1; // toggle horizontal flip;
+                        dx=parseInt(el.getAttribute('x'))-axis.x;
+                        el.setAttribute('x',(axis.x-dx));
+                    }
+                    else { // flip top-bottom
+                        flip^=2; // toggle vertical flip
+                        dy=parseInt(el.getAttribute('y'))-axis.y;
+                        el.setAttribute('y',(axis.y-dy));
+                    }
+                    var hor=flip&1;
+                    var ver=flip&2;
+                    var t='translate('+(hor*parseInt(el.getAttribute('x'))*2)+','+(ver*parseInt(el.getAttribute('y')))+') ';
+                    t+='scale('+((hor>0)? -1:1)+','+((ver>0)? -1:1)+')';
+                    // ADD rotate() FOR SPIN
+                    el.setAttribute('flip',flip);
+                    el.setAttribute('transform',t);
+                    updateGraph(elID,['flip',flip]);
+                }
                 break;
             case 'combi':
                 if(copy) {
@@ -669,9 +723,6 @@ id('flipOptions').addEventListener('click',function() {
                         g.ax=axis.x-dx;
                         g.ay=parseInt(el.getAttribute('ay'));
                         g.flip=parseInt(el.getAttribute('flip'))^1;
-                        // console.log('flip is '+g.flip+' scale is '+el.getAttribute('scale'));
-                        // g.flip^=1; // toggle horizontal flip
-                        // console.log('set to '+g.flip);
                     }
                     else { // ...above or below
                         g.x=parseInt(el.getAttribute('x'));
@@ -1951,19 +2002,6 @@ id('graphic').addEventListener('pointerup',function() {
                                 break;
                             case 'combi':
                                 var bounds=getBounds(el);
-                                /* combi can be flipped so place handle at node coordinates
-                                for(var i=0;i<nodes.length;i++) {
-                                    if(nodes[i].el==elID) {
-                                        x=nodes[i].x;
-                                        y=nodes[i].y;
-                                    }
-                                }
-                                // var elNodes=nodes.filter(belong);
-                                // console.log('elID: '+elID+' '+elNodes.length+' nodes');
-                                // x=elNode.x;
-                                // y=elNodes[0].y;
-                                var html="<circle id='handle' cx='"+x+"' cy='"+y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
-                                */
                                 var html="<circle id='handle' cx='"+el.getAttribute('ax')+"' cy='"+el.getAttribute('ay')+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
                                 id('handles').innerHTML=html;
                                 setSizes();
@@ -2839,8 +2877,12 @@ function drawElement(el) {
                 if(el.textStyle=='bold') html+="font-weight='bold' ";
                 else if(el.textStyle=='italic') html+="font-style='italic' ";
                 html+="stroke='none' fill='"+el.fill;
-                if(el.transform) html+="' transform='"+el.transform;
-			    html+="'>"+el.text+"</text>";
+                h=el.flip&1;
+                v=el.flip&2;
+                var t='translate('+(h*el.x*2)+','+(v*el.y)+') ';
+                t+='scale('+((h>0)? -1:1)+','+((v>0)? -1:1)+')';
+                // if(el.transform) html+="' transform='"+el.transform;
+			    html+="' transform='"+t+"'>"+el.text+"</text>";
                 console.log('text html: '+html);
                 if(el.fill=='blue') id('ref').innerHTML+=html;
                 else id('dwg').innerHTML+=html;
@@ -2848,8 +2890,8 @@ function drawElement(el) {
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;
-                var h=el.flip&1; // horizontal flip 0 or 1
-                var v=el.flip&2; // vertical flip 0 or 2
+                h=el.flip&1; // horizontal flip 0 or 1
+                v=el.flip&2; // vertical flip 0 or 2
                 var t='translate('+(h*el.width)+','+(v*el.height/2)+') ';
                 t+='scale('+((h>0)? -1:1)*s+','+((v>0)? -1:1)*s+')';
                 // ADD SPIN (USING el.spin) TO TRANSFORM
