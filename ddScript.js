@@ -27,6 +27,7 @@ var h=0;
 var datum={'x':0,'y':0};
 var offset={'x':0,'y':0};
 var arc={};
+var dim={};
 var selectionBox={}; // for box select
 var selection=[]; // list of elements in selectionBox
 var timer=null;
@@ -302,6 +303,29 @@ id('text').addEventListener('change',function() {
     element=elID=null;
     mode='select';
 });
+id('dimButton').addEventListener('click',function() {
+   mode='dimStart';
+   prompt('DIMENSION: click on start node');
+});
+id('cancelDim').addEventListener('click',function() {
+    showDialog('dimDialog',false);
+    id('blueDim').setAttribute('x1',0);
+    id('blueDim').setAttribute('y1',0);
+    id('blueDim').setAttribute('x2',0);
+    id('blueDim').setAttribute('y2',0);
+    mode='select';
+});
+id('confirmDim').addEventListener('click',function() {
+    dim.dir=document.querySelector('input[name="dimDir"]:checked').value;
+    console.log(dim.dir+' selected');
+    showDialog('dimDialog',false);
+    id('blueDim').setAttribute('x1',dim.x1);
+    id('blueDim').setAttribute('y1',dim.y1);
+    id('blueDim').setAttribute('x2',(dim.dir=='v')? dim.x1:dim.x2);
+    id('blueDim').setAttribute('y2',(dim.dir=='h')? dim.y1:dim.y2);
+    prompt('DIMENSION: drag to position');
+    mode='dimPlace';
+});
 id('combiButton').addEventListener('click',function() {
     // PLACE CURRENT COMBI OR HOLD TO SHOW LIST OF COMBIS
     showDialog('combiDialog',true);
@@ -314,7 +338,7 @@ id('combiList').addEventListener('change',function() {
     prompt('COMBI: touch to place');
     id('combiList').value=null; // clear selection for next time
     showDialog('combiDialog',false);
-})
+});
 // EDIT TOOLS
 id('deleteButton').addEventListener('click',function() {
     prompt('DELETE');
@@ -356,6 +380,8 @@ id('forwardButton').addEventListener('click',function() {
     else id('dwg').insertBefore(nextElement,element);
 });
 id('moveButton').addEventListener('click',function() {
+    console.log('move '+type(element));
+    if(type(element)=='dim') return; // cannot move dimensions
     id('moveRight').value=id('moveDown').value=id('moveDist').value=id('moveAngle').value=0;
     showDialog('textDialog',false);
     showDialog('moveDialog',true);
@@ -392,12 +418,7 @@ id('confirmMove').addEventListener('click',function() {
     elID=null;
 });
 id('flipButton').addEventListener('click',function() {
-    /* ALLOW MULTIPLE FLIP
-    if(selection.length>0) {
-        prompt('Sorry. Cannot flip multiple selection');
-        return;
-    }
-    */
+    if(type(element)=='dim') return; // cannot flip dimensions
     console.log('show flip dialog');
     id('copy').checked=false;
     showDialog('flipDialog',true);
@@ -794,6 +815,7 @@ id('flipOptions').addEventListener('click',function() {
     mode='select';
 });
 id('repeatButton').addEventListener('click',function() {
+    if(type(element)=='dim') return; // cannot move dimensions
     if(selection.length>1) {
         prompt('Sorry. Cannot repeat multiple selection');
         return;
@@ -1129,6 +1151,7 @@ id('graphic').addEventListener('pointerdown',function() {
             val=val.substr(6);
             console.log('size handle '+val);
             switch(val) {
+                /*
                 case 'NE':
                     mode='boxWidth';
                     x0=parseInt(element.getAttribute('x'));
@@ -1137,6 +1160,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     mode='boxHeight';
                     y0=parseInt(element.getAttribute('y'));
                     break;
+                */
                 case 'SE':
                     mode='boxSize';
                     x0=parseInt(element.getAttribute('x'));
@@ -1161,6 +1185,34 @@ id('graphic').addEventListener('pointerdown',function() {
                     id('blueOval').setAttribute('cy',y0);
                     id('blueOval').setAttribute('rx',arc.radius);
                     id('blueOval').setAttribute('ry',arc.radius);
+                    break;
+                case 'Dim':
+                    id('blueBox').setAttribute('width',0);
+                    id('blueBox').setAttribute('height',0);
+                    mode='dimAdjust';
+                    x0=parseInt(element.firstChild.getAttribute('x1'));
+                    y0=parseInt(element.firstChild.getAttribute('y1'));
+                    dx=parseInt(element.firstChild.getAttribute('x2'))-x0;
+                    dy=parseInt(element.firstChild.getAttribute('y2'))-y0;
+                    id('blueLine').setAttribute('x1',x0);
+                    id('blueLine').setAttribute('y1',y0);
+                    id('blueLine').setAttribute('x2',(x0+dx));
+                    id('blueLine').setAttribute('y2',(y0+dy));
+                    var spin=element.getAttribute('transform');
+                    id('blueLine').setAttribute('transform',spin);
+                    /*
+                    if(dx==0) dim.dir='v';
+                    else if(dy==0) dim.dir='h';
+                    else {
+                        var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
+                        request.onsuccess=function(event) {
+                            dim=request.result;
+                            console.log('oblique dimension start node: '+dim.x1+','+dim.y1);
+                        }
+                    }
+                    console.log('dimension direction: '+dim.dir);
+                    */
+                    prompt('MOVE DIMENSION (UP/DOWN)');
                     break;
                 default:
                     mode='movePoint'+val;
@@ -1220,8 +1272,6 @@ id('graphic').addEventListener('pointerdown',function() {
             id('blueLine').setAttribute('y1',arc.y1);
             id('blueLine').setAttribute('x2',arc.x1);
             id('blueLine').setAttribute('y2',arc.y1);
-            break;
-        case 'arcEnd': // no action until move pointer
             break;
         case 'text':
             console.log('show text dialog');
@@ -1290,12 +1340,12 @@ id('graphic').addEventListener('pointermove',function() {
     }
     else switch(mode) {
         case 'move':
-            if(selection.length>0) { // move multiple selection
+            if(selection.length>1) { // move multiple selection
                 dx=x-x0;
                 dy=y-y0;
                 id('selection').setAttribute('transform','translate('+dx+','+dy+')');
             }
-            else { // drag single element
+            else { // drag  single element
                 // console.log('move element '+elID+' to '+x+','+y);
                 id('blueBox').setAttribute('x',(x+offset.x));
                 id('blueBox').setAttribute('y',(y+offset.y));
@@ -1432,6 +1482,36 @@ id('graphic').addEventListener('pointermove',function() {
             setSizes(true);
             id('blueRadius').setAttribute('x2',arc.x2);
             id('blueRadius').setAttribute('y2',arc.y2);
+            break;
+        case 'dimPlace':
+            if(dim.dir=='v') {
+                id('blueDim').setAttribute('x1',x);
+                id('blueDim').setAttribute('x2',x);
+                dim.offset=Math.round(x-dim.x1);
+            }
+            else if(dim.dir=='h') {
+                id('blueDim').setAttribute('y1',y);
+                id('blueDim').setAttribute('y2',y);
+                dim.offset=Math.round(y-dim.y1);
+            }
+            else { // oblique dimension needs some calculation
+                dx=dim.x2-dim.x1;
+                dy=dim.y2-dim.y1;
+                var a=Math.atan(dy/dx); // angle of line between start and end of dimension
+                dx=x-x0;
+                dy=y-y0;
+                o=Math.sqrt(dx*dx+dy*dy);
+                if((y<y0)||((y==y0)&&(x<x0))) o=o*-1;
+                dim.offset=Math.round(o);
+                id('blueDim').setAttribute('x1',dim.x1-o*Math.sin(a));
+                id('blueDim').setAttribute('y1',dim.y1+o*Math.cos(a));
+                id('blueDim').setAttribute('x2',dim.x2-o*Math.sin(a));
+                id('blueDim').setAttribute('y2',dim.y2+o*Math.cos(a));
+            }
+            break;
+        case 'dimAdjust':
+            id('blueLine').setAttribute('y1',y);
+            id('blueLine').setAttribute('y2',y);
             break;
         case 'select':
             var boxX=(x<x0)?x:x0;
@@ -1794,6 +1874,107 @@ id('graphic').addEventListener('pointerup',function() {
             element=elID=null;
             mode='select';
             break;
+        case 'dimStart':
+            if(snap) {
+                console.log('SNAP - start dimension element: '+snap);
+                dim.x1=x;
+                dim.y1=y;
+                dim.el1=snap;
+                dim.dir=null;
+                mode='dimEnd';
+                prompt('DIMENSION: click on end point');
+            break;
+            }
+            else prompt('Click on a node to start dimension')
+            break;
+        case 'dimEnd':
+            if(snap) {
+                console.log('SNAP - end dimension element: '+snap);
+                dim.x2=x;
+                dim.y2=y;
+                dim.el2=snap;
+                if(dim.x1==dim.x2) dim.dir='v'; // vertical
+                else if(dim.y1==dim.y2) dim.dir='h'; // horizontal
+                if(dim.dir) {
+                    id('blueDim').setAttribute('x1',dim.x1);
+                    id('blueDim').setAttribute('y1',dim.y1);
+                    id('blueDim').setAttribute('x2',dim.x2);
+                    id('blueDim').setAttribute('y2',dim.y2);
+                    prompt('DIMENSION: drag to position');
+                    mode='dimPlace';
+                }
+                else showDialog('dimDialog',true);
+                console.log('dimension direction: '+dim.dir);
+            }
+            else prompt('Click on a node at dimension end-point')
+            break;
+        case 'dimPlace':
+            var graph={};
+            graph.type='dim';
+            if((dim.x1>dim.x2)||(dim.x1==dim.x2)&&(dim.y1>dim.y2)) {
+                graph.x1=dim.x2;
+                graph.y1=dim.y2;
+                graph.x2=dim.x1;
+                graph.y2=dim.y1;
+                graph.el1=dim.el2;
+                graph.el2=dim.el1;
+            }
+            else {
+                graph.x1=dim.x1;
+                graph.y1=dim.y1;
+                graph.x2=dim.x2;
+                graph.y2=dim.y2;
+                graph.el1=dim.el1;
+                graph.el2=dim.el2;
+            }
+            graph.dir=dim.dir; // direction: h/v/o (horizontal/vertical/oblique)
+            graph.offset=dim.offset;
+            id('blueDim').setAttribute('x1',0);
+            id('blueDim').setAttribute('y1',0);
+            id('blueDim').setAttribute('x2',0);
+            id('blueDim').setAttribute('y2',0);
+            addGraph(graph);
+            element=elID=null;
+            mode='select';
+            break;
+        case 'dimAdjust':
+            var x1=parseInt(id('blueLine').getAttribute('x1'));
+            var y1=parseInt(id('blueLine').getAttribute('y1'));
+            var x2=parseInt(id('blueLine').getAttribute('x2'));
+            var y2=parseInt(id('blueLine').getAttribute('y2'));
+            var line=element.firstChild;
+            line.setAttribute('x1',x1);
+            line.setAttribute('y1',y1);
+            line.setAttribute('x2',x2);
+            line.setAttribute('y2',y2);
+            var text=element.childNodes[1];
+            text.setAttribute('x',(x1+x2)/2);
+            text.setAttribute('y',(y1-1));
+            id('blueLine').setAttribute('x1',0);
+            id('blueLine').setAttribute('y1',0);
+            id('blueLine').setAttribute('x2',0);
+            id('blueLine').setAttribute('y2',0);
+            dy=y1-y0;
+            var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
+            request.onsuccess=function(event) {
+                dim=request.result;
+                console.log('dimension start node: '+dim.x1+','+dim.y1);
+                dim.offset-=dy; // dimension moved up/down before rotation
+                request=db.transaction('graphs','readwrite').objectStore('graphs').put(dim);
+                request.onsuccess=function(event) {
+                    console.log('dimension graph updated - offset is '+dim.offset );
+                }
+                request.onerror=function(event) {
+                    console.log('error updating dimension');
+                }
+            }
+            request.onerror=function(event) {
+                console.log('get error');
+            }
+            mode='select';
+            id('handles').innerHTML='';
+            element=elID=null;
+            break;
         case 'select':
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
@@ -1805,6 +1986,8 @@ id('graphic').addEventListener('pointerup',function() {
                 console.log(items.length+' nodes in dwg');
                 for(var i=0;i<items.length;i++) { // collect elements entirely within selectionBox
                     console.log('item '+i+': '+items[i].id);
+                    var el=id(items[i].id);
+                    if(type(el)=='dim') continue; // don't include dimensions
                     var box=getBounds(items[i]);
                     console.log('bounds for '+items[i].id+": "+box.x+','+box.y);
                     console.log('item '+items[i].id+' box: '+box.width+'x'+box.height+' at '+box.x+','+box.y);
@@ -1998,6 +2181,21 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('textDialog').style.top=scr.y+'px';
                                 id('text').value=element.innerHTML;
                                 id('textDialog').style.display='block';
+                                mode='edit';
+                                break;
+                            case 'dim':
+                                var line=el.firstChild;
+                                var x1=parseInt(line.getAttribute('x1'));
+                                var y1=parseInt(line.getAttribute('y1'));
+                                var x2=parseInt(line.getAttribute('x2'));
+                                var y2=parseInt(line.getAttribute('y2'));
+                                var spin=el.getAttribute('transform');
+                                console.log('dim from '+x1+','+y1+' to '+x2+','+y2);
+                                var html="<rect id='handleDim' x='"+((x1+x2)/2-handleR)+"' y='"+((y1+y2)/2-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' ";
+                                html+="transform='"+spin+"' stroke='none' fill='#0000FF88'/>";
+                                console.log('handle: '+html);
+                                id('handles').innerHTML+=html;
+                                prompt('DIMENSION');
                                 mode='edit';
                                 break;
                             case 'combi':
@@ -2448,6 +2646,9 @@ function type(el) {
     else if(el instanceof SVGTextElement) {
         return 'text';
     }
+    else if(el instanceof SVGGElement) {
+        return 'dim';
+    }
     else if(el instanceof SVGSVGElement) {
         return 'combi';
     }
@@ -2623,6 +2824,7 @@ function snapCheck() {
     if(nearNodes.length>0) {
         var dMin=2*snapD;
         var d=0;
+        var el=null;
         for (var i=0;i<nearNodes.length;i++) {
             // console.log('element '+nearNodes[i].el+' at '+nearNodes[i].x+','+nearNodes[i].y);
             d=Math.abs(nearNodes[i].x-x)+Math.abs(nearNodes[i].y-y);
@@ -2630,11 +2832,13 @@ function snapCheck() {
                 dMin=d;
                 x=nearNodes[i].x;
                 y=nearNodes[i].y;
+                el=nearNodes[i].el;
                 // console.log('snap to '+x+','+y);
-                prompt('snap');
+                // prompt('snap');
             }
         }
-        return true;
+        // IF SNAP, MOVE DATUM HERE?
+        return el;
     }
     // console.log('no snap-to-node');
     // LOOK AT MOVING DATUM TO SNAP X,Y
@@ -2887,6 +3091,38 @@ function drawElement(el) {
                 if(el.fill=='blue') id('ref').innerHTML+=html;
                 else id('dwg').innerHTML+=html;
                 id('textDialog').style.display='none';
+                break;
+            case 'dim':
+                dx=Math.round(el.x2-el.x1);
+                dy=Math.round(el.y2-el.y1);
+                var d=0; // dimension length
+                if(dim.dir=='h') d=dx;
+                else if(dim.dir=='v') d=dy;
+                else d=Math.round(Math.sqrt(dx*dx+dy*dy));
+                console.log('dimension length: '+d);
+                var a=Math.atan(dy/dx); // oblique dimension - angle in radians
+                console.log('angle: '+a+'radians');
+                var x1=el.x1; // start point/anchor of dimension line
+                var y1=el.y1;
+                var o=parseInt(el.offset);
+                if(a==0) y1+=o;
+                else if(a==Math.PI/2) x1+=o;
+                // else if(a==-Math.PI/2) x1+=o;
+                else {
+                    x1+=o*Math.sin(a);
+                    y1-=o*Math.cos(a);
+                }
+                a*=180/Math.PI; // angle in degrees
+                var html="<g id='"+el.id+"' transform='rotate("+a+","+x1+","+y1+")'>"
+                // draw dimension line and text horizontally then rotate to angle a;
+                html+="<line x1='"+x1+"' y1='"+y1+"' x2='"+(x1+d)+"' y2='"+y1+"' ";
+                html+="marker-start='url(#startArrow)' marker-end='url(#endArrow)' ";
+                html+="stroke='gray' stroke-width='"+(0.25*scale)+"' fill='none'/>"
+                html+="<text x='"+(x1+d/2)+"' y='"+(y1-1)+"' style='text-anchor: middle; font-size:4pt; stroke:none; fill:gray'>"+Math.abs(d)+"</text>";
+                html+="</g>";
+                console.log('dimension html: '+html);
+                id('dwg').innerHTML+=html;
+                // no nodes for dimensions
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;

@@ -244,10 +244,6 @@ select {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
 }
-#combiDialog {
-    /* left: 48px;
-    top: 48px; */
-}
 #printDialog {
     /* left: 48px;
     top: 48px; */
@@ -272,6 +268,20 @@ select {
     background: url(svg/cross.svg) center center no-repeat;
 }
 #confirmSettings {
+    float: right;
+    background: url(svg/tick.svg) center center no-repeat;
+}
+#dimDialog {
+    display: none;
+}
+#combiDialog {
+    display: none;
+}
+#cancelDim {
+    float: left;
+    background: url(svg/cross.svg) center center no-repeat;
+}
+#confirmDim {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
