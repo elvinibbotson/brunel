@@ -200,6 +200,12 @@ select {
 #repeatButton {
     background: url(svg/repeat.svg) center center no-repeat;
 }
+#anchorButton {
+    background: url(svg/anchor.svg) center center no-repeat;
+}
+#saveCombiButton {
+    background: url(svg/combi.svg) center center no-repeat;
+}
 #fileMenu {
  /*   left: 48px;
     top: 48px; */

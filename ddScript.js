@@ -30,10 +30,11 @@ var arc={};
 var dim={};
 var selectionBox={}; // for box select
 var selection=[]; // list of elements in selectionBox
-var timer=null;
+var anchor=false; // flags existance of anchor
 var db=null; // indexed database holding SVG elements
 var nodes=[]; // array of nodes each with x,y coordinates and element ID
 var node=null;
+var links=[]; // array of links between elements and dimensions
 var element=null; // current element
 var elID=null; // id of current element 
 var combi=null; // current combi
@@ -913,6 +914,13 @@ id('confirmRepeat').addEventListener('click',function() {
     showDialog('repeatDialog',false);
     showSizes(false);
 });
+id('anchorButton').addEventListener('click',function() {
+    mode='anchor';
+    prompt('ANCHOR: place on a node');
+});
+id('saveCombiButton').addEventListener('click',function() {
+    // if selection.length>1 display saveCombiDialog
+});
 // STYLES
 id('line').addEventListener('click',function() {
     showDialog('stylesDialog',true);
@@ -1121,9 +1129,24 @@ id('graphic').addEventListener('pointerdown',function() {
     // TEST FOR TOUCHING EDIT HANDLES
     var val=event.target.id;
     console.log('touch on '+val);
+    // NEW CODE
+    if(val=='anchor') { // can move either anchor or selected elements
+        if(selection.length<1) {
+            element=id(val);
+            elID=val;
+            prompt('ANCHOR: drag to move')
+        }
+        else {
+            selection.push(val); // include anchor in selection
+            prompt('drag ANCHOR to MOVE selection');
+        }
+        mode='move';
+        // return;
+    }
+    //
     var holder=event.target.parentNode.id;
     console.log('holder is '+holder);
-    if(holder=='selection') { // click on a blue box to move multiple selectin
+    if((holder=='selection')&&(mode1!='anchor')) { // click on a blue box to move multiple selectin
         console.log('move group selection');
         mode='move';
         prompt('drag to MOVE selection');
@@ -1142,8 +1165,6 @@ id('graphic').addEventListener('pointerdown',function() {
             offset.x=bounds.x-x0; // offsets to top-left corner
             offset.y=bounds.y-y0;
             console.log('offsets: '+dx+','+dy);
-            // x0=bounds.x; // adjust to top-left
-            // y0=bounds.y;
             prompt('drag to MOVE');
             id('textDialog').style.display='none';
         }
@@ -1350,6 +1371,10 @@ id('graphic').addEventListener('pointermove',function() {
                 id('blueBox').setAttribute('x',(x+offset.x));
                 id('blueBox').setAttribute('y',(y+offset.y));
             }
+            if(anchor) {
+                id('anchor').setAttribute('cx',x);
+                id('anchor').setAttribute('cy',y);
+            }
             break;
         case 'boxSize':
             w=parseInt(element.getAttribute('width'));
@@ -1542,10 +1567,12 @@ id('graphic').addEventListener('pointerup',function() {
         element.points[n].y=y;
         id('bluePolyline').setAttribute('points','0,0');
         updateGraph(elID,['points',element.getAttribute('points')]);
-        var polylineNodes=nodes.filter(belong);
-        for(var i=0; i<polylineNodes.length;i++) {
-            polylineNodes[i].x=element.points[i].x;
-            polylineNodes[i].y=element.points[i].y;
+        var elNodes=nodes.filter(belong);
+        // console.log(elNodes.length+' nodes found');
+        for(var i=0; i<elNodes.length;i++) {
+            // console.log('point '+i+': '+element.points[i].x+','+element.points[i].y);
+            elNodes[i].x=element.points[i].x;
+            elNodes[i].y=element.points[i].y;
         }
         mode='select';
         elID=null;
@@ -1568,6 +1595,10 @@ id('graphic').addEventListener('pointerup',function() {
             dx=x-x0;
             dy=y-y0;
             console.log('move '+selection.length+' elements');
+            if(anchor && (selection.length>1)) { // dispose of anchor after use
+                id('anchor').remove();
+                anchor=false;
+            }
             while(selection.length>0) {
                 elID=selection.pop();
                 console.log('move element '+elID);
@@ -1615,6 +1646,12 @@ id('graphic').addEventListener('pointerup',function() {
                         d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.sweep+' '+arc.x2+','+arc.y2;
                         element.setAttribute('d',d);
                         updateGraph(elID,['cx',arc.cx,'cy',arc.cy,'x1',arc.x1,'x2',arc.x2,'y2',arc.y2]);
+                        break;
+                    case 'anchor':
+                        // x=parseInt(element.getAttribute('cx'))+dx;
+                        // y=parseInt(element.getAttribute('cy'))+dy;
+                        element.setAttribute('cx',x);
+                        element.setAttribute('cy',y);
                         break;
                 }
                 var elementNodes=nodes.filter(belong);
@@ -1906,7 +1943,7 @@ id('graphic').addEventListener('pointerup',function() {
                 else showDialog('dimDialog',true);
                 console.log('dimension direction: '+dim.dir);
             }
-            else prompt('Click on a node at dimension end-point')
+            else prompt('Click on a node at dimension end-point');
             break;
         case 'dimPlace':
             var graph={};
@@ -1954,6 +1991,7 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueLine').setAttribute('y1',0);
             id('blueLine').setAttribute('x2',0);
             id('blueLine').setAttribute('y2',0);
+            id('blueLine').setAttribute('transform','rotate(0)');
             dy=y1-y0;
             var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
             request.onsuccess=function(event) {
@@ -1974,6 +2012,21 @@ id('graphic').addEventListener('pointerup',function() {
             mode='select';
             id('handles').innerHTML='';
             element=elID=null;
+            break;
+        case 'anchor':
+            if(snap) {
+                console.log('SNAP - place anchor: '+snap);
+                var el={};
+                el.type='anchor';
+                el.id='anchor';
+                el.cx=x;
+                el.cy=y;
+                drawElement(el);
+                anchor=true;
+                mode='select';
+                console.log('anchor placed');
+            }
+            else prompt('Click on a node to place anchor');
             break;
         case 'select':
             id('blueBox').setAttribute('width',0);
@@ -2204,6 +2257,12 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('handles').innerHTML=html;
                                 setSizes();
                                 showSizes(true,'COMBI '+combi.name);
+                                mode='edit';
+                                break;
+                            case 'anchor':
+                                var html="<circle id='handle' cx='"+el.cx+"' cy='"+el.cy+"' stroke='none' fill='#0000FF88'/>";
+                                id('handles').innerHTML+=html;
+                                prompt('ANCHOR');
                                 mode='edit';
                                 break;
                         };
@@ -2652,6 +2711,9 @@ function type(el) {
     else if(el instanceof SVGSVGElement) {
         return 'combi';
     }
+    else if(el instanceof SVGCircleElement) {
+        return 'anchor';
+    }
 }
 function getBounds(el) {
     var b=el.getBBox();
@@ -2663,6 +2725,7 @@ function getBounds(el) {
     return b;
 }
 function prompt(text) {
+    console.log('PROMPT '+text);
     id('prompt').innerHTML=text; //display text for 3 secs
     id('prompt').style.display='block';
     setTimeout(function(){id('prompt').style.display='none'},5000);
@@ -2986,12 +3049,14 @@ function drawElement(el) {
 			for(i=0;i<el.points.length;i++) {
                 nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id});
                 // console.log('node added at '+element.points[i].x+','+element.points[i].y);
+                /* DON'T BOTHER WITH INTERMEDIATE NODES
                 if(i>0) { // add nodes at middle of each segment
                     x=(el.points[i-1].x+el.points[i].x)/2;
                     y=(el.points[i-1].y+el.points[i].y)/2;
                     nodes.push({'x':x,'y':y,'el':el.id});
                     // console.log('intermediate node at '+x+','+y);
                 }
+                */
             }
             break;
         case 'box':
@@ -3014,16 +3079,16 @@ function drawElement(el) {
                 else id('dwg').innerHTML+=html;
                 // element=id(el.id);
                 // add nodes at corners...
-                nodes.push({'x':el.x,'y':el.y,'el':el.id});
-                nodes.push({'x':(el.x+el.width),'y':el.y,'el':el.id});
-                nodes.push({'x':el.x,'y':(el.y+el.height),'el':el.id});
-                nodes.push({'x':(el.x+el.width),'y':(el.y+el.height),'el':el.id});
+                nodes.push({'x':Number(el.x),'y':Number(el.y),'el':el.id});
+                nodes.push({'x':Number(el.x)+Number(el.width),'y':Number(el.y),'el':el.id});
+                nodes.push({'x':Number(el.x),'y':Number(el.y)+Number(el.height),'el':el.id});
+                nodes.push({'x':Number(el.x)+Number(el.width),'y':Number(el.y)+Number(el.height),'el':el.id});
                 // ...and centre and middle of each edges
-                nodes.push({'x':(el.x+el.width/2),'y':(el.y+el.height/2),'el':el.id});
-                nodes.push({'x':(el.x+el.width/2),'y':el.y,'el':el.id});
-                nodes.push({'x':(el.x+el.width/2),'y':(el.y+el.height),'el':el.id});
-                nodes.push({'x':el.x,'y':(el.y+el.height/2),'el':el.id});
-                nodes.push({'x':(el.x+el.width),'y':(el.y+el.height/2),'el':el.id});
+                nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y)+Number(el.height)/2,'el':el.id});
+                nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y),'el':el.id});
+                nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y)+Number(el.height),'el':el.id});
+                nodes.push({'x':el.x,'y':Number(el.y)+Number(el.height)/2,'el':el.id});
+                nodes.push({'x':Number(el.x)+Number(el.width),'y':Number(el.y)+Number(el.height)/2,'el':el.id});
                 break;
             case 'oval':
                 var html="<ellipse id='"+el.id+"' cx='"+el.cx+"' cy='"+el.cy+"' rx='"+el.rx+"' ry='"+el.ry+"' stroke=";
@@ -3046,9 +3111,9 @@ function drawElement(el) {
                 else id('dwg').innerHTML+=html;
                 nodes.push({'x':el.cx,'y':el.cy,'el':el.id});
                 nodes.push({'x':el.cx-el.rx,'y':el.cy,'el':el.id});
-                nodes.push({'x':el.cx+el.rx,'y':el.cy,'el':el.id});
+                nodes.push({'x':Number(el.cx)+Number(el.rx),'y':el.cy,'el':el.id});
                 nodes.push({'x':el.cx,'y':el.cy-el.ry,'el':el.id});
-                nodes.push({'x':el.cx,'y':el.cy+el.ry,'el':el.id});
+                nodes.push({'x':el.cx,'y':Number(el.cy)+Number(el.ry),'el':el.id});
                 // console.log('oval nodes added');
                 break;
             case 'arc':
@@ -3096,12 +3161,20 @@ function drawElement(el) {
                 dx=Math.round(el.x2-el.x1);
                 dy=Math.round(el.y2-el.y1);
                 var d=0; // dimension length
-                if(dim.dir=='h') d=dx;
-                else if(dim.dir=='v') d=dy;
-                else d=Math.round(Math.sqrt(dx*dx+dy*dy));
-                console.log('dimension length: '+d);
-                var a=Math.atan(dy/dx); // oblique dimension - angle in radians
-                console.log('angle: '+a+'radians');
+                var a=0; // dimension angle
+                if(dim.dir=='h') {
+                    d=dx;
+                    a=0;
+                }
+                else if(dim.dir=='v') {
+                    d=dy;
+                    a=Math.PI/2;
+                }
+                else {
+                    d=Math.round(Math.sqrt(dx*dx+dy*dy));
+                    a=Math.atan(dy/dx); // oblique dimension - angle in radians
+                }
+                console.log('dimension length: '+d+'; angle: '+a+'radians; elements: '+el.el1+' '+el.el2);
                 var x1=el.x1; // start point/anchor of dimension line
                 var y1=el.y1;
                 var o=parseInt(el.offset);
@@ -3122,7 +3195,22 @@ function drawElement(el) {
                 html+="</g>";
                 console.log('dimension html: '+html);
                 id('dwg').innerHTML+=html;
-                // no nodes for dimensions
+                // no nodes for dimensions but add to links array
+                var link={};
+                link.el=el.el1;
+                link.dim=el.id;
+                console.log('add link - el. '+link.el+' dim. '+link.dim);
+                links.push(link);
+                // var n=el.id;
+                // links.push({'el':el.el1,'dim':el.id});
+                // links.push({'el':el.el1,'dim':n});
+                if(el.el2!==el.el1) {
+                    link.el=el.el2;
+                    links.push(link);
+                }
+                // links.push({'el':el.el2,'dim':el.id});
+                console.log('links added for dimension '+el.id);
+                for(var i=0;i<links.length;i++) console.log('link '+i+': el:'+links[i].el+' dim: '+links[i].dim);
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;
@@ -3139,6 +3227,14 @@ function drawElement(el) {
                 id('dwg').innerHTML+=html;
                 nodes.push({'x':el.ax,'y':el.ay,'el':elID});
                 console.log("DONE");
+                break;
+            case 'anchor':
+                console.log('draw anchor at '+el.cx+','+el.cy);
+                var html="<circle id='"+el.id+"' cx='"+el.cx+"' cy='"+el.cy+"' r='"+(2*scale)+"' ";
+                html+="stroke='blue' stroke-width='"+(0.25*scale)+"' fill='gray' fill-opacity='0.5'/>";
+                console.log('anchor html: '+html);
+                id('blue').innerHTML+=html; // anchor is pseudo-element - put in <blue> layer
+                console.log('anchor drawn');
                 break;
     }
 }
