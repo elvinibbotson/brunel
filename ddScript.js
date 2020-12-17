@@ -1146,7 +1146,7 @@ id('graphic').addEventListener('pointerdown',function() {
     //
     var holder=event.target.parentNode.id;
     console.log('holder is '+holder);
-    if((holder=='selection')&&(mode1!='anchor')) { // click on a blue box to move multiple selectin
+    if((holder=='selection')&&(mode!='anchor')) { // click on a blue box to move multiple selectin
         console.log('move group selection');
         mode='move';
         prompt('drag to MOVE selection');
@@ -1599,7 +1599,17 @@ id('graphic').addEventListener('pointerup',function() {
                 id('anchor').remove();
                 anchor=false;
             }
-            while(selection.length>0) {
+            // var linkedDims=[]; 
+            // console.log('selection: '+selection);
+            for(i=0; i<links.length;i++) { // check for links between moved elements and dimensions
+                var link=0;
+                // if(selection.indexOf(String(links[i].el1))>=0) link=1;
+                if(selection.includes(String(links[i].el1))) link=1;
+                if(selection.includes(String(links[i].el2))) link+=2;
+                console.log('link '+i+': '+links[i].dim+' '+links[i].el1+','+links[i].el2+' - '+link);
+                if(link>0) adjustDim(links[i].dim,link,dx,dy); // if link applies, redraw dimension
+            }
+            while(selection.length>0) { // move all selected elements
                 elID=selection.pop();
                 console.log('move element '+elID);
                 element=id(elID);
@@ -1997,7 +2007,7 @@ id('graphic').addEventListener('pointerup',function() {
             request.onsuccess=function(event) {
                 dim=request.result;
                 console.log('dimension start node: '+dim.x1+','+dim.y1);
-                dim.offset-=dy; // dimension moved up/down before rotation
+                dim.offset+=dy; // dimension moved up/down before rotation
                 request=db.transaction('graphs','readwrite').objectStore('graphs').put(dim);
                 request.onsuccess=function(event) {
                     console.log('dimension graph updated - offset is '+dim.offset );
@@ -2758,7 +2768,8 @@ function setSizes(polar,angle) {
         id('second').value=h;
         id('after').innerHTML='mm';
     }
-    // PUT ELEMENT SPIN INTO 'spin' BOX
+    // PUT ELEMENT SPIN INTO 'spin' BOX - ZERO FOR NOW
+    id('spin').value=0;
 }
 function getAngle(x0,y0,x1,y1) {
     var dx=x1-x0;
@@ -2918,7 +2929,6 @@ function snapCheck() {
 function nearby(node) {
     return (node.x>x-snapD)&&(node.x<x+snapD)&&(node.y>y-snapD)&&(node.y<y+snapD);
 }
-// function updateGraph(id,attribute,val) {
 function updateGraph(id,parameters) {
     // console.log('adjust '+attribute+' of graph '+id+' to '+val);
 	var graphs=db.transaction('graphs','readwrite').objectStore('graphs');
@@ -3174,16 +3184,15 @@ function drawElement(el) {
                     d=Math.round(Math.sqrt(dx*dx+dy*dy));
                     a=Math.atan(dy/dx); // oblique dimension - angle in radians
                 }
-                console.log('dimension length: '+d+'; angle: '+a+'radians; elements: '+el.el1+' '+el.el2);
+                console.log('dimension length: '+d+'; angle: '+a+' rad; elements: '+el.el1+' '+el.el2);
                 var x1=el.x1; // start point/anchor of dimension line
                 var y1=el.y1;
                 var o=parseInt(el.offset);
                 if(a==0) y1+=o;
                 else if(a==Math.PI/2) x1+=o;
-                // else if(a==-Math.PI/2) x1+=o;
                 else {
-                    x1+=o*Math.sin(a);
-                    y1-=o*Math.cos(a);
+                    x1-=o*Math.sin(a);
+                    y1+=o*Math.cos(a);
                 }
                 a*=180/Math.PI; // angle in degrees
                 var html="<g id='"+el.id+"' transform='rotate("+a+","+x1+","+y1+")'>"
@@ -3195,22 +3204,14 @@ function drawElement(el) {
                 html+="</g>";
                 console.log('dimension html: '+html);
                 id('dwg').innerHTML+=html;
-                // no nodes for dimensions but add to links array
-                var link={};
-                link.el=el.el1;
+                var link={}; // no nodes for dimensions but add to links array
                 link.dim=el.id;
-                console.log('add link - el. '+link.el+' dim. '+link.dim);
+                link.el1=el.el1;
+                link.el2=el.el2;
+                console.log('add link - dim. '+link.dim+' elements: '+link.el1+','+link.el2);
                 links.push(link);
-                // var n=el.id;
-                // links.push({'el':el.el1,'dim':el.id});
-                // links.push({'el':el.el1,'dim':n});
-                if(el.el2!==el.el1) {
-                    link.el=el.el2;
-                    links.push(link);
-                }
-                // links.push({'el':el.el2,'dim':el.id});
                 console.log('links added for dimension '+el.id);
-                for(var i=0;i<links.length;i++) console.log('link '+i+': el:'+links[i].el+' dim: '+links[i].dim);
+                for(var i=0;i<links.length;i++) console.log('link '+i+': dim:'+links[i].dim+' elements: '+links[i].el1+','+links[i].el2);
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;
@@ -3236,6 +3237,78 @@ function drawElement(el) {
                 id('blue').innerHTML+=html; // anchor is pseudo-element - put in <blue> layer
                 console.log('anchor drawn');
                 break;
+    }
+};
+// UPDATE DIMENSION AFTER LINKED ELEMENT(S) CHANGE
+function adjustDim(d,els,dx,dy) {
+    console.log('redraw dimension '+d);
+    var request=db.transaction('graphs').objectStore('graphs').get(Number(d));
+    request.onsuccess=function(event) {
+        dim=request.result;
+        console.log('got dimension '+dim.id);
+        if(els&1) { // el1 has moved
+        // if(dim.el1==el) {
+            dim.x1+=dx;
+            dim.y1+=dy;
+        }
+        if(els&2) { // el2 has moved
+        // if(dim.el2==el) {
+            dim.x2+=dx;
+            dim.y2+=dy;
+        }
+        redrawDim(dim,dx,dy);
+    }
+    request.onerror=function(event) {
+        console.log('get dimension failed');
+    }
+}
+// REDRAW DIMENSION AFTER UPDATING
+function redrawDim(d,dx,dy) {
+    var request=db.transaction('graphs','readwrite').objectStore('graphs').put(d);
+    request.onsuccess=function(event) {
+        console.log('dimension '+dim.id+' updated - redraw it');
+        var len=0; // dimension length...
+        var a=0; // ...and angle
+        if(d.dir=='h') { // horizontal dimension
+            len=d.x2-d.x1;
+            a=0;
+        }
+        else if(d.dir=='v') { // vertical dimension
+            len=d.y2-d.y1;
+            a=Math.PI/2;
+        }
+        else { // oblique dimension
+            w=Math.round(d.x2-d.x1);
+            h=Math.round(d.y2-d.y1);
+            len=Math.round(Math.sqrt(w*w+h*h));
+            a=Math.atan(h/w); // angle in radians
+        }
+        console.log('dimension length: '+len+'; angle: '+a+'radians; elements: '+d.el1+' '+d.el2);
+        var o=parseInt(d.offset);
+        var x1=d.x1; // start point/anchor of dimension line
+        var y1=d.y1;
+        if(a==0) y1+=o;
+        else if(a==Math.PI/2) x1+=o;
+        else {
+            x1-=o*Math.sin(a);
+            y1+=o*Math.cos(a);
+        }
+        a*=180/Math.PI; // angle in degrees
+        var t='rotate('+a+','+x1+','+y1+')';
+        id(d.id).setAttribute('transform',t); // adjust dimension rotation
+        var line=id(d.id).firstChild;
+        line.setAttribute('x1',x1); // adjust dimension end points
+        line.setAttribute('y1',y1);
+        line.setAttribute('x2',x1+len);
+        line.setAttribute('y2',y1);
+        t=id(d.id).children[1]; // adjust text location
+        t.setAttribute('x',Number(x1+len/2));
+        t.setAttribute('y',Number(y1-1));
+        t.innerHTML=len; // adjust dimension measurement
+        console.log('dimension '+d.id+' redrawn');
+    }
+    request.onerror=function(event) {
+        console.log('dimension update failed');
     }
 }
 // SAVE DRAWING AS SVG FILE _ PRINT AS PDF AT 100% SCALE
