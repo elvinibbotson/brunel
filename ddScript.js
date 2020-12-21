@@ -2062,10 +2062,11 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'dimStart':
             if(snap) {
-                console.log('SNAP - start dimension element: '+snap);
+                console.log('SNAP - start dimension element: '+snap.el+' node '+snap.n);
                 dim.x1=x;
                 dim.y1=y;
-                dim.el1=snap;
+                dim.el1=snap.el;
+                dim.n1=snap.n;
                 dim.dir=null;
                 mode='dimEnd';
                 prompt('DIMENSION: click on end point');
@@ -2075,10 +2076,11 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'dimEnd':
             if(snap) {
-                console.log('SNAP - end dimension element: '+snap);
+                console.log('SNAP - end dimension element: '+snap.el+' node '+snap.n);
                 dim.x2=x;
                 dim.y2=y;
-                dim.el2=snap;
+                dim.el2=snap.el;
+                dim.n2=snap.n;
                 if(dim.x1==dim.x2) dim.dir='v'; // vertical
                 else if(dim.y1==dim.y2) dim.dir='h'; // horizontal
                 if(dim.dir) {
@@ -2103,7 +2105,9 @@ id('graphic').addEventListener('pointerup',function() {
                 graph.x2=dim.x1;
                 graph.y2=dim.y1;
                 graph.el1=dim.el2;
+                graph.n1=dim.n1;
                 graph.el2=dim.el1;
+                graph.n2=dim.n2;
             }
             else {
                 graph.x1=dim.x1;
@@ -2111,7 +2115,9 @@ id('graphic').addEventListener('pointerup',function() {
                 graph.x2=dim.x2;
                 graph.y2=dim.y2;
                 graph.el1=dim.el1;
+                graph.n1=dim.n1;
                 graph.el2=dim.el2;
+                graph.n2=dim.n2;
             }
             graph.dir=dim.dir; // direction: h/v/o (horizontal/vertical/oblique)
             graph.offset=dim.offset;
@@ -3305,12 +3311,13 @@ function snapCheck() {
                 x=nearNodes[i].x;
                 y=nearNodes[i].y;
                 el=nearNodes[i].el;
+                n=nearNodes[i].n;
                 // console.log('snap to '+x+','+y);
                 // prompt('snap');
             }
         }
         // IF SNAP, MOVE DATUM HERE?
-        return el;
+        return {'el':el,'n':n}; // return object with element.id and node number
     }
     // console.log('no snap-to-node');
     // LOOK AT MOVING DATUM TO SNAP X,Y
@@ -3340,80 +3347,6 @@ function updateGraph(id,parameters) {
 	        console.log('set '+attribute+' to '+val);
 	        eval('graph.'+attribute+'="'+val+'"');
 	    }
-	    
-	    
-	    /* MUCH SIMPLER THAN ALL THIS...
-	    switch(attribute) {
-	        case 'x':
-	            graph.x=val; // box, text or combi position
-	            break;
-	        case 'y':
-	            graph.y=val;
-	            break;
-	        case 'width': // box size
-	            graph.width=val;
-	            console.log('width is now '+graph.width);
-	            break;
-	        case 'height':
-	            graph.height=val;
-	            break;
-	        case 'points': // line points
-	            graph.points=val;
-	            break;
-	        case 'd': // arc definition
-	            graph.d=val;
-	            break;
-	        case 'cx': // oval or arc centre
-	            graph.cx=val;
-	            break;
-	        case 'cy':
-	            graph.cy=val;
-	            break;
-	        case 'rx': // oval radii
-	            graph.rx=val;
-	            break;
-	        case 'ry':
-	            graph.ry=val;
-	            break;
-	        case 'x1': // arc start point
-	            graph.x1=val;
-	            break;
-	        case 'y1':
-	            graph.y1=val;
-	            break;
-	        case 'x2': // arc end point
-	            graph.x2=val;
-	            break;
-	        case 'y2':
-	            graph.y2=val;
-	            break;
-	        case 'r':
-	            graph.r=val; // arc radius
-	            break;
-	        case 'textSize':
-	            graph.textSize=val; // text settings
-	            break;
-	        case 'textStyle':
-	            graph.textStyle=val;
-	            break;
-	        case 'stroke':
-	            graph.stroke=val; // universal style settings
-	            break;
-	        case 'lineW':
-	            graph.lineW=val;
-	            break;
-	        case 'lineStyle':
-	            graph.lineStyle=val;
-	            break;
-	        case 'fill':
-	            graph.fill=val;
-	            break;
-	        case 'opacity':
-	            graph.opacity=val;
-	            break;
-	        // ALSO TRANSFORMS AND DIMENSION SETTINGS
-	    }
-	    */
 	    request=graphs.put(graph);
 	        request.onsuccess=function(event) {
 			    console.log('graph '+id+' updated');
@@ -3454,8 +3387,8 @@ function drawElement(el) {
 			else id('dwg').innerHTML+=html;
 			el=id(el.id); // get nodes from draw polyline
 			console.log('el '+el.id+' points: '+el.points);
-			for(i=0;i<el.points.length;i++) {
-                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id});
+			for(var i=0;i<el.points.length;i++) {
+                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id,'n':i});
                 // console.log('node added at '+element.points[i].x+','+element.points[i].y);
                 /* DON'T BOTHER WITH INTERMEDIATE NODES
                 if(i>0) { // add nodes at middle of each segment
@@ -3481,8 +3414,8 @@ function drawElement(el) {
 			else id('dwg').innerHTML+=html;
 			el=id(el.id); // get nodes from draw polygon
 			console.log('el '+el.id+' points: '+el.points);
-			for(i=0;i<el.points.length;i++) {
-                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id});
+			for(var i=0;i<el.points.length;i++) {
+                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id,'n':i});
             }
             break;
         case 'box':
@@ -3514,10 +3447,10 @@ function drawElement(el) {
                 var c=Math.cos(a);
                 var s=Math.sin(a);
                 console.log('top/left: '+x+','+y+' size: '+w+'x'+h+' spin: '+a+' radians cos: '+c+' sine: '+s);
-                nodes.push({'x':x,'y':y,'el':el.id}); // top/left
-                nodes.push({'x':Number(x+w*c),'y':Number(y+w*s),'el':el.id}); // top/right
-                nodes.push({'x':Number(x+w*c-h*s),'y':Number(y+w*s+h*c),'el':el.id}); // bottom/right
-                nodes.push({'x':(x-h*s),'y':(y+h*c),'el':el.id}); // bottom/left
+                nodes.push({'x':x,'y':y,'el':el.id,'n':0}); // top/left - node 0
+                nodes.push({'x':Number(x+w*c),'y':Number(y+w*s),'el':el.id,'n':1}); // top/right - node 1
+                nodes.push({'x':Number(x+w*c-h*s),'y':Number(y+w*s+h*c),'el':el.id,'n':2}); // bottom/right - node 2
+                nodes.push({'x':(x-h*s),'y':(y+h*c),'el':el.id,'n':3}); // bottom/left - node 3
                 /* ...and centre and middle of each edges DISABLED!!
                 nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y)+Number(el.height)/2,'el':el.id});
                 nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y),'el':el.id});
@@ -3545,11 +3478,11 @@ function drawElement(el) {
                 console.log('oval svg: '+html);
                 if(el.stroke=='blue') id('ref').innerHTML+=html;
                 else id('dwg').innerHTML+=html;
-                nodes.push({'x':el.cx,'y':el.cy,'el':el.id}); // centre then clockwise from...
-                nodes.push({'x':el.cx,'y':el.cy-el.ry,'el':el.id}); // ...top
-                nodes.push({'x':Number(el.cx)+Number(el.rx),'y':el.cy,'el':el.id}); // right
-                nodes.push({'x':el.cx,'y':Number(el.cy)+Number(el.ry),'el':el.id}); // bottom
-                nodes.push({'x':el.cx-el.rx,'y':el.cy,'el':el.id}); // left
+                nodes.push({'x':el.cx,'y':el.cy,'el':el.id,'n':0}); // centre (node 0) then clockwise from...
+                nodes.push({'x':el.cx,'y':el.cy-el.ry,'el':el.id,'n':1}); // ...top - node 1
+                nodes.push({'x':Number(el.cx)+Number(el.rx),'y':el.cy,'el':el.id,'n':2}); // right - node 2
+                nodes.push({'x':el.cx,'y':Number(el.cy)+Number(el.ry),'el':el.id,'n':3}); // bottom - node 3
+                nodes.push({'x':el.cx-el.rx,'y':el.cy,'el':el.id,'n':4}); // left - node 4
                 // console.log('oval nodes added');
                 break;
             case 'arc':
@@ -3571,9 +3504,9 @@ function drawElement(el) {
                 if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
                 else id('dwg').innerHTML+=html;
                 // create nodes for arc start, centre & end points
-                nodes.push({'x':el.cx,'y':el.cy,'el':el.id}); // centre
-                nodes.push({'x':el.x1,'y':el.y1,'el':el.id}); // start
-                nodes.push({'x':el.x2,'y':el.y2,'el':el.id}); // end
+                nodes.push({'x':el.cx,'y':el.cy,'el':el.id,'n':0}); // centre - node 0
+                nodes.push({'x':el.x1,'y':el.y1,'el':el.id,'n':1}); // start - node 1
+                nodes.push({'x':el.x2,'y':el.y2,'el':el.id,'n':2}); // end - node 2
                 break;
             case 'text':
                 var html="<text id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' ";
@@ -3633,11 +3566,13 @@ function drawElement(el) {
                 var link={}; // no nodes for dimensions but add to links array
                 link.dim=el.id;
                 link.el1=el.el1;
+                link.n1=el.n1;
                 link.el2=el.el2;
-                console.log('add link - dim. '+link.dim+' elements: '+link.el1+','+link.el2);
+                link.n2=el.n2;
+                console.log('add link - dim. '+link.dim+' el/nodes: '+link.el1+'/'+link.n1+','+link.el2+'/'+link.n2);
                 links.push(link);
                 console.log('links added for dimension '+el.id);
-                for(var i=0;i<links.length;i++) console.log('link '+i+': dim:'+links[i].dim+' elements: '+links[i].el1+','+links[i].el2);
+                for(var i=0;i<links.length;i++) console.log('link '+i+': dim:'+links[i].dim+' el/nodes: '+links[i].el1+'/'+links[i].n1+','+links[i].el2+'/'+links[i].n2);
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;
@@ -3657,7 +3592,7 @@ function drawElement(el) {
                 html+="<g transform='"+t+"'>"+combi.svg+"</g></svg>";
                 console.log('combi html: '+html);
                 id('dwg').innerHTML+=html;
-                nodes.push({'x':(el.x+el.ax),'y':(el.y+el.ay),'el':el.id});
+                nodes.push({'x':(el.x+el.ax),'y':(el.y+el.ay),'el':el.id,'n':0}); // just one node for combis
                 console.log("DONE");
                 break;
             case 'anchor':
