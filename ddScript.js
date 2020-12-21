@@ -43,7 +43,7 @@ var combiID=null; // id of current combi
 var lineType='solid'; // default styles
 var lineShade='black';
 var pen=0.25; // 0.25mm at 1:1 scale - increase for smaller scales (eg.12.5 at 1:50 scale)
-var fillShade='none';
+var fillShade='white';
 var opacity='1';
 var textSize=5; // default text size
 var textStyle='fine'; // normal text
@@ -63,7 +63,6 @@ id('gridSize').value=grid;
 gridSnap=window.localStorage.getItem('gridSnap');
 if(!gridSnap) gridSnap=false;
 id('grid').checked=gridSnap;
-// units=window.localStorage.getItem('units');
 if(!aspect) {
     aspect=(scr.w>scr.h)?'landscape':'portrait';
     id('aspect').innerHTML=aspect;
@@ -242,9 +241,13 @@ id('panButton').addEventListener('click',function() {
 });
 console.log('zoom; '+zoom+' w: '+w+' h: '+h);
 // DRAWING TOOLS
-id('lineButton').addEventListener('click', function() {
+id('lineButton').addEventListener('click',function() {
     mode='line';
-    showSizes(true,'LINE: press at start');
+    showSizes(true,'LINE: touch at start');
+});
+id('shapeButton').addEventListener('click',function() {
+    mode='shape';
+    showSizes(true,'SHAPE: touch at start');
 });
 id('boxButton').addEventListener('click',function() {
     mode='box';
@@ -359,7 +362,7 @@ id('deleteButton').addEventListener('click',function() {
 	showEditTools(false);
 });
 id('backButton').addEventListener('click',function() {
-    if(selection.length>0) {
+    if(selection.length>1) {
         prompt('OOPS');
         return;
     }
@@ -370,7 +373,7 @@ id('backButton').addEventListener('click',function() {
     else id('dwg').insertBefore(element,previousElement);
 });
 id('forwardButton').addEventListener('click',function() {
-    if(selection.length>0) {
+    if(selection.length>1) {
         prompt('OOPS');
         return;
     }
@@ -473,6 +476,7 @@ id('flipOptions').addEventListener('click',function() {
         console.log('flip '+type(el)+' element '+el.id);
         switch (type(el)) {
             case 'line': // reverse x-coord of each point and each node
+            case 'shape':
                 var points=el.points;
                 elNodes=nodes.filter(belong);
                 if(copy) var pts=''; // new points list as string
@@ -507,8 +511,8 @@ id('flipOptions').addEventListener('click',function() {
                         console.log('get failed');
                     }
                 }
-                else {
-                    for(i=0;i<elNodes.length;i++) {
+                else { // COULD REPLACE THIS WITH refreshNodes(el)
+                    /* for(i=0;i<elNodes.length;i++) {
                         if(opt<2) {
                             dx=elNodes[i].x-axis.x;
                             elNodes[i].x=axis.x-dx;
@@ -517,8 +521,9 @@ id('flipOptions').addEventListener('click',function() {
                             dy=elNodes[i].y-axis.y;
                             elNodes[i].y=axis.y-dy;
                         }
-                    }
-                    updateGraph(elID,['points',element.getAttribute('points')]);                    }
+                    } */
+                    refreshNodes(el);
+                    updateGraph(elID,['points',el.getAttribute('points')]);                    }
                 break;
             case 'box':
                 if(copy) {
@@ -669,12 +674,15 @@ id('flipOptions').addEventListener('click',function() {
                     updateGraph(elID,['cx',arc.cx,'x1',arc.x1,'x2',arc.x2,'sweep',arc.sweep]);
                     d="M"+arc.cx+","+arc.cy+" M"+arc.x1+","+arc.y1+" A"+arc.r+","+arc.r+" 0 "+arc.major+","+arc.sweep+" "+arc.x2+","+arc.y2;
                     element.setAttribute('d',d);
+                    /* COULD REPLACE THIS WITH refreshNodes(el)
                     elNodes[0].x=arc.cx;
                     elNodes[0].y=arc.cy;
                     elNodes[1].x=arc.x1;
                     elNodes[1].y=arc.y1;
                     elNodes[2].x=arc.x2;
                     elNodes[2].y=arc.y2;
+                    */
+                    refreshNodes(el);
                 }
                 break;
             case 'text':
@@ -778,21 +786,24 @@ id('flipOptions').addEventListener('click',function() {
                         flip^=1; // toggle horizontal flip;
                         dx=parseInt(el.getAttribute('ax'))-axis.x;
                         el.setAttribute('ax',(axis.x-dx));
+                        /* COULD REPLACE THIS WITH refreshNodes(el)
                         if(elNodes.length>0) {
                             dx=elNodes[0].x-axis.x; // text and combis have just one node
                             elNodes[0].x=axis.x-dx;
-                        }
+                        } */
                     }
                     else { // flip top-bottom
                         flip^=2; // toggle vertical flip
                         dy=parseInt(el.getAttribute('ay'))-axis.y;
                         el.setAttribute('ay',(axis.y-dy));
                         // transform+='scale(1,-1)';
+                        /* COULD REPLACE THIS WITH refreshNodes(el)
                         if(elNodes.length>0) {
                             dy=elNodes[0].y-axis.y; // text and combis have just one node
                             elNodes[0].y=axis.y-dy;
-                        }
+                        } */
                     }
+                    refreshNodes(el);
                     w=parseInt(el.getAttribute('width'));
                     h=parseInt(el.getAttribute('height'));
                     var s=parseInt(el.getAttribute('scale'));
@@ -814,6 +825,74 @@ id('flipOptions').addEventListener('click',function() {
     id('selection').innerHTML='';
     showDialog('flipDialog',false);
     mode='select';
+});
+id('alignButton').addEventListener('click',function() {
+    if(selection.length<2) {
+        prompt('OOPS!'); // can only align multiple elements
+        return;
+    }
+    showDialog('alignDialog',true);
+});
+id('alignOptions').addEventListener('click',function() {
+    x0=parseInt(id('alignDialog').offsetLeft)+parseInt(id('alignOptions').offsetLeft);
+    y0=parseInt(id('alignDialog').offsetTop)+parseInt(id('alignOptions').offsetTop);
+    console.log('alignOptions at '+x0+','+y0);
+    x=Math.floor((event.clientX-x0+5)/32); // 0-2
+    y=Math.floor((event.clientY-y0+5)/32); // 0 or 1
+    console.log('x: '+x+' y: '+y);
+    var opt=y*3+x; // 0-5
+    console.log('option '+opt);
+    var el=id(selection[0]);
+    var box=getBounds(el);
+    var minX=box.x;
+    var maxX=box.x+box.width;
+    var minY=box.y;
+    var maxY=box.y+box.height;
+    console.log('first box '+minX+'-'+maxX+'x'+minY+'-'+maxY);
+    for(var i=1;i<selection.length;i++) {
+        el=id(selection[i]);
+        box=getBounds(el);
+        if(box.x<minX) minX=box.x;
+        if((box.x+box.width)>maxX) maxX=box.x+box.width;
+        if(box.y<minY) minY=box.y;
+        if((box.y+box.height)>maxY) maxY=box.y+box.height;
+    }
+    var midX=(minX+maxX)/2;
+    var midY=(minY+maxY)/2;
+    console.log('overall box '+minX+'-'+maxX+'x'+minY+'-'+maxY);
+    for(i=0;i<selection.length;i++) {
+        el=id(selection[i]);
+        box=getBounds(el);
+        console.log('move '+el.id+'?');
+        switch(opt) {
+            case 0: // align left
+                if(box.x>minX) move(el,(minX-box.x),0);
+                break;
+            case 1: // align centre left-right
+                x=Number(box.x)+Number(box.width)/2;
+                if(x!=midX) move(el,(midX-x),0); 
+                break;
+            case 2: // align right
+                x=Number(box.x)+Number(box.width);
+                if(x<maxX) move(el,(maxX-x),0);
+                break;
+            case 3: // align top
+                if(box.y>minY) move(el,0,(minY-box.y));
+                break;
+            case 4: // align centre top-bottom
+                y=Number(box.y)+Number(box.height)/2;
+                if(y!=midY) move(el,0,(midY-y));
+                break;
+            case 5: // align bottom
+                console.log('align bottom');
+                y=Number(box.y)+Number(box.height);
+                if(y<maxY) move(el,0,(maxY-y));
+        }
+    }
+    // CHECK NODES GET MOVED TOO!!!!! - USE refreshNodes(el)
+    showDialog('alignDialog',false);
+    selection=[];
+    id('selection').innerHTML='';
 });
 id('repeatButton').addEventListener('click',function() {
     if(type(element)=='dim') return; // cannot move dimensions
@@ -918,7 +997,7 @@ id('anchorButton').addEventListener('click',function() {
     mode='anchor';
     prompt('ANCHOR: place on a node');
 });
-id('saveCombiButton').addEventListener('click',function() {
+id('combineButton').addEventListener('click',function() {
     // if selection.length>1 display saveCombiDialog
 });
 // STYLES
@@ -1104,6 +1183,8 @@ id('shadeMenu').addEventListener('click',function() {
     else {
         if(elID) { // change selected element
             element=id(elID);
+            console.log('element '+elID+' is '+type(element));
+            if(type(element)=='line') return; // lines never have fill
             element.setAttribute('fill',val);
             // console.log('set element '+element.id+' fill shade to '+val);
             updateGraph(element.id,['fill',val]);
@@ -1126,10 +1207,8 @@ id('graphic').addEventListener('pointerdown',function() {
     scr.y=Math.round(event.clientY);
     x=x0=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=y0=Math.round(scr.y*scaleF/zoom+dwg.y);
-    // TEST FOR TOUCHING EDIT HANDLES
     var val=event.target.id;
     console.log('touch on '+val);
-    // NEW CODE
     if(val=='anchor') { // can move either anchor or selected elements
         if(selection.length<1) {
             element=id(val);
@@ -1143,7 +1222,6 @@ id('graphic').addEventListener('pointerdown',function() {
         mode='move';
         // return;
     }
-    //
     var holder=event.target.parentNode.id;
     console.log('holder is '+holder);
     if((holder=='selection')&&(mode!='anchor')) { // click on a blue box to move multiple selectin
@@ -1164,7 +1242,7 @@ id('graphic').addEventListener('pointerdown',function() {
             mode='move';
             offset.x=bounds.x-x0; // offsets to top-left corner
             offset.y=bounds.y-y0;
-            console.log('offsets: '+dx+','+dy);
+            console.log('offsets: '+offset.x+','+offset.y);
             prompt('drag to MOVE');
             id('textDialog').style.display='none';
         }
@@ -1261,8 +1339,8 @@ id('graphic').addEventListener('pointerdown',function() {
             element=id('bluePolyline');
             elID='bluePolyline';
             var point=id('svg').createSVGPoint();
-                point.x=x;
-                point.y=y;
+            point.x=x;
+            point.y=y;
             if(element.points.length<2) { // start polyline...
                 element.points[0]=point;
             }
@@ -1271,8 +1349,25 @@ id('graphic').addEventListener('pointerdown',function() {
                 x0=point.x;
                 y0=point.y;
             }
-            id('bluePolyline').points.appendItem(point); // ...create first (zero-length) segment
-            prompt('LINES: drag to next point; tap twice to end'); // JUST PROMPT?
+            id('bluePolyline').points.appendItem(point);
+            prompt('LINES: drag to next point; tap twice to end');
+            break;
+        case 'shape':
+            element=id('bluePolyline');
+            elID='bluePolyline';
+            var point=id('svg').createSVGPoint();
+            point.x=x;
+            point.y=y;
+            if(element.points.length<2) { // start polyline...
+                element.points[0]=point;
+            }
+            else {
+                point=element.points[element.points.length-1];
+                x0=point.x;
+                y0=point.y;
+            }
+            id('bluePolyline').points.appendItem(point);
+            prompt('SHAPE: drag to next point; finish on start point');
             break;
         case 'box':
             id('blueBox').setAttribute('x',x0);
@@ -1312,10 +1407,10 @@ id('graphic').addEventListener('pointerdown',function() {
                 var s=(combi.nts>0)?scale:1;
 	            graph.x=x0-combi.ax*s;
 	            graph.y=y0-combi.ay*s;
-	            graph.width=combi.width;
-	            graph.height=combi.height;
-	            graph.ax=x0;
-	            graph.ay=y0;
+	            graph.ax=combi.ax*s;
+	            graph.ay=combi.ay*s;
+	            graph.width=combi.width*s;
+	            graph.height=combi.height*s;
 	            graph.spin=0;
 	            graph.flip=0;
 	            addGraph(graph);
@@ -1331,7 +1426,7 @@ id('graphic').addEventListener('pointerdown',function() {
             showSizes(true,'SELECT: drag selection box');
     }
     event.stopPropagation();
-})
+});
 // POINTER MOVE
 id('graphic').addEventListener('pointermove',function() {
     // console.log('DRAG - offsets: '+dx+','+dy);
@@ -1426,6 +1521,7 @@ id('graphic').addEventListener('pointermove',function() {
             id('ref').setAttribute('viewBox',dx+' '+dy+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
             break;
         case 'line':
+        case 'shape':
             if(Math.abs(x-x0)<snapD) x=x0; // snap to vertical
             if(Math.abs(y-y0)<snapD) y=y0; // snap to horizontal
             var n=element.points.length;
@@ -1554,10 +1650,10 @@ id('graphic').addEventListener('pointermove',function() {
             setSizes();
     }
     event.stopPropagation();
-})
+});
 // POINTER UP
 id('graphic').addEventListener('pointerup',function() {
-    // console.log('touch-end at '+x+','+y);
+    console.log('touch-end at '+x+','+y+' mode: '+mode);
     snap=snapCheck();
     if(mode.startsWith('movePoint')) { // move polyline point
         id('handles').innerHTML='';
@@ -1567,6 +1663,7 @@ id('graphic').addEventListener('pointerup',function() {
         element.points[n].y=y;
         id('bluePolyline').setAttribute('points','0,0');
         updateGraph(elID,['points',element.getAttribute('points')]);
+        /* COULD REPLACE THIS WITH refreshNodes(el)
         var elNodes=nodes.filter(belong);
         // console.log(elNodes.length+' nodes found');
         for(var i=0; i<elNodes.length;i++) {
@@ -1574,6 +1671,8 @@ id('graphic').addEventListener('pointerup',function() {
             elNodes[i].x=element.points[i].x;
             elNodes[i].y=element.points[i].y;
         }
+        */
+        refreshNodes(element);
         mode='select';
         elID=null;
         selection=[];
@@ -1617,6 +1716,7 @@ id('graphic').addEventListener('pointerup',function() {
                 console.log('element type: '+val);
                 switch(val) {
                     case 'line':
+                    case 'shape':
                         console.log('move all points by '+dx+','+dy);
                         for(var i=0;i<element.points.length;i++) {
                             element.points[i].x+=dx;
@@ -1655,7 +1755,7 @@ id('graphic').addEventListener('pointerup',function() {
                         arc.y2+=dy;
                         d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.sweep+' '+arc.x2+','+arc.y2;
                         element.setAttribute('d',d);
-                        updateGraph(elID,['cx',arc.cx,'cy',arc.cy,'x1',arc.x1,'x2',arc.x2,'y2',arc.y2]);
+                        updateGraph(elID,['cx',arc.cx,'cy',arc.cy,'x1',arc.x1,'y1',arc.y1,'x2',arc.x2,'y2',arc.y2]);
                         break;
                     case 'anchor':
                         // x=parseInt(element.getAttribute('cx'))+dx;
@@ -1664,11 +1764,7 @@ id('graphic').addEventListener('pointerup',function() {
                         element.setAttribute('cy',y);
                         break;
                 }
-                var elementNodes=nodes.filter(belong);
-                for(var i=0; i<elementNodes.length;i++) {
-                    elementNodes[i].x+=dx;
-                    elementNodes[i].y+=dy;
-                }
+                refreshNodes(element);
             }
             id('selection').setAttribute('transform','translate(0,0)');
             id('selection').innerHTML='';
@@ -1687,6 +1783,7 @@ id('graphic').addEventListener('pointerup',function() {
             // updateGraph(elID,'height',dy);
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
+            /* COULD REPLACE THIS WITH refreshNodes(el)
             var elNodes=nodes.filter(belong);
             elNodes[0].x=elNodes[2].x=elNodes[5].x=element.getAttribute('x'); // left edge
             elNodes[0].y=elNodes[1].y=elNodes[4].y=element.getAttribute('y'); // top edge
@@ -1695,6 +1792,8 @@ id('graphic').addEventListener('pointerup',function() {
             elNodes[4].x=elNodes[7].x=elNodes[8].x=element.getAttribute('x')+element.getAttribute('width')/2; // mid-width
             elNodes[5].y=elNodes[6].y=elNodes[8].y=element.getAttribute('y')+element.getAttribute('height')/2; // mid-height
             elNodes[0].el=elNodes[1].el=elNodes[2].el=elNodes[3].el=elNodes[4].el=elNodes[5].el=elNodes[6].el=elNodes[7].el=elNodes[8].el=elID;
+            */
+            refreshNodes(element);
             mode='select';
             elID=null;
             selection=[];
@@ -1709,11 +1808,14 @@ id('graphic').addEventListener('pointerup',function() {
             element.setAttribute('ry',dy);
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
+            /* COULD REPLACE THIS WITH refreshNodes(el)
             var elementNodes=nodes.filter(belong);
             for(var i=0; i<elementNodes.length;i++) {
                 elementNodes[i].x=x0+dx;
                 elementNodes[i].y=y0+dy;
             }
+            */
+            refreshNodes(element);
             mode='select';
             elID=null;
             selection=[];
@@ -1745,6 +1847,7 @@ id('graphic').addEventListener('pointerup',function() {
             var d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.sweep+' '+arc.x2+','+arc.y2;
             element.setAttribute('d',d);
             updateGraph(elID,['x1',arc.x1,'y1',arc.y1,'x2',arc.x2,'y2',arc.y2,'r',arc.r]);
+            /* COULD REPLACE THIS WITH refreshNodes(el)
             var arcNodes=nodes.filter(belong);
             console.log(arcNodes.length+' arc nodes');
             arcNodes[0].x=arc.cx;
@@ -1753,6 +1856,8 @@ id('graphic').addEventListener('pointerup',function() {
             arcNodes[1].y=arc.y1;
             arcNodes[2].x=arc.x2;
             arcNodes[2].y=arc.y2;
+            */
+            refreshNodes(element);
             id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
             mode='select';
@@ -1802,6 +1907,40 @@ id('graphic').addEventListener('pointerup',function() {
                 showSizes(false);
                 mode='select';
             }
+            break;
+        case 'shape':
+            if(snap) {  // adjust previous point to snap target
+                var n=element.points.length;
+                var point=element.points[n-1];
+                point.x=x;
+                point.y=y;
+                element.points[n-1]=point;
+            }
+            point=element.points[0]; // start point
+            console.log('at '+x+','+y+' start at '+point.x+','+point.y);
+            dx=x-point.x;
+            dy=y-point.y;
+            var d=Math.sqrt(dx*dx+dy*dy);
+            if(d>snapD) break; // check if close to start point - if not, continue
+            console.log('end polyline & create shape');
+            var points=''; // remove duplicate end-point
+            for(var i=0;i<id('bluePolyline').points.length-1;i++) {
+                points+=id('bluePolyline').points[i].x+','+id('bluePolyline').points[i].y+' ';
+            }
+            console.log('points: '+points);
+            var graph={}; // create polygon element
+            graph.type='shape';
+	        graph.points=points;
+	        graph.spin=0;
+	        graph.stroke=lineShade;
+	        graph.lineW=(pen*scale);
+	        graph.lineStyle=lineType;
+	        graph.fill=fillShade;
+	        addGraph(graph);
+	        id('bluePolyline').setAttribute('points','0,0');
+            element=elID=null;
+            showSizes(false);
+            mode='select';
             break;
         case 'box':
             var graph={}
@@ -1905,8 +2044,8 @@ id('graphic').addEventListener('pointerup',function() {
 	        graph.stroke=lineShade
 	        graph.lineStyle=lineType;
 	        graph.lineW=pen*scale;
-	        graph.fill=fillShade;
-	        graph.opacity=opacity;
+	        graph.fill='none'; // arcs default to no fill
+	        graph.opacity=0;
 	        addGraph(graph);
             id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
@@ -2067,7 +2206,14 @@ id('graphic').addEventListener('pointerup',function() {
                 if(selection.length>0) { // highlight selected elements
                     mode='edit';
                     showEditTools(true);
-                    return; // TRY - ALLOWS CLICKING OFF TO CLEAR SELECTION
+                    console.log(selection.length+' elements selected');
+                    if(selection.length<2) {
+                        console.log('only one selection');
+                        elID=selection[0];
+                        element=id(elID);
+                        setStyle(element);
+                    }
+                    return;
                 }
             }
             showSizes(false);
@@ -2103,7 +2249,8 @@ id('graphic').addEventListener('pointerup',function() {
                     if(selection.length<2) { // only item selected
                         elID=hit;
                         element=id(elID);
-                        // set style to suit selected element
+                        setStyle(element); // set style to suit selected element
+                        /*
                         if(type(el)!='combi') { // combis have no style attributes
                             var val=el.getAttribute('stroke-dasharray');
                             if(!val) {
@@ -2156,11 +2303,13 @@ id('graphic').addEventListener('pointerup',function() {
                                 if(val=='bold') id('textStyle').value='bold';
                             }
                         }
+                        */
                         // add handles and node markers to single selected item
                         id('handles').innerHTML=''; // clear any handles then add handles for selected element 
                         console.log('add handles and node markers');
                         switch(type(el)) {
                             case 'line':
+                            case 'shape':
                                 var bounds=el.getBBox();
                                 w=bounds.width;
                                 h=bounds.height;
@@ -2175,6 +2324,7 @@ id('graphic').addEventListener('pointerup',function() {
                                     id('handles').innerHTML+=html; // remaining handles move nodes
                                 }
                                 showSizes(true,'LINE');
+                                if(mode=='shape') prompt('SHAPE');
                                 mode='edit';
                                 break;
                             case 'box':
@@ -2187,6 +2337,10 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('handles').innerHTML+=html; // top-left circle handle at top-left used to move whole box
                                 html="<rect id='handleSE' x='"+(x+w-handleR)+"' y='"+(y+h-handleR)+"' width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
                                 id('handles').innerHTML+=html; // bottom-right handle adjusts box size keeping aspect ratio
+                                id('blueBox').setAttribute('x',x); // SET blueBox TO MATCH BOX (WITHOUT SPIN)
+                                id('blueBox').setAttribute('y',y);
+                                id('blueBox').setAttribute('width',w);
+                                id('blueBox').setAttribute('height',h);
                                 setSizes(false);
                                 showSizes(true,(w==h)?'SQUARE':'BOX');
                                 mode='edit';
@@ -2200,6 +2354,10 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('handles').innerHTML+=html; // hollow circle handle at centre used to move whole box
                                 html="<rect id='handleSize' x="+(x+w/2-handleR)+" y="+(y+h/2-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>"
                                 id('handles').innerHTML+=html; // square handle adjusts ellipse size
+                                id('blueBox').setAttribute('x',(x-w/2)); // SET blueBox TO MATCH OVAL (WITHOUT SPIN)
+                                id('blueBox').setAttribute('y',(y-h/2));
+                                id('blueBox').setAttribute('width',w);
+                                id('blueBox').setAttribute('height',h);
                                 setSizes(false);
                                 showSizes(true,(w==h)?'CIRCLE':'OVAL');
                                 mode='edit';
@@ -2262,8 +2420,13 @@ id('graphic').addEventListener('pointerup',function() {
                                 mode='edit';
                                 break;
                             case 'combi':
-                                var bounds=getBounds(el);
-                                var html="<circle id='handle' cx='"+el.getAttribute('ax')+"' cy='"+el.getAttribute('ay')+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+                                // var bounds=getBounds(el);
+                                x=Number(el.getAttribute('x'));
+                                y=Number(el.getAttribute('y'));
+                                s=Number(el.getAttribute('scale'));
+                                x+=Number(el.getAttribute('ax'));
+                                y+=Number(el.getAttribute('ay'));
+                                var html="<circle id='handle' cx='"+x+"' cy='"+y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
                                 id('handles').innerHTML=html;
                                 setSizes();
                                 showSizes(true,'COMBI '+combi.name);
@@ -2276,7 +2439,7 @@ id('graphic').addEventListener('pointerup',function() {
                                 mode='edit';
                                 break;
                         };
-                        for(var i=0;i<nodes.length;i++) {
+                        for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
                             if(nodes[i].el!=elID) continue;
                             var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"' stroke='blue' stroke-width='"+0.25*scale+"' fill='none'/>";
                             console.log('node at '+nodes[i].x+','+nodes[i].y);
@@ -2317,6 +2480,8 @@ id('graphic').addEventListener('pointerup',function() {
                 showSizes(false);
                 showEditTools(false);
                 id('textDialog').style.display='none';
+                setStyle(); // set styles to defaults
+                /*
                 // console.log('set lineType to current default: '+lineType);
                 id('lineType').value=lineType;
                 // console.log('set border to '+lineType+' pen: '+pen+' shade: '+lineShade);
@@ -2327,11 +2492,12 @@ id('graphic').addEventListener('pointerup',function() {
                 id('line').style.borderColor=lineShade;
                 id('fill').style.opacity=opacity;
                 id('opacity').value=opacity;
+                */
             }
             event.stopPropagation();
     }
     event.stopPropagation();
-})
+});
 // ADJUST ELEMENT SIZES
 id('first').addEventListener('change',function() {
     var val=parseInt(id('first').value);
@@ -2339,6 +2505,7 @@ id('first').addEventListener('change',function() {
     element=id(elID);
     switch(type(element)) {
         case 'line':
+        case 'shape':
             // console.log('element: '+element.id);
             if(elID=='bluePolyline') { // adjust length of latest line segment
                 var n=element.points.length;
@@ -2364,20 +2531,24 @@ id('first').addEventListener('change',function() {
                 w=bounds.width;
                 var ratio=val/w;
                 var points=element.points;
+                /* COULD REPLACE WITH refreshNodes(element)
                 var elNodes=nodes.filter(belong);
                 for(i=0;i<elNodes.length;i++) {
                     elNodes[i].x=points[0].x+(elNodes[i].x-points[0].x)*ratio;
                 }
+                */
                 for(i=1;i<points.length;i++) { // points[0] is start - not affected
                     points[i].x=points[0].x+(points[i].x-points[0].x)*ratio;
+                    console.log('point '+i+' adjusted');
                 }
                 var pts=[];
-                var elNodes=nodes.filter(belong);
+                // WHY? var elNodes=nodes.filter(belong);
 	            for(var i=0;i<points.length;i++) {
 	                pts.push(points[i].x);
 	                pts.push(points[i].y);
 	            }
                 updateGraph(elID,['points',pts]); // UPDATE DB
+                refreshNodes(element);
                 id('handles').innerHTML='';
                 mode='select';
             }
@@ -2388,13 +2559,15 @@ id('first').addEventListener('change',function() {
             var elW=parseInt(element.getAttribute('width'));
             element.setAttribute('width',val);
             updateGraph(elID,['width',val]);
-            // console.log('move nodes and handles');
+            /* COULD REPLACE WITH refreshNodes(element)
             var elNodes=nodes.filter(belong);
             for(var i=0;i<elNodes.length;i++) { // adjust x-values of nodes...
                 if(elNodes[i].x==elX) continue;
                 else if(elNodes[i].x==(elX+elW)) elNodes[i].x=elX+val; // RH edge
                 else elNodes[i].x=elX+val/2; // mid-width nodes
             }
+            */
+            refreshNodes(element);
             id('handles').innerHTML='';
             mode='select';
             /* ...then move RH edit handles
@@ -2406,6 +2579,7 @@ id('first').addEventListener('change',function() {
             element.setAttribute('rx',val/2);
             updateGraph(elID,['rx',val/2]);
             var elX=parseInt(element.getAttribute('cx'));
+            /* COULD REPLACE WITH refreshNodes(element)
             var ovalNodes=nodes.filter(belong);
             for(var i=0;i<ovalNodes.length;i++) { // adjust two RH nodes...
                 if(ovalNodes[i].x!=elX) {
@@ -2413,6 +2587,8 @@ id('first').addEventListener('change',function() {
                     else ovalNodes[i].x=elX+val/2;
                 }
             }
+            */
+            refreshNodes(element);
             id('handles').innerHTML='';
             mode='select';
             // id('handleSize').setAttribute('x',(elX+val/2-handleR));
@@ -2443,6 +2619,7 @@ id('first').addEventListener('change',function() {
             updateGraph(elID,['x1',arc.x1,'y1',arc.y1,'x2',arc.x2,'y2',arc.y2,'r',arc.r]);
             id('handles').innerHTML='';
             mode='select';
+            /* COULD REPLACE WITH refreshNodes(element)
             var elNodes=nodes.filter(belong);
             console.log(elNodes.length+' arc nodes');
             elNodes[0].x=arc.cx;
@@ -2451,15 +2628,18 @@ id('first').addEventListener('change',function() {
             elNodes[1].y=arc.y1;
             elNodes[2].x=arc.x2;
             elNodes[2].y=arc.y2;
+            */
+            refreshNodes(element);
             break;
     }
-})
+});
 id('second').addEventListener('change',function() {
     var val=parseInt(id('second').value);
     element=id(elID);
     // console.log('element '+element+' type: '+type(element)+' value changed to '+val);
     switch(type(element)) {
         case 'line':
+        case 'shape':
             // console.log('element: '+element.id);
             if(elID=='bluePolyline') { // adjust angle of latest line segment
                 var n=element.points.length;
@@ -2502,11 +2682,13 @@ id('second').addEventListener('change',function() {
                 h=bounds.height;
                 var ratio=val/h;
                 var points=element.points;
+                /* COULD REPLACE WITH refreshNodes(element)
                 var elNodes=nodes.filter(belong);
                 for(i=0;i<elNodes.length;i++) {
                     elNodes[i].y=points[0].y+(elNodes[i].y-points[0].y)*ratio;
                 }
-                var elNodes=nodes.filter(belong);
+                */
+                // WHY? var elNodes=nodes.filter(belong);
                 for(i=1;i<points.length;i++) { // points[0] is start - not affected
                     points[i].y=points[0].y+(points[i].y-points[0].y)*ratio;
                 }
@@ -2516,6 +2698,7 @@ id('second').addEventListener('change',function() {
 	                pts.push(points[i].y);
 	            }
                 updateGraph(elID,['points',pts]);
+                refreshNodes(element);
                 id('handles').innerHTML='';
                 mode='select';
             }
@@ -2527,13 +2710,15 @@ id('second').addEventListener('change',function() {
             var elH=parseInt(element.getAttribute('height'));
             element.setAttribute('height',val);
             updateGraph(elID,['height',val]);
-            // console.log('move nodes and handles');
+            /* COULD REPLACE WITH refreshNodes(element)
             var elNodes=nodes.filter(belong);
             for(var i=0;i<elNodes.length;i++) { // adjust y-value of nodes...
                 if(elNodes[i].y==elY) continue;
                 else if(elNodes[i].y==(elY+elH)) elNodes[i].y=elY+val; // bottom edge
                 else elNodes[i].y=elY+val/2; // mid-height
             } // ...then move lower edit handles
+            */
+            refreshNodes(element);
             // console.log('lower handles.y: '+(elY+val-handleR));
             id('handles').innerHTML='';
             mode='select';
@@ -2545,6 +2730,7 @@ id('second').addEventListener('change',function() {
             element.setAttribute('ry',val/2);
             updateGraph(elID,['ry',val/2]);
             var elY=parseInt(element.getAttribute('cy'));
+            /* COULD REPLACE WITH refreshNodes(element)
             var ovalNodes=nodes.filter(belong);
             for(var i=0;i<ovalNodes.length;i++) { // adjust top & bottom nodes...
                 if(ovalNodes[i].y!=elY) {
@@ -2552,6 +2738,8 @@ id('second').addEventListener('change',function() {
                     else ovalNodes[i].y=elY+val/2;
                 }
             }
+            */
+            refreshNodes(element);
             id('handles').innerHTML='';
             mode='select';
             // id('handleSize').setAttribute('y',(elY+val/2-handleR));
@@ -2571,6 +2759,7 @@ id('second').addEventListener('change',function() {
             d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.sweep+' '+arc.x2+','+arc.y2;
             element.setAttribute('d',d);
             updateGraph(elID,['d',d,'x2',x,'y2',y,'sweep',arc.sweep]);
+            /* COULD REPLACE WITH refreshNodes(element)
             var arcNodes=nodes.filter(belong);
             for(var i=0;i<arcNodes.length;i++) { // end node
                 var node=arcNodes[i];
@@ -2580,6 +2769,8 @@ id('second').addEventListener('change',function() {
                     node.y=arc.y2;
                 }
             }
+            */
+            refreshNodes(element);
             id('handles').innerHTML='';
             mode='select';
             /*
@@ -2587,7 +2778,31 @@ id('second').addEventListener('change',function() {
             id('handleEnd').setAttribute('y',(arc.y2-handleR));
             */
     }
-})
+});
+id('spin').addEventListener('change',function() {
+    var val=parseInt(id('spin').value);
+    console.log('set spin to '+val+' degrees');
+    spin(element,val);
+    /*
+    switch(type(element)) {
+        case 'line':
+        case 'shape':
+            // spin around first point
+            break;
+        case 'box':
+        case 'text':
+            // spin around x,y
+            x=element.getAttribute('x');
+            y=element.getAttribute('y');
+            spin(element,val);
+            break;
+        case 'oval':
+        case 'arc':
+            // spin around cx,cy
+            break;
+    }
+    */
+});
 // UTILITY FUNCTIONS
 function id(el) {
 	return document.getElementById(el);
@@ -2703,6 +2918,9 @@ function type(el) {
     if(el instanceof SVGPolylineElement) {
         return 'line';
     }
+    else if(el instanceof SVGPolygonElement) {
+        return'shape';
+    }
     else if(el instanceof SVGRectElement) {
         return 'box';
     }
@@ -2740,11 +2958,76 @@ function prompt(text) {
     id('prompt').style.display='block';
     setTimeout(function(){id('prompt').style.display='none'},5000);
 }
+function setStyle(el) {
+    console.log('*** set style ***');
+    if(!el ||(type(el)=='combi')||(type(el)=='dim')) { // no element/combi/dimension - show default styles
+        id('lineType').value=lineType;
+        id('line').style.borderStyle=lineType;
+        id('line').style.borderWidth=pen+'mm';
+        id('lineShade').style.backgroundColor=lineShade;
+        id('line').style.borderColor=lineShade;
+        id('fill').style.backgroundColor=fillShade;
+        id('fill').style.opacity=opacity;
+        id('opacity').value=opacity;
+    }
+    else { // show styles for element el
+        var val=el.getAttribute('stroke-dasharray');
+        if(!val) {
+            id('lineType').value='solid';
+            id('line').style.borderStyle='solid';
+        }
+        else {
+            if(parseInt(val)==scaleF) {
+                id('lineType').value='dotted';
+                id('line').style.borderStyle='dotted';
+            }
+            else {
+                id('lineType').value='dashed';
+                id('line').style.borderStyle='dashed';
+            }
+        }
+        val=el.getAttribute('stroke-width');
+        if(val) id('line').style.borderWidth=(val/scaleF)+'px';
+        val=el.getAttribute('stroke');
+        if(val) {
+            id('lineShade').style.backgroundColor=val;
+            id('line').style.borderColor=val;
+        }
+        val=el.getAttribute('fill');
+        if(val=='none') {
+            id('fill').style.background='#00000000';
+            id('fillShade').style.backgroundColor='white';
+        }
+        else {
+            if(type(element)=='text') {
+                id('lineShade').style.backgroundColor=val;
+            }
+            else {
+                id('fillShade').style.backgroundColor=val;
+                id('fill').style.background=val;
+            }
+        }
+        val=el.getAttribute('fill-opacity');
+        if(val) {
+            id('opacity').value=val;
+            id('fill').style.opacity=val;
+        }
+        if(type(element)=='text') {
+            val=el.getAttribute('font-size');
+            id('textSize').value=val;
+            id('textStyle').value='fine';
+            val=el.getAttribute('font-style');
+            if(val=='italic') id('textStyle').value='italic';
+            val=el.getAttribute('font-weight');
+            if(val=='bold') id('textStyle').value='bold';
+        } 
+    }
+}
 function showSizes(visible,promptText) {
     id('sizes').style.display=(visible)?'block':'none';
     if(visible) prompt(promptText);
 }
-function setSizes(polar,angle) {
+function setSizes(polar,angle,spin) {
     if(polar) {
         w=x-x0;
         h=y-y0;
@@ -2769,7 +3052,7 @@ function setSizes(polar,angle) {
         id('after').innerHTML='mm';
     }
     // PUT ELEMENT SPIN INTO 'spin' BOX - ZERO FOR NOW
-    id('spin').value=0;
+    id('spin').value=(spin)?spin:0;
 }
 function getAngle(x0,y0,x1,y1) {
     var dx=x1-x0;
@@ -2781,6 +3064,7 @@ function getAngle(x0,y0,x1,y1) {
     return a;
 }
 function getArc(d) {
+    arc={};
     console.log('get arc from: '+d);
     var from=1;
     var to=d.indexOf(',');
@@ -2828,13 +3112,14 @@ function remove(elID,keepNodes) {
 }
 function move(el,dx,dy) {
     switch(type(el)) {
-        case 'polyline':
+        case 'line':
+        case 'shape':
             console.log('move all points by '+dx+','+dy);
             for(var i=0;i<el.points.length;i++) {
                 el.points[i].x+=dx;
                 el.points[i].y+=dy;
             }
-            // console.log(element.points.length+' points adjusted');
+            console.log(element.points.length+' points adjusted');
             updateGraph(el.id,['points',el.getAttribute('points')]);
             break;
         case 'box':
@@ -2881,15 +3166,128 @@ function move(el,dx,dy) {
             */
             break;
     }
+    /* COULD REPLACE WITH refreshNodes(element)
     for(var i=0;i<nodes.length;i++) {
         if(nodes[i].el==el.id) { // move nodes
             nodes[i].x+=dx;
             nodes[i].y+=dy;
         }
     }
+    */
+    refreshNodes(el);
+    // MOVE ANY LINKED DIMENSIONS TOO
 }
-function belong(node) {
+function spin(el,angle) {
+    console.log('spin element '+el.id+' to '+angle+' degrees');
+    // angle+=90;
+    angle%=360; // compass bearing
+    var request=db.transaction('graphs').objectStore('graphs').get(Number(el.id));
+    request.onsuccess=function(event) {
+        var graph=request.result;
+        console.log('got '+graph.type+' graph '+graph.id+' flip: '+graph.flip+' spin: '+graph.spin);
+        switch(type(el)) {
+            case 'line':
+            case 'shape':
+                // spin around first point or anchor - adjust points then refreshNodes
+                break;
+            case 'box':
+            case 'text':
+                // spin around x,y
+                x=graph.x;
+                y=graph.y;
+                // INCORPORATE ANY FLIP
+                el.setAttribute('spin',angle);
+                var t='rotate('+angle+','+x+','+y+')';
+                el.setAttribute('transform',t);
+                updateGraph(el.id,['spin',angle]);
+                // UPDATE GRAPH
+                // refreshNodes (none for text)
+                // MOVE DIMENSIONS?
+                break;
+            case 'oval':
+            case 'arc':
+                // spin around cx,cy
+                break;
+            case 'combi':
+                // spin around ax,ay or anchor (nodes unaffected if spin in-situ)
+        }
+    }
+    request.onerror=function(event) {
+        console.log('error spinning element');
+    }
+}
+/* function belong(node) {
     return node.el==elID;
+} */
+function refreshNodes(el) {
+    // recalculate node.x, node.y after change to element
+    var elNodes=nodes.filter(function(node) {
+        return Number(node.el)==Number(el.id);
+    });
+    console.log('refresh '+elNodes.length+' nodes for element '+el.id);
+    switch(type(el)) {
+        case 'line':
+        case 'shape':
+            var points=el.points;
+            console.log(points.length+' points');
+            for(var i=0;i<points.length;i++) {
+                elNodes[i].x=Number(points[i].x);
+                elNodes[i].y=Number(points[i].y);
+                console.log('node '+i+': '+elNodes[i].x+','+elNodes[i].y);
+            }
+            break;
+        case 'box':
+            x=Number(el.getAttribute('x'));
+            y=Number(el.getAttribute('y'));
+            w=Number(el.getAttribute('width'));
+            h=Number(el.getAttribute('height'));
+            a=Number(el.getAttribute('spin'));
+            a*=Math.PI/180;
+            var c=Math.cos(a);
+            var s=Math.sin(a);
+            console.log(' spin: '+a+' radians cos: '+c+' sine: '+s);
+            elNodes[0].x=x; // top/left
+            elNodes[0].y=y;
+            elNodes[1].x=(x+w*c); // top/right
+            elNodes[1].y=(y+h*s);
+            elNodes[2].x=(x+w*c-h*s); // bottom/right
+            elNodes[2].y=(y+w*s+h*c);
+            elNodes[3].x=(x-h*s); // bottom/left
+            elNodes[3].y=(y+h*c);
+            break;
+        case 'oval':
+            x=Number(el.getAttribute('cx'));
+            y=Number(el.getAttribute('cy'));
+            var rx=Number(el.getAttribute('rx'));
+            var ry=Number(el.getAttribute('ry'));
+            elNodes[0].x=x; // centre
+            elNodes[0].y=y;
+            elNodes[1].x=x; // top
+            elNodes[1].y=(y-ry);
+            elNodes[2].x=(x+rx); // right
+            elNodes[2].y=y;
+            elNodes[3].x=x; // bottom
+            elNodes[3].y=(y+ry);
+            elNodes[4].x=(x-rx); // left
+            elNodes[4].y=y;
+            break;
+        case 'arc':
+            var d=el.getAttribute('d');
+            console.log('arc path: '+d);
+            // var arc=getArc(d); SHOULD ALREADY HAVE arc
+            elNodes[0].x=arc.cx; // centre
+            elNodes[0].y=arc.cy;
+            elNodes[1].x=arc.x1; // start point
+            elNodes[1].y=arc.y1;
+            elNodes[2].x=arc.x2; // end point
+            elNodes[2].y=arc.y2;
+            console.log('arc centre node: '+elNodes[0].x+','+elNodes[0].y);
+            break;
+        case 'combi':
+            elNodes[0].x=Number(el.getAttribute('ax'));
+            elNodes[0].y=Number(el.getAttribute('ay'));
+            break;
+    }
 }
 function snapCheck() {
     // console.log('check for snap-to-node');
@@ -3051,7 +3449,7 @@ function drawElement(el) {
 			// DEAL WITH ANY SPIN - transform='rotate('+el.spin+' '+X,Y+')';
 			// if(el.transform) html+="' transform='"+el.transform;
 			html+="'/>";
-			console.log('polyline html: '+html);
+			console.log('line html: '+html);
 			if(el.stroke=='blue') id('ref').innerHTML+=html;
 			else id('dwg').innerHTML+=html;
 			el=id(el.id); // get nodes from draw polyline
@@ -3069,9 +3467,28 @@ function drawElement(el) {
                 */
             }
             break;
+        case 'shape':
+            var html="<polygon id='"+el.id+"' points='"+el.points+"' ";
+            html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
+			if(el.lineStyle=='dashed') html+="stroke-dasharray='"+(3*scaleF)+" "+(3*scaleF)+"' ";
+            else if(el.lineStyle=='dotted') html+="stroke-dasharray='"+scale+" "+scale+"' ";
+			html+="fill='"+el.fill;
+			// DEAL WITH ANY SPIN - transform='rotate('+el.spin+' '+X,Y+')';
+			// if(el.transform) html+="' transform='"+el.transform;
+			html+="'/>";
+			console.log('shape html: '+html);
+			if(el.stroke=='blue') id('ref').innerHTML+=html;
+			else id('dwg').innerHTML+=html;
+			el=id(el.id); // get nodes from draw polygon
+			console.log('el '+el.id+' points: '+el.points);
+			for(i=0;i<el.points.length;i++) {
+                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id});
+            }
+            break;
         case 'box':
             console.log('draw box '+el.id+' at '+el.x+','+el.y);
-            var html="<rect id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' rx='"+el.radius+"' stroke=";
+            var html="<rect id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' rx='"+el.radius+"' ";
+            html+=" spin='"+el.spin+"' transform='rotate("+el.spin+","+el.x+","+el.y+")' stroke=";
             // ADD SPIN - transform='rotate('+el.spin,X,Y BEFORE STYLE PROPERTIES
             switch(el.lineStyle) {
                     case 'solid':
@@ -3088,17 +3505,26 @@ function drawElement(el) {
                 if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
                 else id('dwg').innerHTML+=html;
                 // element=id(el.id);
-                // add nodes at corners...
-                nodes.push({'x':Number(el.x),'y':Number(el.y),'el':el.id});
-                nodes.push({'x':Number(el.x)+Number(el.width),'y':Number(el.y),'el':el.id});
-                nodes.push({'x':Number(el.x),'y':Number(el.y)+Number(el.height),'el':el.id});
-                nodes.push({'x':Number(el.x)+Number(el.width),'y':Number(el.y)+Number(el.height),'el':el.id});
-                // ...and centre and middle of each edges
+                // add nodes at corners...clockwise from top-left
+                x=parseInt(el.x);
+                y=parseInt(el.y);
+                w=parseInt(el.width);
+                h=parseInt(el.height);
+                var a=el.spin*Math.PI/180;
+                var c=Math.cos(a);
+                var s=Math.sin(a);
+                console.log('top/left: '+x+','+y+' size: '+w+'x'+h+' spin: '+a+' radians cos: '+c+' sine: '+s);
+                nodes.push({'x':x,'y':y,'el':el.id}); // top/left
+                nodes.push({'x':Number(x+w*c),'y':Number(y+w*s),'el':el.id}); // top/right
+                nodes.push({'x':Number(x+w*c-h*s),'y':Number(y+w*s+h*c),'el':el.id}); // bottom/right
+                nodes.push({'x':(x-h*s),'y':(y+h*c),'el':el.id}); // bottom/left
+                /* ...and centre and middle of each edges DISABLED!!
                 nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y)+Number(el.height)/2,'el':el.id});
                 nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y),'el':el.id});
                 nodes.push({'x':Number(el.x)+Number(el.width)/2,'y':Number(el.y)+Number(el.height),'el':el.id});
                 nodes.push({'x':el.x,'y':Number(el.y)+Number(el.height)/2,'el':el.id});
                 nodes.push({'x':Number(el.x)+Number(el.width),'y':Number(el.y)+Number(el.height)/2,'el':el.id});
+                */
                 break;
             case 'oval':
                 var html="<ellipse id='"+el.id+"' cx='"+el.cx+"' cy='"+el.cy+"' rx='"+el.rx+"' ry='"+el.ry+"' stroke=";
@@ -3119,11 +3545,11 @@ function drawElement(el) {
                 console.log('oval svg: '+html);
                 if(el.stroke=='blue') id('ref').innerHTML+=html;
                 else id('dwg').innerHTML+=html;
-                nodes.push({'x':el.cx,'y':el.cy,'el':el.id});
-                nodes.push({'x':el.cx-el.rx,'y':el.cy,'el':el.id});
-                nodes.push({'x':Number(el.cx)+Number(el.rx),'y':el.cy,'el':el.id});
-                nodes.push({'x':el.cx,'y':el.cy-el.ry,'el':el.id});
-                nodes.push({'x':el.cx,'y':Number(el.cy)+Number(el.ry),'el':el.id});
+                nodes.push({'x':el.cx,'y':el.cy,'el':el.id}); // centre then clockwise from...
+                nodes.push({'x':el.cx,'y':el.cy-el.ry,'el':el.id}); // ...top
+                nodes.push({'x':Number(el.cx)+Number(el.rx),'y':el.cy,'el':el.id}); // right
+                nodes.push({'x':el.cx,'y':Number(el.cy)+Number(el.ry),'el':el.id}); // bottom
+                nodes.push({'x':el.cx-el.rx,'y':el.cy,'el':el.id}); // left
                 // console.log('oval nodes added');
                 break;
             case 'arc':
@@ -3145,9 +3571,9 @@ function drawElement(el) {
                 if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
                 else id('dwg').innerHTML+=html;
                 // create nodes for arc start, centre & end points
-                nodes.push({'x':el.cx,'y':el.cy,'el':el.id});
-                nodes.push({'x':el.x1,'y':el.y1,'el':el.id});
-                nodes.push({'x':el.x2,'y':el.y2,'el':el.id});
+                nodes.push({'x':el.cx,'y':el.cy,'el':el.id}); // centre
+                nodes.push({'x':el.x1,'y':el.y1,'el':el.id}); // start
+                nodes.push({'x':el.x2,'y':el.y2,'el':el.id}); // end
                 break;
             case 'text':
                 var html="<text id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' ";
@@ -3200,7 +3626,7 @@ function drawElement(el) {
                 html+="<line x1='"+x1+"' y1='"+y1+"' x2='"+(x1+d)+"' y2='"+y1+"' ";
                 html+="marker-start='url(#startArrow)' marker-end='url(#endArrow)' ";
                 html+="stroke='gray' stroke-width='"+(0.25*scale)+"' fill='none'/>"
-                html+="<text x='"+(x1+d/2)+"' y='"+(y1-1)+"' style='text-anchor: middle; font-size:4pt; stroke:none; fill:gray'>"+Math.abs(d)+"</text>";
+                html+="<text x='"+(x1+d/2)+"' y='"+(y1-scale)+"' style='text-anchor: middle; font-size:"+(4*scale)+"; stroke:none; fill:gray'>"+Math.abs(d)+"</text>";
                 html+="</g>";
                 console.log('dimension html: '+html);
                 id('dwg').innerHTML+=html;
@@ -3217,16 +3643,21 @@ function drawElement(el) {
                 var s=(combi.nts>0)?scale:1;
                 h=el.flip&1; // horizontal flip 0 or 1
                 v=el.flip&2; // vertical flip 0 or 2
-                var t='translate('+(h*el.width)+','+(v*el.height/2)+') ';
-                t+='scale('+((h>0)? -1:1)*s+','+((v>0)? -1:1)*s+')';
+                var t='translate('+(h*el.width)+','+(v*el.height/2)+') scale(';
+                if(h>0) t+='-';
+                t+=s+',';
+                if(v>0) t+='-';
+                t+=s+')';
+                // t+='scale('+((h>0)? -1:1)*s+','+((v>0)? -1:1)*s+')';
                 // ADD SPIN (USING el.spin) TO TRANSFORM
                 console.log('apply transform '+t);
                 var html="<svg id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' ax='"+el.ax+"' ay='"+el.ay+"' scale='"+s+"' flip='"+el.flip+"'>";
+                // var html="<svg id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' width='"+(el.width*s)+"' height='"+(el.height*s)+"' ax='"+el.ax+"' ay='"+el.ay+"' scale='"+s+"' flip='"+el.flip+"'>";
                 // html+="<g transform='scale("+s+") "+el.transform+"'>"+combi.svg+"</g></svg>";
                 html+="<g transform='"+t+"'>"+combi.svg+"</g></svg>";
                 console.log('combi html: '+html);
                 id('dwg').innerHTML+=html;
-                nodes.push({'x':el.ax,'y':el.ay,'el':elID});
+                nodes.push({'x':(el.x+el.ax),'y':(el.y+el.ay),'el':el.id});
                 console.log("DONE");
                 break;
             case 'anchor':
@@ -3239,7 +3670,6 @@ function drawElement(el) {
                 break;
     }
 };
-// UPDATE DIMENSION AFTER LINKED ELEMENT(S) CHANGE
 function adjustDim(d,els,dx,dy) {
     console.log('redraw dimension '+d);
     var request=db.transaction('graphs').objectStore('graphs').get(Number(d));
@@ -3262,7 +3692,6 @@ function adjustDim(d,els,dx,dy) {
         console.log('get dimension failed');
     }
 }
-// REDRAW DIMENSION AFTER UPDATING
 function redrawDim(d,dx,dy) {
     var request=db.transaction('graphs','readwrite').objectStore('graphs').put(d);
     request.onsuccess=function(event) {
@@ -3311,7 +3740,6 @@ function redrawDim(d,dx,dy) {
         console.log('dimension update failed');
     }
 }
-// SAVE DRAWING AS SVG FILE _ PRINT AS PDF AT 100% SCALE
 function saveSVG() {
     id('datumGroup').style.display='none';
     var fileName=id('printName').value+'.svg';

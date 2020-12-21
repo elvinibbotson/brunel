@@ -26,81 +26,6 @@ body {
 	top: 0;
     z-index: 2;
 }
-/*
-#tools {
-    position: fixed;
-    left: 6px;
-    top: 48px;
-    width: 32px;
-    display: block;
-    z-index: 10;
-}
-#editTools {
-    position: fixed;
-    left: 4px;
-    top: 48px;
-    width: 32px;
-    display: none;
-    z-index: 11;
-}
-#sizes {
-    position: absolute;
-    top: 4px;
-    left: 48px;
-    height: 32px;
-    padding: 4px;
-    color: white;
-    background-color: black;
-    z-index: 10;
-    display: none;
-}
-#prompt {
-    position: fixed;
-    left: 400px;
-    top: 8px;
-    background-color: white;
-    opacity: 1;
-    padding: 4px;
-    font-size: 1.2em;
-    display: none;
-    z-index: 13;
-}
-#checks {
-    position: fixed;
-    left: 4px;
-    top: 4px;
-    width: 32px;
-    height: 32px;
-    border-radius: 3px;
-    background-image: url('svg/checks.svg');
-    z-index: 10;
-}
-#fill {
-    position: fixed;
-    left: 4px;
-    top: 4px;
-    width: 32px;
-    height: 32px;
-    border-radius: 3px;
-    background: gray;
-    opacity: 0.5;
-    border: none;
-    z-index: 11;
-}
-#line {
-   position: fixed;
-    left: 4px;
-    top: 4px;
-    width: 32px;
-    height: 32px;
-    border-radius: 3px;
-    border-style: solid;
-    border-width: 0.25mm;
-    border-color: black;
-    background: none;
-    z-index: 12;
-}
-*/
 input {
     width: 64px;
 	height: 24px;
@@ -112,9 +37,6 @@ input {
 }
 img {
     vertical-align: bottom;
-}
-#spin {
-    width: 32px;
 }
 select {
     color: white;
@@ -129,6 +51,15 @@ select {
     border: none;
     border-radius: 3px;
     color: white;
+}
+.spin90 {
+    transform: rotate(90deg);
+}
+.spin180 {
+    transform: rotate(180deg);
+}
+.spin270 {
+    transform: rotate(270deg);
 }
 #docButton {
     background: url(svg/document.svg) center center no-repeat;
@@ -145,11 +76,16 @@ select {
 #panButton {
     background: url(svg/pan.svg) center center no-repeat;
 }
+/*
 #gridButton {
     background: url(svg/grid.svg) center center no-repeat;
 }
+*/
 #lineButton {
     background: url(svg/line.svg) center center no-repeat;
+}
+#shapeButton {
+    background: url(svg/shape.svg) center center no-repeat;
 }
 #boxButton {
     background: url(svg/box.svg) center center no-repeat;
@@ -167,7 +103,6 @@ select {
     background: url(svg/text.svg) center center no-repeat;
 }
 #dimButton {
-    /* pointer-events: auto; */
     background: url(svg/dimension.svg) center center no-repeat;
 }
 #combiButton {
@@ -177,10 +112,11 @@ select {
     background: url(svg/cross.svg) center center no-repeat;
 }
 #forwardButton {
-    background: url(svg/forward.svg) center center no-repeat;
+    background: url(svg/up.svg) center center no-repeat;
 }
 #backButton {
-    background: url(svg/back.svg) center center no-repeat;
+    background: url(svg/up.svg) center center no-repeat;
+    transform: rotate(180deg);
 }
 #moveButton {
     background: url(svg/move.svg) center center no-repeat;
@@ -194,8 +130,8 @@ select {
 #alignButton {
     background: url(svg/align.svg) center center no-repeat;
 }
-#parallelButton {
-    background: url(svg/parallel.svg) center center no-repeat;
+#doubleButton {
+    background: url(svg/double.svg) center center no-repeat;
 }
 #repeatButton {
     background: url(svg/repeat.svg) center center no-repeat;
@@ -203,30 +139,13 @@ select {
 #anchorButton {
     background: url(svg/anchor.svg) center center no-repeat;
 }
-#saveCombiButton {
+#combineButton {
     background: url(svg/combi.svg) center center no-repeat;
 }
 #fileMenu {
- /*   left: 48px;
-    top: 48px; */
     padding: 5px;
     border-radius: 3px;
 }
-/*
-.dialog {
-	position: fixed;
-	left: 48px;
-	right: null;
-	top: 48px;
-	padding: 5px;
-	border: none;
-	border-radius: 3px;
-	display: none;
-	color: white;
-	background-color: black;
-	z-index: 10;
-}
-*/
 #newDrawingDialog {
     /* left: 48px;
     top: 48px; */
@@ -264,8 +183,6 @@ select {
     background: url(svg/tick.svg) center center no-repeat;
 }
 #settingsDialog {
-    /* left: 48px;
-    top: 48px; */
     padding: 5px;
     border-radius: 3px;
 }
@@ -296,13 +213,6 @@ select {
     top: 48px; */
     display: none;
 }
-/*
-#boxDialog {
-    left: 48px;
-    top: 330px;
-    display: none;
-}
-*/
 #moveDialog {
     /* left: 48px;
     top: 48px; */
