@@ -1378,7 +1378,8 @@ id('graphic').addEventListener('pointerdown',function() {
         case 'box':
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
-            prompt('BOX: drag to size'); // JUST PROMPT?
+            prompt('BOX: drag to size');
+            console.log('box started');
             break;
         case 'oval':
             id('blueOval').setAttribute('cx',x0);
@@ -1548,6 +1549,7 @@ id('graphic').addEventListener('pointermove',function() {
             id('blueBox').setAttribute('width',w);
             id('blueBox').setAttribute('height',h);
             setSizes(false);
+            console.log('box size: '+w+'x'+h);
             break;
         case 'oval':
             w=Math.abs(x-x0);
@@ -1949,6 +1951,7 @@ id('graphic').addEventListener('pointerup',function() {
             mode='select';
             break;
         case 'box':
+            console.log('finish box');
             var graph={}
 	        graph.type='box';
 	        graph.x=(x>x0)?x0:x;
