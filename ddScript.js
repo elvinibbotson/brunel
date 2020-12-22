@@ -1335,6 +1335,7 @@ id('graphic').addEventListener('pointerdown',function() {
         x0=x;
         y0=y;
     }
+    console.log('mode: '+mode);
     switch(mode) {
         case 'pan':
             // console.log('start pan at '+x0+','+y0);
@@ -1433,6 +1434,7 @@ id('graphic').addEventListener('pointerdown',function() {
             showSizes(true,'SELECT: drag selection box');
     }
     event.stopPropagation();
+    console.log('exit pointer down code');
 });
 // POINTER MOVE
 id('graphic').addEventListener('pointermove',function() {
