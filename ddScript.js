@@ -1444,6 +1444,7 @@ id('graphic').addEventListener('pointermove',function() {
     scr.y=Math.round(event.clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
+    console.log('mode: '+mode+' x:'+x+' y;'+y);
     if(mode!='arcEnd') {
         snap=snapCheck(); // snap to nearby nodes, datum,...
         if(snap) { // shift datum to snap point to allow easy horizontal/vertical alignment
