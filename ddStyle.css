@@ -45,6 +45,12 @@ select {
     border: 1px solid #CCCCCC;
     font-size: 1.2em;
 }
+button {
+    color: white;
+    font-size: 1.5em;
+    background-color: black;
+    border: solid #CCCCCC 1px;
+}
 .iconButton {
     width: 32px;
     height: 32px;
@@ -165,15 +171,18 @@ select {
     top: 48px; */
     display: none;
 }
+/*
 #cancelCombi {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
 }
+*/
 #printDialog {
     /* left: 48px;
     top: 48px; */
     display: none;
 }
+/*
 #cancelPrint {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
@@ -182,6 +191,7 @@ select {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
+*/
 #settingsDialog {
     padding: 5px;
     border-radius: 3px;
@@ -218,6 +228,7 @@ select {
     top: 48px; */
     display: none;
 }
+/*
 #cancelMove {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
@@ -226,12 +237,14 @@ select {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
+*/
 #flipDialog {
     display: none;
 }
 #repeatDialog {
     display: none;
 }
+/*
 #cancelRepeat {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
@@ -240,6 +253,7 @@ select {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
+*/
 #lineShade {
     width: 24px;
     height: 24px;
