@@ -99,11 +99,14 @@ id('createNewDrawing').addEventListener('click',function() {
     id('ref').innerHTML=''; // clear reference layer
     id('handles').innerHTML=''; // clear any edit handles
     // NB any symbols will remain in <defs>
-    var dbTransaction=db.transaction('elements',"readwrite");
+    var request=db.transaction('graphs','readwrite').objectStore('graphs').clear; // clear graphs database
+    /*
+    var dbTransaction=db.transaction('graphs',"readwrite");
 	console.log("indexedDB transaction ready");
-	var dbObjectStore=dbTransaction.objectStore('elements');
+	var dbObjectStore=dbTransaction.objectStore('graphs');
 	console.log("indexedDB objectStore ready");
     var request=dbObjectStore.clear(); // clear database
+    */
 	request.onsuccess=function(event) {
 		console.log("database cleared");
 	};
@@ -1546,7 +1549,7 @@ id('graphic').addEventListener('pointermove',function(event) {
             var boxY=(y<y0)?y:y0;
             w=Math.abs(x-x0);
             h=Math.abs(y-y0);
-            console.log('box size: '+w+'x'+h);
+            console.log('box size: '+w+'x'+h+' at '+x+','+y);
             if(Math.abs(w-h)<snapD*2) w=h; // snap to square
             id('blueBox').setAttribute('x',boxX);
             id('blueBox').setAttribute('y',boxY);
