@@ -63,6 +63,7 @@
         <button id='extentsButton' class='iconButton'></button>
         <button id='panButton' class='iconButton'></button>
         <button id='lineButton' class='iconButton'></button>
+        <button id='shapeButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
         <button id='squircleButton' class='iconButton'></button>
         <button id='ovalButton' class='iconButton'></button>
@@ -79,10 +80,10 @@
         <button id='spinButton' class='iconButton'></button>
         <button id='flipButton' class='iconButton'></button>
         <button id='alignButton' class='iconButton'></button>
-        <button id='parallelButton' class='iconButton'></button>
+        <button id='doubleButton' class='iconButton'></button>
         <button id='repeatButton' class='iconButton'></button>
         <button id='anchorButton' class='iconButton'></button>
-        <button id='saveCombiButton' class='iconButton'></button>
+        <button id='combineButton' class='iconButton'></button>
     </div>
     <div id='sizes'>
         <input id='first' type='number'/> <span id='between'>x</span>
@@ -103,13 +104,13 @@
         <p id='settings'>settings</p>
     </div>
     <div id='printDialog' class='dialog'>
-	    <p>save as printable SVG file</p>
+	    <p><button id='confirmPrint'>SAVE</button> as printable SVG file</p>
 		<p>file name <input id='printName' type='text'>.svg</p>
 		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
-		<p>
+		<!--p>
             <button id='cancelPrint' class='iconButton'></button>
             <button id='confirmPrint' class='iconButton'></button>
-        </p>
+        </p-->
 	</div>
     <div id='newDrawingDialog' class='dialog'>
         <p>new drawing</p>
@@ -141,10 +142,10 @@
     <div id="loadCombiDialog" class="dialog">
         <p>load combi file</p>
 	    <p><input type="file" id="combiChooser"></p>
-        <p>
+        <!--p>
 		    <button id="cancelCombi" class="iconButton"></button>
 		    <label for='cancelCombi'>cancel</label>
-	    </p>
+	    </p-->
     </div>
     <div id='settingsDialog' class='dialog'>
         <p>SETTINGS</p>
@@ -215,37 +216,44 @@
             <img id='fillShade'/>
             <select id='opacity'>
                 <option value=1 selected>100%</option>
-                <!--option value=0.75>75%</option-->
                 <option value=0.5>50%</option>
                 <option value=0.25>25%</option>
+                <option value=0>none</option>
             </select> opacity</p>
         <!--/div-->
     </div>
     <div id='moveDialog' class='dialog'>
-        <p>MOVE</p>
-        <p><input type='number' id='moveRight'/><img src='svg/right.svg'/>
-        <input type='number' id='moveDown'/><img src='svg/down.svg'/></p>
+        <p><button id='confirmMove'>MOVE</button></p>
+        <p><input type='number' id='moveRight'/><img src='svg/up.svg' class='spin90'/>
+        <input type='number' id='moveDown'/><img src='svg/up.svg' class='spin180'/></p>
         <p>...or <input type='number' id='moveDist'/> @ <input type='number' id='moveAngle'/> &deg;</p>
-        <p>
+        <!--p>
             <button id='cancelMove' class='iconButton'></button>
             <button id='confirmMove' class='iconButton'></button>
-        </p>
+        </p-->
     </div>
     <div id='flipDialog' class='dialog'>
         <p>FLIP</p>
         <label for='copy'>mirror copy</label><input type='checkbox' id='copy'/>
         <div id='flipOptions'>
-            <img src='svg/left.svg'/><img src='svg/right.svg'/><img src='svg/up.svg'/><img src='svg/down.svg'/>   
+            <img src='svg/up.svg' class='spin270'/><img src='svg/up.svg' class='spin90'/><img src='svg/up.svg'/><img src='svg/up.svg' class='spin180'/>   
+        </div>
+    </div>
+    <div id='alignDialog' class='dialog'>
+        <p>ALIGN</p>
+        <div id='alignOptions'>
+            <img src='svg/align.svg'/><img src='svg/centre.svg'/><img src='svg/align.svg' class='spin180'/><br>
+            <img src='svg/align.svg' class='spin90'/><img src='svg/centre.svg' class='spin90'/><img src='svg/align.svg' class='spin270'/>
         </div>
     </div>
     <div id='repeatDialog' class='dialog'>
-        <p>REPEAT</p>
-        <p><input type='number' id='countH'/>@<input type='number' id='distH'/>mm<img src='svg/right.svg'/></p>
-        <p><input type='number' id='countV'/>@<input type='number' id='distV'/>mm<img src='svg/down.svg'/></p>
-        <p>
+        <p><button id='confirmRepeat'>REPEAT</button></p>
+        <p><input type='number' id='countH'/>@<input type='number' id='distH'/>mm<img src='svg/up.svg' class='spin90'/></p>
+        <p><input type='number' id='countV'/>@<input type='number' id='distV'/>mm<img src='svg/up.svg' class='spin180'/></p>
+        <!--p>
             <button id='cancelRepeat' class='iconButton'></button>
             <button id='confirmRepeat' class='iconButton'></button>
-        </p>
+        </p-->
     </div>
     <div id='shadeMenu'>
         <svg width='96' height='24'>
