@@ -158,6 +158,7 @@ button {
     padding: 5px;
     border-radius: 3px;
 }
+/*
 #createNewDrawing {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
@@ -166,6 +167,7 @@ button {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
 }
+*/
 #loadCombiDialog {
     /* left: 48px;
     top: 48px; */
@@ -196,6 +198,7 @@ button {
     padding: 5px;
     border-radius: 3px;
 }
+/*
 #cancelSettings {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
@@ -204,12 +207,14 @@ button {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
+*/
 #dimDialog {
     display: none;
 }
 #combiDialog {
     display: none;
 }
+/*
 #cancelDim {
     float: left;
     background: url(svg/cross.svg) center center no-repeat;
@@ -218,6 +223,7 @@ button {
     float: right;
     background: url(svg/tick.svg) center center no-repeat;
 }
+*/
 #stylesDialog {
     /* left: 48px;
     top: 48px; */

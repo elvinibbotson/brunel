@@ -83,9 +83,9 @@ id('new').addEventListener('click',function() {
     id('aspect').innerHTML=aspect;
     showDialog('newDrawingDialog',true);
 });
-id('cancelNewDrawing').addEventListener('click',function() {
+/* id('cancelNewDrawing').addEventListener('click',function() {
     showDialog('newDrawing',false);
-});
+}); */
 id('createNewDrawing').addEventListener('click',function() {
     scale=id('scaleSelect').value;
     // units=(id('mm').checked)?'mm':'in';
@@ -166,9 +166,9 @@ id('confirmPrint').addEventListener('click',function() {
 id('settings').addEventListener('click',function() {
     showDialog('settingsDialog',true);
 });
-id('cancelSettings').addEventListener('click',function() {
+/* id('cancelSettings').addEventListener('click',function() {
     showDialog('settingsDialog',false);
-});
+}); */
 id('confirmSettings').addEventListener('click',function() {
     grid=id('gridSize').value;
     gridSnap=id('grid').checked;
@@ -311,14 +311,14 @@ id('dimButton').addEventListener('click',function() {
    mode='dimStart';
    prompt('DIMENSION: click on start node');
 });
-id('cancelDim').addEventListener('click',function() {
+/* id('cancelDim').addEventListener('click',function() {
     showDialog('dimDialog',false);
     id('blueDim').setAttribute('x1',0);
     id('blueDim').setAttribute('y1',0);
     id('blueDim').setAttribute('x2',0);
     id('blueDim').setAttribute('y2',0);
     mode='select';
-});
+}); */
 id('confirmDim').addEventListener('click',function() {
     dim.dir=document.querySelector('input[name="dimDir"]:checked').value;
     console.log(dim.dir+' selected');
@@ -390,9 +390,11 @@ id('moveButton').addEventListener('click',function() {
     showDialog('textDialog',false);
     showDialog('moveDialog',true);
 });
+/*
 id('cancelMove').addEventListener('click',function() {
     showDialog('moveDialog',false);
 });
+*/
 id('confirmMove').addEventListener('click',function() {
     // read move parameters and adjust element
     var moveX=parseInt(id('moveRight').value);
@@ -904,14 +906,17 @@ id('repeatButton').addEventListener('click',function() {
     // id('countH').value=id('countV').value=id('distH').value=id('distV').value=0;
     showDialog('repeatDialog',true);
 });
+/*
 id('cancelRepeat').addEventListener('click',function() {
     showDialog('repeatDialog',false);
 });
+*/
 id('confirmRepeat').addEventListener('click',function() {
-    var nH=id('countH').value;
-    var nV=id('countV').value;
-    var dH=id('distH').value;
-    var dV=id('distV').value;
+    var nH=parseInt(id('countH').value);
+    var nV=parseInt(id('countV').value);
+    var dH=parseInt(id('distH').value);
+    var dV=parseInt(id('distV').value);
+    console.log(nH+' copies across at '+dH+'mm; '+nV+' copie down at '+dV+'mm');
     element=id(elID);
     var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
     request.onsuccess=function(event) {
@@ -940,12 +945,13 @@ id('confirmRepeat').addEventListener('click',function() {
                         addGraph(g);
                         break;
                     case 'box':
-                        g.x=graph.x+i*dH;
-                        g.y=graph.y+j*dV;
+                        g.x=Number(graph.x)+i*dH;
+                        g.y=Number(graph.y)+j*dV;
                         g.width=graph.width;
                         g.height=graph.height;
                         g.radius=graph.radius;
-                        // console.log('copy['+i+','+j+'] '+g.type+' at '+g.x+','+g.y);
+                        g.spin=graph.spin;
+                        console.log('copy['+i+','+j+'] '+g.type+' at '+g.x+','+g.y);
                         addGraph(g);
                         break;
                     case 'text':

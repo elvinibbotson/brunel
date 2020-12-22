@@ -113,7 +113,7 @@
         </p-->
 	</div>
     <div id='newDrawingDialog' class='dialog'>
-        <p>new drawing</p>
+        <p><button id='createNewDrawing'>NEW DRAWING</button></p>
         <p>size: A4 (<span id='aspect'></span>)</p>
         <!--input type='radio' name='aspect' id='landscape' value='landscape' checked>
         <label for='landscape'>landscape</label><br>
@@ -134,10 +134,10 @@
         <label for='mm'>millimeters</label><br>
         <input type='radio' name='units' id='inches' value='in'>
         <label for='in'>inches</label-->
-        <p>
+        <!--p>
             <button id='cancelNewDrawing' class='iconButton'></button>
             <button id='createNewDrawing' class='iconButton'></button>
-        </p>
+        </p-->
     </div>
     <div id="loadCombiDialog" class="dialog">
         <p>load combi file</p>
@@ -148,7 +148,7 @@
 	    </p-->
     </div>
     <div id='settingsDialog' class='dialog'>
-        <p>SETTINGS</p>
+        <p><button id='confirmSettings'>SET</button></p>
         <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' checked=false></p>
         <p><input type='number' id='gridSize' value=10> mm</p>
         <p>box corner radius</p>
@@ -158,23 +158,23 @@
         <input type='radio' name='hand' id='leftLayout' value='left' checked>
         <label for='rightLayout'>right-hand</label>
         <input type='radio' name='hand' id='rightLayout' value='right'>
-        <p>
+        <!--p>
             <button id='cancelSettings' class='iconButton'></button>
-            <button id='confirmSettings' class='iconButton'></button>
-        </p>
+            <button id='confirmSettings'>DONE</button>
+        </p-->
     </div>
     <div id='dimDialog' class='dialog'>
-        <p>DIMENSION</p>
+        <p><button id='confirmDim'>DIMENSION</button></p>
         <input type='radio' name='dimDir' id='horizontal' value='h'>
         <label for='horizontal'>horizontal</label><br>
         <input type='radio' name='dimDir' id='vertical' value='v'>
-        <label for='vertictal'>vertical</label><br>
+        <label for='vertical'>vertical</label><br>
         <input type='radio' name='dimDir' id='oblique' value='o' checked>
         <label for='oblique'>oblique</label>
-        <p>
+        <!--p>
             <button id='cancelDim' class='iconButton'></button>
-            <button id='confirmDim' class='iconButton'></button>
-        </p>
+            <button id='confirmDim'>DONE</button>
+        </p-->
     </div>
     <div id='combiDialog' class='dialog'>
         <p>select a combi</p>
