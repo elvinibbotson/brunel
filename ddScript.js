@@ -34,7 +34,7 @@ var anchor=false; // flags existance of anchor
 var db=null; // indexed database holding SVG elements
 var nodes=[]; // array of nodes each with x,y coordinates and element ID
 var node=null;
-var links=[]; // array of links between elements and dimensions
+var dims=[]; // array of links between elements and dimensions
 var element=null; // current element
 var elID=null; // id of current element 
 var combi=null; // current combi
@@ -1712,8 +1712,8 @@ id('graphic').addEventListener('pointerup',function() {
                 id('anchor').remove();
                 anchor=false;
             }
-            // var linkedDims=[]; 
             // console.log('selection: '+selection);
+            /* TEMPORARY METHOD OF CHECKING DIMENSION LINKS
             for(i=0; i<links.length;i++) { // check for links between moved elements and dimensions
                 var link=0;
                 // if(selection.indexOf(String(links[i].el1))>=0) link=1;
@@ -1722,6 +1722,7 @@ id('graphic').addEventListener('pointerup',function() {
                 console.log('link '+i+': '+links[i].dim+' '+links[i].el1+','+links[i].el2+' - '+link);
                 if(link>0) adjustDim(links[i].dim,link,dx,dy); // if link applies, redraw dimension
             }
+            */
             while(selection.length>0) { // move all selected elements
                 elID=selection.pop();
                 console.log('move element '+elID);
@@ -1778,7 +1779,7 @@ id('graphic').addEventListener('pointerup',function() {
                         element.setAttribute('cy',y);
                         break;
                 }
-                refreshNodes(element);
+                refreshNodes(element); 
             }
             id('selection').setAttribute('transform','translate(0,0)');
             id('selection').innerHTML='';
@@ -3221,9 +3222,7 @@ function spin(el,angle) {
                 var t='rotate('+angle+','+x+','+y+')';
                 el.setAttribute('transform',t);
                 updateGraph(el.id,['spin',angle]);
-                // UPDATE GRAPH
-                // refreshNodes (none for text)
-                // MOVE DIMENSIONS?
+                refreshNodes(el); // NB none for text
                 break;
             case 'oval':
             case 'arc':
@@ -3237,9 +3236,6 @@ function spin(el,angle) {
         console.log('error spinning element');
     }
 }
-/* function belong(node) {
-    return node.el==elID;
-} */
 function refreshNodes(el) {
     // recalculate node.x, node.y after change to element
     var elNodes=nodes.filter(function(node) {
@@ -3308,6 +3304,88 @@ function refreshNodes(el) {
             elNodes[0].x=Number(el.getAttribute('ax'));
             elNodes[0].y=Number(el.getAttribute('ay'));
             break;
+    }
+    checkDims(el); // check if any dimensions need refreshing
+}
+function checkDims(el) {
+    console.log('check linked dimensions for element '+el.id);
+    for(var i=0;i<dims.length;i++) {
+        if((dims[i].el1==el.id)||(dims[i].el2==el.id)) {
+            refreshDim(dims[i]); // adjust and redraw linked dimension
+        }
+    }
+}
+function refreshDim(d) {
+    console.log('refresh dimension '+d.dim+' from element '+d.el1+'/node '+d.n1+' to element '+d.el2+'/node '+d.n2);
+    var node1=nodes.find(function(node) {
+        return ((node.el==d.el1)&&(node.n==d.n1));
+    });
+    console.log('start node: '+node1);
+    var node2=nodes.find(function(node) {
+        return ((node.el==d.el2)&&(node.n==d.n2));
+    });
+    console.log('end node: '+node2);
+    var request=db.transaction('graphs').objectStore('graphs').get(Number(d.dim));
+    request.onsuccess=function(event) {
+        dim=request.result;
+        console.log('got dimension '+dim.id);
+        dim.x1=node1.x;
+        dim.y1=node1.y;
+        dim.x2=node2.x;
+        dim.y2=node2.y;
+        redrawDim(dim);
+    }
+    request.onerror=function(event) {
+        console.log('get dimension failed');
+    }
+}
+function redrawDim(d) {
+    var request=db.transaction('graphs','readwrite').objectStore('graphs').put(d);
+    request.onsuccess=function(event) {
+        console.log('dimension '+dim.id+' updated - redraw from '+d.x1+','+d.y1+' to '+d.x2+','+d.y2+' direction: '+d.dir);
+        var len=0; // dimension length...
+        var a=0; // ...and angle
+        if(d.dir=='h') { // horizontal dimension
+            len=d.x2-d.x1;
+            a=0;
+        }
+        else if(d.dir=='v') { // vertical dimension
+            len=d.y2-d.y1;
+            a=Math.PI/2;
+        }
+        else { // oblique dimension
+            w=Math.round(d.x2-d.x1);
+            h=Math.round(d.y2-d.y1);
+            len=Math.sqrt(w*w+h*h);
+            a=Math.atan(h/w); // angle in radians
+        }
+        len=Math.round(len);
+        console.log('dimension length: '+len+'; angle: '+a+'radians; elements: '+d.el1+' '+d.el2);
+        var o=parseInt(d.offset);
+        var x1=d.x1; // start point/anchor of dimension line
+        var y1=d.y1;
+        if(a==0) y1+=o;
+        else if(a==Math.PI/2) x1+=o;
+        else {
+            x1-=o*Math.sin(a);
+            y1+=o*Math.cos(a);
+        }
+        a*=180/Math.PI; // angle in degrees
+        var t='rotate('+a+','+x1+','+y1+')';
+        id(d.id).setAttribute('transform',t); // adjust dimension rotation
+        var line=id(d.id).firstChild;
+        line.setAttribute('x1',x1); // adjust dimension end points
+        line.setAttribute('y1',y1);
+        line.setAttribute('x2',x1+len);
+        line.setAttribute('y2',y1);
+        t=id(d.id).children[1]; // adjust text location
+        t.setAttribute('x',Number(x1+len/2));
+        t.setAttribute('y',Number(y1-1));
+        t.innerHTML=len; // adjust dimension measurement
+        console.log('dimension '+d.id+' redrawn');
+    }
+    request.onerror=function(event) {
+        console.log('dimension update failed');
     }
 }
 function snapCheck() {
@@ -3546,11 +3624,11 @@ function drawElement(el) {
                 dy=Math.round(el.y2-el.y1);
                 var d=0; // dimension length
                 var a=0; // dimension angle
-                if(dim.dir=='h') {
+                if(el.dir=='h') {
                     d=dx;
                     a=0;
                 }
-                else if(dim.dir=='v') {
+                else if(el.dir=='v') {
                     d=dy;
                     a=Math.PI/2;
                 }
@@ -3578,16 +3656,16 @@ function drawElement(el) {
                 html+="</g>";
                 console.log('dimension html: '+html);
                 id('dwg').innerHTML+=html;
-                var link={}; // no nodes for dimensions but add to links array
-                link.dim=el.id;
-                link.el1=el.el1;
-                link.n1=el.n1;
-                link.el2=el.el2;
-                link.n2=el.n2;
-                console.log('add link - dim. '+link.dim+' el/nodes: '+link.el1+'/'+link.n1+','+link.el2+'/'+link.n2);
-                links.push(link);
+                var dim={}; // no nodes for dimensions but add to dims array
+                dim.dim=el.id;
+                dim.el1=el.el1;
+                dim.n1=el.n1;
+                dim.el2=el.el2;
+                dim.n2=el.n2;
+                console.log('add link - dim. '+dim.dim+' el/nodes: '+dim.el1+'/'+dim.n1+','+dim.el2+'/'+dim.n2);
+                dims.push(dim);
                 console.log('links added for dimension '+el.id);
-                for(var i=0;i<links.length;i++) console.log('link '+i+': dim:'+links[i].dim+' el/nodes: '+links[i].el1+'/'+links[i].n1+','+links[i].el2+'/'+links[i].n2);
+                for(var i=0;i<dims.length;i++) console.log('link '+i+': dim:'+dims[i].dim+' el/nodes: '+dims[i].el1+'/'+dims[i].n1+','+dims[i].el2+'/'+dims[i].n2);
                 break;
             case 'combi':
                 var s=(combi.nts>0)?scale:1;
@@ -3620,76 +3698,6 @@ function drawElement(el) {
                 break;
     }
 };
-function adjustDim(d,els,dx,dy) {
-    console.log('redraw dimension '+d);
-    var request=db.transaction('graphs').objectStore('graphs').get(Number(d));
-    request.onsuccess=function(event) {
-        dim=request.result;
-        console.log('got dimension '+dim.id);
-        if(els&1) { // el1 has moved
-        // if(dim.el1==el) {
-            dim.x1+=dx;
-            dim.y1+=dy;
-        }
-        if(els&2) { // el2 has moved
-        // if(dim.el2==el) {
-            dim.x2+=dx;
-            dim.y2+=dy;
-        }
-        redrawDim(dim,dx,dy);
-    }
-    request.onerror=function(event) {
-        console.log('get dimension failed');
-    }
-}
-function redrawDim(d,dx,dy) {
-    var request=db.transaction('graphs','readwrite').objectStore('graphs').put(d);
-    request.onsuccess=function(event) {
-        console.log('dimension '+dim.id+' updated - redraw it');
-        var len=0; // dimension length...
-        var a=0; // ...and angle
-        if(d.dir=='h') { // horizontal dimension
-            len=d.x2-d.x1;
-            a=0;
-        }
-        else if(d.dir=='v') { // vertical dimension
-            len=d.y2-d.y1;
-            a=Math.PI/2;
-        }
-        else { // oblique dimension
-            w=Math.round(d.x2-d.x1);
-            h=Math.round(d.y2-d.y1);
-            len=Math.round(Math.sqrt(w*w+h*h));
-            a=Math.atan(h/w); // angle in radians
-        }
-        console.log('dimension length: '+len+'; angle: '+a+'radians; elements: '+d.el1+' '+d.el2);
-        var o=parseInt(d.offset);
-        var x1=d.x1; // start point/anchor of dimension line
-        var y1=d.y1;
-        if(a==0) y1+=o;
-        else if(a==Math.PI/2) x1+=o;
-        else {
-            x1-=o*Math.sin(a);
-            y1+=o*Math.cos(a);
-        }
-        a*=180/Math.PI; // angle in degrees
-        var t='rotate('+a+','+x1+','+y1+')';
-        id(d.id).setAttribute('transform',t); // adjust dimension rotation
-        var line=id(d.id).firstChild;
-        line.setAttribute('x1',x1); // adjust dimension end points
-        line.setAttribute('y1',y1);
-        line.setAttribute('x2',x1+len);
-        line.setAttribute('y2',y1);
-        t=id(d.id).children[1]; // adjust text location
-        t.setAttribute('x',Number(x1+len/2));
-        t.setAttribute('y',Number(y1-1));
-        t.innerHTML=len; // adjust dimension measurement
-        console.log('dimension '+d.id+' redrawn');
-    }
-    request.onerror=function(event) {
-        console.log('dimension update failed');
-    }
-}
 function saveSVG() {
     id('datumGroup').style.display='none';
     var fileName=id('printName').value+'.svg';
