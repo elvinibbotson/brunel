@@ -1546,13 +1546,13 @@ id('graphic').addEventListener('pointermove',function() {
             var boxY=(y<y0)?y:y0;
             w=Math.abs(x-x0);
             h=Math.abs(y-y0);
+            console.log('box size: '+w+'x'+h);
             if(Math.abs(w-h)<snapD*2) w=h; // snap to square
             id('blueBox').setAttribute('x',boxX);
             id('blueBox').setAttribute('y',boxY);
             id('blueBox').setAttribute('width',w);
             id('blueBox').setAttribute('height',h);
             setSizes(false);
-            console.log('box size: '+w+'x'+h);
             break;
         case 'oval':
             w=Math.abs(x-x0);
