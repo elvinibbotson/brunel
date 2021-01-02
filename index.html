@@ -88,7 +88,7 @@
     <div id='sizes'>
         <input id='first' type='number'/> <span id='between'>x</span>
         <input id='second' type='number'/><span id='after'>mm</span>
-         @ <input id='spin' type='number'/>&deg;
+        <p><span id='spinPanel'>spin: <input id='spin' type='number'/>&deg;</span></p>
     </div>
     <div id='prompt'></div>
     <div id='checks'></div>
@@ -97,21 +97,12 @@
     <div id='fileMenu' class='dialog'>
         <p id='new'>new drawing</p>
         <p id='load'>load drawing</p>
-        <p id='loadRef'>load reference drawing</p>
+        <!--p id='loadRef'>load reference drawing</p-->
         <p id='loadCombi'>load combi</p>
         <p id='save'>save drawing</p>
         <p id='print'>print drawing</p>
         <p id='settings'>settings</p>
     </div>
-    <div id='printDialog' class='dialog'>
-	    <p><button id='confirmPrint'>SAVE</button> as printable SVG file</p>
-		<p>file name <input id='printName' type='text'>.svg</p>
-		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
-		<!--p>
-            <button id='cancelPrint' class='iconButton'></button>
-            <button id='confirmPrint' class='iconButton'></button>
-        </p-->
-	</div>
     <div id='newDrawingDialog' class='dialog'>
         <p><button id='createNewDrawing'>NEW DRAWING</button></p>
         <p>size: A4 (<span id='aspect'></span>)</p>
@@ -139,14 +130,37 @@
             <button id='createNewDrawing' class='iconButton'></button>
         </p-->
     </div>
-    <div id="loadCombiDialog" class="dialog">
-        <p>load combi file</p>
-	    <p><input type="file" id="combiChooser"></p>
-        <!--p>
-		    <button id="cancelCombi" class="iconButton"></button>
-		    <label for='cancelCombi'>cancel</label>
-	    </p-->
+    <div id='loadDialog' class='dialog'>
+        <p>LOAD DRAWING</p>
+        <p>
+        <input type='radio' name='loadMethod' id='replace' checked>
+        <label for='replace'>replace</label><br>
+        <input type='radio' name='loadMethod' id='merge'>
+        <label for='merge'>merge</label><br>
+        <input type='radio' name='loadMethod' id='reference'>
+        <label for='reference'>reference</label><br>
+        </p>
+        <p><input type="file" id="drawingChooser" class='nameField'>
+        </p>
     </div>
+    <div id="loadCombiDialog" class="dialog">
+        <p>LOAD COMBI</p>
+	    <p><input type="file" id="combiChooser" class='nameField'></p>
+    </div>
+    <div id='saveDialog' class='dialog'>
+        <p><button id='confirmSave'>SAVE</button></p>
+        <p>as <input type='text' id='saveName' class='nameField'/></p>
+        <p>The file will appear in your downloads folder</p>
+    </div>
+    <div id='printDialog' class='dialog'>
+	    <p><button id='confirmPrint'>SAVE</button> as printable SVG file</p>
+		<p>file name <input id='printName' type='text'>.svg</p>
+		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
+		<!--p>
+            <button id='cancelPrint' class='iconButton'></button>
+            <button id='confirmPrint' class='iconButton'></button>
+        </p-->
+	</div>
     <div id='settingsDialog' class='dialog'>
         <p><button id='confirmSettings'>SET</button></p>
         <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' checked=false></p>
@@ -227,16 +241,16 @@
         <p><input type='number' id='moveRight'/><img src='svg/up.svg' class='spin90'/>
         <input type='number' id='moveDown'/><img src='svg/up.svg' class='spin180'/></p>
         <p>...or <input type='number' id='moveDist'/> @ <input type='number' id='moveAngle'/> &deg;</p>
-        <!--p>
-            <button id='cancelMove' class='iconButton'></button>
-            <button id='confirmMove' class='iconButton'></button>
-        </p-->
+    </div>
+    <div id='spinDialog' class='dialog'>
+        <p><button id='confirmSpin'>SPIN</button></p>
+        <p>clockwise <input type='number' id='spinAngle'/>&deg;</p>
     </div>
     <div id='flipDialog' class='dialog'>
         <p>FLIP</p>
-        <label for='copy'>mirror copy</label><input type='checkbox' id='copy'/>
+        <label for='copy' id='copyLabel'>copy</label><input type='checkbox' id='copy'/>
         <div id='flipOptions'>
-            <img src='svg/up.svg' class='spin270'/><img src='svg/up.svg' class='spin90'/><img src='svg/up.svg'/><img src='svg/up.svg' class='spin180'/>   
+            <img src='svg/flip.svg'/><img src='svg/flip.svg' class='spin90'/>   
         </div>
     </div>
     <div id='alignDialog' class='dialog'>
@@ -245,6 +259,11 @@
             <img src='svg/align.svg'/><img src='svg/centre.svg'/><img src='svg/align.svg' class='spin180'/><br>
             <img src='svg/align.svg' class='spin90'/><img src='svg/centre.svg' class='spin90'/><img src='svg/align.svg' class='spin270'/>
         </div>
+    </div>
+    <div id='doubleDialog' class='dialog'>
+        <p><button id='confirmDouble'>DOUBLE</button></p>
+        <p><input type='number' id='offset'/>mm right/outside
+        <p>negative offsets are left/inside</p>
     </div>
     <div id='repeatDialog' class='dialog'>
         <p><button id='confirmRepeat'>REPEAT</button></p>

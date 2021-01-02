@@ -35,6 +35,9 @@ input {
 	/*border-radius: 3px;*/
 	font-size: 1.2em;
 }
+.nameField {
+    width: 240px;
+}
 img {
     vertical-align: bottom;
 }
@@ -47,7 +50,7 @@ select {
 }
 button {
     color: white;
-    font-size: 1.5em;
+    font-size: 1em;
     background-color: black;
     border: solid #CCCCCC 1px;
 }
@@ -82,11 +85,6 @@ button {
 #panButton {
     background: url(svg/pan.svg) center center no-repeat;
 }
-/*
-#gridButton {
-    background: url(svg/grid.svg) center center no-repeat;
-}
-*/
 #lineButton {
     background: url(svg/line.svg) center center no-repeat;
 }
@@ -152,112 +150,41 @@ button {
     padding: 5px;
     border-radius: 3px;
 }
+/*
 #newDrawingDialog {
-    /* left: 48px;
-    top: 48px; */
     padding: 5px;
     border-radius: 3px;
 }
-/*
-#createNewDrawing {
-    float: right;
-    background: url(svg/tick.svg) center center no-repeat;
-}
-#cancelNewDrawing {
-    float: left;
-    background: url(svg/cross.svg) center center no-repeat;
-}
-*/
 #loadCombiDialog {
-    /* left: 48px;
-    top: 48px; */
     display: none;
 }
-/*
-#cancelCombi {
-    float: left;
-    background: url(svg/cross.svg) center center no-repeat;
-}
-*/
 #printDialog {
-    /* left: 48px;
-    top: 48px; */
     display: none;
 }
-/*
-#cancelPrint {
-    float: left;
-    background: url(svg/cross.svg) center center no-repeat;
-}
-#confirmPrint {
-    float: right;
-    background: url(svg/tick.svg) center center no-repeat;
-}
-*/
 #settingsDialog {
     padding: 5px;
     border-radius: 3px;
 }
-/*
-#cancelSettings {
-    float: left;
-    background: url(svg/cross.svg) center center no-repeat;
-}
-#confirmSettings {
-    float: right;
-    background: url(svg/tick.svg) center center no-repeat;
-}
-*/
 #dimDialog {
     display: none;
 }
 #combiDialog {
     display: none;
 }
-/*
-#cancelDim {
-    float: left;
-    background: url(svg/cross.svg) center center no-repeat;
-}
-#confirmDim {
-    float: right;
-    background: url(svg/tick.svg) center center no-repeat;
-}
-*/
 #stylesDialog {
-    /* left: 48px;
-    top: 48px; */
     display: none;
 }
 #moveDialog {
-    /* left: 48px;
-    top: 48px; */
     display: none;
 }
-/*
-#cancelMove {
-    float: left;
-    background: url(svg/cross.svg) center center no-repeat;
+#spinDialog {
+    display: none;
 }
-#confirmMove {
-    float: right;
-    background: url(svg/tick.svg) center center no-repeat;
-}
-*/
 #flipDialog {
     display: none;
 }
 #repeatDialog {
     display: none;
-}
-/*
-#cancelRepeat {
-    float: left;
-    background: url(svg/cross.svg) center center no-repeat;
-}
-#confirmRepeat  {
-    float: right;
-    background: url(svg/tick.svg) center center no-repeat;
 }
 */
 #lineShade {

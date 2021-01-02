@@ -1,5 +1,6 @@
 // GLOBAL VARIABLES
 var dbVersion=2;
+var name=''; // drawing name
 var saved=false; // flags whether drawing has been saved
 var aspect=null;
 var scale=1; // default scale is 1:1
@@ -83,9 +84,6 @@ id('new').addEventListener('click',function() {
     id('aspect').innerHTML=aspect;
     showDialog('newDrawingDialog',true);
 });
-/* id('cancelNewDrawing').addEventListener('click',function() {
-    showDialog('newDrawing',false);
-}); */
 id('createNewDrawing').addEventListener('click',function() {
     scale=id('scaleSelect').value;
     // units=(id('mm').checked)?'mm':'in';
@@ -98,15 +96,7 @@ id('createNewDrawing').addEventListener('click',function() {
     id('dwg').innerHTML=''; // clear drawing
     id('ref').innerHTML=''; // clear reference layer
     id('handles').innerHTML=''; // clear any edit handles
-    // NB any symbols will remain in <defs>
-    var request=db.transaction('graphs','readwrite').objectStore('graphs').clear; // clear graphs database
-    /*
-    var dbTransaction=db.transaction('graphs',"readwrite");
-	console.log("indexedDB transaction ready");
-	var dbObjectStore=dbTransaction.objectStore('graphs');
-	console.log("indexedDB objectStore ready");
-    var request=dbObjectStore.clear(); // clear database
-    */
+    var request=db.transaction('graphs','readwrite').objectStore('graphs').clear(); // clear graphs database
 	request.onsuccess=function(event) {
 		console.log("database cleared");
 	};
@@ -116,16 +106,79 @@ id('createNewDrawing').addEventListener('click',function() {
     showDialog('newDrawingDialog',false);
     initialise();
 });
+id('load').addEventListener('click',function() {
+    id('replace').checked=true;
+   showDialog('loadDialog',true); 
+});
+id('drawingChooser').addEventListener('change',function() {
+    // CLEAR graphs AND combis OBJECT STORES BEFORE LOADING NEW DRAWING DATA
+    var method='replace';
+    if(id('merge').checked) method='merge';
+    else if(id('reference').checked) method='ref';
+    console.log('load method: '+method);
+    var file=id('drawingChooser').files[0];
+    console.log('load drawing file '+file+' name: '+file.name);
+    var loader=new FileReader();
+    loader.addEventListener('load',function(evt) {
+        var data=evt.target.result;
+        console.log("file read: "+data);
+		var json=JSON.parse(data);
+		console.log("json: "+json);
+		var transaction=db.transaction(['graphs','combis'],'readwrite');
+		var graphStore=transaction.objectStore('graphs');
+		var combiStore=transaction.objectStore('combis');
+		if(method=='replace') {
+		    name=file.name;
+		    window.localStorage.setItem('name',name);
+		    id('dwg').innerHTML=''; // clear drawing
+            id('ref').innerHTML=''; // clear reference layer
+            id('handles').innerHTML=''; // clear any edit handles
+		    graphStore.clear();
+		    combiStore.clear();
+		    aspect=json.aspect;
+		    scale=json.scale;
+		    console.log('load drawing - aspect:'+aspect+' scale:'+scale);
+		}
+		else if(menthos=='merge') {
+		    name='';
+		    widow.localStorage.setItem('name','');
+		}
+		json.graphs;
+		for(var i=0;i<json.graphs.length;i++) {
+		    console.log('add graph '+json.graphs[i].type);
+		    if(method=='ref') {
+		        if(json.graphs[i].type=='dim') continue; // skip dimensions
+		        json.graphs[i].stroke='blue'; // reference layer in blue...
+		        json.graphs[i].fill='none'; // ...with no fill
+		    }
+		    var request=graphStore.add(json.graphs[i]);
+		}
+		for(i=0;i<json.combis.length;i++) {
+		    console.log('add combi '+json.combi[i].name);
+		    request=combiStore.add(json.combis[i]);
+		}
+		transaction.oncomplete=function() {
+		    console.log('drawing imported - load & draw');
+		    initialise();
+            load();
+		}
+    });
+    loader.addEventListener('error',function(event) {
+        console.log('load failed - '+event);
+    });
+    loader.readAsText(file);
+    showDialog('loadDialog',false);
+})
 id('loadCombi').addEventListener('click',function() {
     // USE FILE NAVIGATOR TO FIND JSON FILE AND IMPORT TO combis DATABASE
     showDialog('fileMenu',false);
     showDialog('loadCombiDialog',true);
 });
-id("combiChooser").addEventListener('change', function() {
+id('combiChooser').addEventListener('change',function() {
 	var file=id('combiChooser').files[0];
 	console.log("file: "+file+" name: "+file.name);
 	var fileReader=new FileReader();
-	fileReader.addEventListener('load', function(evt) {
+	fileReader.addEventListener('load',function(evt) {
 		console.log("file read: "+evt.target.result);
 	  	var data=evt.target.result;
 		var json=JSON.parse(data);
@@ -141,7 +194,7 @@ id("combiChooser").addEventListener('change', function() {
 			var request=dbObjectStore.add(combis[i]);
 			request.onsuccess=function(e) {
 			    var n=request.result;
-				console.log("combi "+i+" added to database - id: "+id);
+				console.log("combi "+i+" added to database - id: "+n);
 				var html="<option value='"+n+"'>"+name+"</option>";
 				id('combiList').innerHTML+=html;
 			};
@@ -152,6 +205,67 @@ id("combiChooser").addEventListener('change', function() {
 		// alert("combi(s) imported - restart");
   	});
   	fileReader.readAsText(file);
+});
+id('save').addEventListener('click',function() {
+    name=window.localStorage.getItem('name');
+    if(name) id('saveName').value=name;
+    showDialog('saveDialog',true);
+});
+id('confirmSave').addEventListener('click',function() {
+    var fileName=id('saveName').value;
+    console.log('save data to file: '+fileName+'.json');
+    showDialog('saveDialog',false);
+    fileName+=".json";
+    var data={};
+    data.aspect=aspect;
+    data.scale=scale;
+    var graphs=[];
+    var combis=[];
+    var request=db.transaction('graphs').objectStore('graphs').openCursor();
+    request.onsuccess=function(event) {
+        var cursor=event.target.result;
+        if(cursor) { // SAVE WITHOUT id's ????
+            console.log('graph: '+cursor.value.id);
+            delete cursor.value.id;
+            graphs.push(cursor.value);
+            cursor.continue();
+        }
+        else {
+            console.log('save '+graphs.length+' graphs');
+            data.graphs=graphs;
+            request=db.transaction('combis').objectStore('combis').openCursor();
+            request.onsuccess=function(event) {
+                cursor=event.target.result;
+                if(cursor) {  // SAVE WITHOUT id's ????
+                    combis.push(cursor.value);
+                    console.log('combi: '+cursor.value.id);
+                    cursor.continue;
+                }
+                else {
+                    console.log('save '+combis.length+' combis');
+                    data.combis=combis;
+                    // SAVE DATA
+                    var json=JSON.stringify(data);
+			        var blob=new Blob([json],{type:"data:application/json"});
+  			        var a=document.createElement('a');
+			        a.style.display='none';
+    		        var url=window.URL.createObjectURL(blob);
+			        console.log("data ready to save: "+blob.size+" bytes");
+   			        a.href=url;
+   			        a.download=fileName;
+    		        document.body.appendChild(a);
+    		        a.click();
+			        alert(fileName+" saved to downloads folder");
+                }
+            }
+            request.onerror=function(event) {
+                console.log('failed to open cursor on combis table');
+            }
+        }
+    }
+    request.onerror=function(event) {
+        console.log('failed to open cursor on graphs table');
+    }
 });
 id('print').addEventListener('click',function() {
     showDialog('fileMenu',false);
@@ -169,9 +283,6 @@ id('confirmPrint').addEventListener('click',function() {
 id('settings').addEventListener('click',function() {
     showDialog('settingsDialog',true);
 });
-/* id('cancelSettings').addEventListener('click',function() {
-    showDialog('settingsDialog',false);
-}); */
 id('confirmSettings').addEventListener('click',function() {
     grid=id('gridSize').value;
     gridSnap=id('grid').checked;
@@ -314,14 +425,6 @@ id('dimButton').addEventListener('click',function() {
    mode='dimStart';
    prompt('DIMENSION: click on start node');
 });
-/* id('cancelDim').addEventListener('click',function() {
-    showDialog('dimDialog',false);
-    id('blueDim').setAttribute('x1',0);
-    id('blueDim').setAttribute('y1',0);
-    id('blueDim').setAttribute('x2',0);
-    id('blueDim').setAttribute('y2',0);
-    mode='select';
-}); */
 id('confirmDim').addEventListener('click',function() {
     dim.dir=document.querySelector('input[name="dimDir"]:checked').value;
     console.log(dim.dir+' selected');
@@ -393,11 +496,6 @@ id('moveButton').addEventListener('click',function() {
     showDialog('textDialog',false);
     showDialog('moveDialog',true);
 });
-/*
-id('cancelMove').addEventListener('click',function() {
-    showDialog('moveDialog',false);
-});
-*/
 id('confirmMove').addEventListener('click',function() {
     // read move parameters and adjust element
     var moveX=parseInt(id('moveRight').value);
@@ -430,8 +528,8 @@ id('spinButton').addEventListener('click',function() {
     id('spinAngle').value=0;
     showDialog('spinDialog',true);
 });
-id('spinAngle').addEventListener('change',function() {
-    var spin=Number(event.target.value);
+id('confirmSpin').addEventListener('click',function() {
+    var spin=Number(id('spinAngle').value);
     if(selection.length<1) selection.push(elID);
     console.log('spin '+selection.length+' elements by '+spin+' degrees');
     var axis=null;
@@ -1059,6 +1157,96 @@ id('alignOptions').addEventListener('click',function() {
     selection=[];
     id('selection').innerHTML='';
 });
+id('doubleButton').addEventListener('click',function() {
+    console.log(selection.length+' elements selected: '+elID);
+    if(selection.length!=1) return; // can only double single selected...
+    var t=type(element); // ...line, shape, box, oval or arc elements
+    if((t=='text')||(t=='dim')||(t=='combi')||(t=='anchor')) return;
+    showDialog('doubleDialog',true);
+});
+id('confirmDouble').addEventListener('click',function() {
+    console.log('DOUBLE');
+    var val=parseInt(id('offset').value);
+    console.log('double offset: '+val+'mm');
+    showDialog('doubleDialog',false);
+    var graph={}; // initiate new element
+    graph.type=type(element);
+    switch(graph.type) {
+        case 'line':
+        case 'shape':
+            var points=element.points;
+            graph.points=""
+            x=points[0].x;
+            y=points[0].y;
+            console.log('line origin: '+x+','+y);
+            dx=points[1].x-x;
+            dy=points[1].y-y;
+            var a1=Math.atan(dy/dx);
+            console.log('first segment angle: '+a1+' radians');
+            x-=val*Math.sin(a1);
+            y+=val*Math.cos(a1);
+            console.log('double origin: '+x+','+y);
+            // new line function: y=a*x+b so b=y-a*x
+            var b1=y-a1*x;
+            console.log('new line function: y='+a1+'.x+'+b1);
+            if(points.length<3) { // single line SIMPLEST CASE
+                graph.points+=Math.round(x)+' '+Math.round(y)+' '+Math.round(x+dx)+' '+Math.round(y+dy);
+            }
+            graph.spin=element.getAttribute('spin');
+            break;
+        case 'box':
+            x=parseInt(element.getAttribute('x'));
+            y=parseInt(element.getAttribute('y'));
+            w=parseInt(element.getAttribute('width'));
+            h=parseInt(element.getAttribute('height'));
+            if((val<0)&&((w+2*val<1)||(h+2*val<1))) {
+                alert('cannot fit inside');
+                return;
+            }
+            graph.spin=element.getAttribute('spin'); // IF HAS SPIN NEED TO SPIN AROUND ORIGINAL BOX ORIGIN
+            if(graph.spin!=0) { // spin around orignal box anchor
+                var r=Math.sqrt(2)*val;
+                var s=(45-graph.spin)*Math.PI/180; // radians
+                graph.x=x-(r*Math.sin(s));
+                graph.y=y-(r*Math.cos(s));
+            }
+            else {
+                graph.x=x-val;
+                graph.y=y-val;
+            }
+            graph.width=w+2*val;
+            graph.height=h+2*val;
+            var n=parseInt(element.getAttribute('rx'));
+            console.log('corner radius: '+n);
+            if(n!=0) n+=val;
+            if(n<0) n=0;
+            graph.radius=n;
+            console.log('double as '+n);
+            // ADD STYLING AFTER switch SECTION?
+            break;
+        case 'oval':
+            x=parseInt(element.getAttribute('cx'));
+            y=parseInt(element.getAttribute('cy'));
+            var rx=parseInt(element.getAttribute('rx'));
+            var ry=parseInt(element.getAttribute('ry'));
+            if((val<0)&&((rx+val)<1)||((ry+val)<1)) {
+                alert('cannot fit inside');
+                return;
+            }
+            graph.cx=x;
+            graph.cy=y;
+            graph.rx=rx+val;
+            graph.ry=ry+val;
+            graph.spin=element.getAttribute('spin');
+    }
+    graph.stroke=element.getAttribute('stroke');
+    graph.lineW=element.getAttribute('stroke-width');
+    graph.lineStyle=getLineStyle(element);
+    graph.fill=element.getAttribute('fill');
+    n=element.getAttribute('fill-opacity');
+    if(n) graph.opacity=n;
+    addGraph(graph);
+});
 id('repeatButton').addEventListener('click',function() {
     if(type(element)=='dim') return; // cannot move dimensions
     if(selection.length>1) {
@@ -1069,11 +1257,6 @@ id('repeatButton').addEventListener('click',function() {
     // id('countH').value=id('countV').value=id('distH').value=id('distV').value=0;
     showDialog('repeatDialog',true);
 });
-/*
-id('cancelRepeat').addEventListener('click',function() {
-    showDialog('repeatDialog',false);
-});
-*/
 id('confirmRepeat').addEventListener('click',function() {
     var nH=parseInt(id('countH').value);
     var nV=parseInt(id('countV').value);
@@ -4036,11 +4219,7 @@ function saveSVG() {
 	alert(fileName+" saved to downloads folder");
 	id('datumGroup').style.display='block';
 }
-// START-UP CODE
-var request=window.indexedDB.open("ddDB",dbVersion);
-request.onsuccess=function(event) {
-    db=event.target.result;
-    nodes=[];
+function load() {
     var request=db.transaction('graphs').objectStore('graphs').openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
@@ -4079,6 +4258,53 @@ request.onsuccess=function(event) {
 		    console.log("No more combis");
 	    }
     };
+}
+// START-UP CODE
+var request=window.indexedDB.open("ddDB",dbVersion);
+request.onsuccess=function(event) {
+    db=event.target.result;
+    nodes=[];
+    load();
+    /*
+    var request=db.transaction('graphs').objectStore('graphs').openCursor();
+    request.onsuccess = function(event) {  
+	    var cursor=event.target.result;  
+        if (cursor) {
+            var graph=cursor.value;
+            console.log('load '+graph.type+' id: '+graph.id);
+            if(graph.type=='combi') { // load combi from 'combis' database
+                db.transaction('combis').objectStore('combis').get(Number(graph.no)).onsuccess=function(event) {
+                    combi=event.target.result;
+                    console.log('combi '+combi.id+' is '+combi.name);
+                    drawElement(graph);
+                }
+            }
+            else drawElement(graph);
+	    	cursor.continue();  
+        }
+	    else {
+		    console.log("No more entries");
+	    }
+    };
+    console.log('all graphs loaded');
+    var request=db.transaction('combis').objectStore('combis').openCursor();
+    request.onsuccess = function(event) {  
+	    var cursor=event.target.result;  
+        if(cursor) {
+            var combi=cursor.value;
+            // GET COMBI NAME AND ADD TO combiList AS AN OPTION
+            var name=combi.name;
+            console.log('add combi '+name);
+            var html="<option value="+combi.id+">"+name+"</option>";
+            id('combiList').innerHTML+=html;
+            console.log('added');
+	    	cursor.continue();  
+        }
+	    else {
+		    console.log("No more combis");
+	    }
+    };
+    */
 };
 request.onupgradeneeded=function(event) {
     var db=event.target.result;
