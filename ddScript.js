@@ -1173,24 +1173,128 @@ id('confirmDouble').addEventListener('click',function() {
     graph.type=type(element);
     switch(graph.type) {
         case 'line':
+            var points=element.points;
+            var count=points.length-1; // eg. line with 3 points has 2 segments
+            var pt=0; // point counter
+            var a=null; // for line function y=ax+b
+            var a0=null;
+            var b=null;
+            var b0=null;
+            var angle=null;
+            graph.points="";
+            while(pt<count) {
+                x=points[pt].x;
+                y=points[pt].y;
+                console.log('segment '+pt+' origin: '+x+','+y);
+                dx=points[pt+1].x-x;
+                dy=points[pt+1].y-y;
+                a=0;
+                if(dx==0) { // vertical - slope is infinite
+                    a=b=null;
+                    if(dy<0) x+=val;
+                    else x-=val;
+                    console.log('vertical - adjust x to '+x);
+                }
+                else {
+                    a=dy/dx;
+                    angle=Math.atan(dx/dy); // orthogonal offset
+                    console.log('segment slope: '+a+' ie.'+angle+' radians');
+                    if(dy>=0) {
+                        x-=val*Math.cos(angle);
+                        y+=val*Math.sin(angle);
+                    }
+                    else {
+                        x+=val*Math.cos(angle);
+                        y-=val*Math.sin(angle);
+                    }
+                    b=y-a*x;
+                    console.log('new segment function: y='+a+'.x+'+b);
+                }
+                console.log('new segment origin: '+x+','+y);
+                if(pt<1) graph.points+=Math.round(x)+' '+Math.round(y)+' '; // start of new line
+                // if(count-pt<) graph.points+=Math.round(x+dx)+' '+Math.round(y+dy); // end of new line
+                else { // resolve corner of new line
+                    if(a && a0) { // neither segment is vertical
+                        x=(b-b0)/(a0-a);
+                        y=a*x+b;
+                    }
+                    else if(a) y=a*x0+b; // resolve from second segment...
+                    else y=a0*x+b0; // ...or first segment function
+                    console.log('CORNER at '+x+','+y);
+                    graph.points+=Math.round(x)+' '+Math.round(y)+' ';
+                }
+                a0=a; // parameters for previous line segment
+                b0=b;
+                x0=x; // start of next line sector
+                pt++;
+            }
+            // LAST POINT NEEDS TO OFFSET AT 90 DEGREES
+            x=points[pt].x; // end point of original line
+            y=points[pt].y;
+            if(dx==0) {
+                if(dy<0) x+=val;
+                else x-=val;
+            }
+            else if(dy>=0) { // offset orthogonally
+                x-=val*Math.cos(angle);
+                y+=val*Math.sin(angle);
+            }
+            else {
+                x+=val*Math.cos(angle);
+                y-=val*Math.sin(angle);
+            }
+            graph.points+=Math.round(x)+' '+Math.round(y); // end of new line
+            graph.spin=element.getAttribute('spin');
+            break;
         case 'shape':
             var points=element.points;
-            graph.points=""
-            x=points[0].x;
-            y=points[0].y;
-            console.log('line origin: '+x+','+y);
-            dx=points[1].x-x;
-            dy=points[1].y-y;
-            var a1=Math.atan(dy/dx);
-            console.log('first segment angle: '+a1+' radians');
-            x-=val*Math.sin(a1);
-            y+=val*Math.cos(a1);
-            console.log('double origin: '+x+','+y);
-            // new line function: y=a*x+b so b=y-a*x
-            var b1=y-a1*x;
-            console.log('new line function: y='+a1+'.x+'+b1);
-            if(points.length<3) { // single line SIMPLEST CASE
-                graph.points+=Math.round(x)+' '+Math.round(y)+' '+Math.round(x+dx)+' '+Math.round(y+dy);
+            var count=points.length; // eg. 3-point shape (triangle) has 3 sides
+            var pt=0; // point counter
+            var a=null; // for line function y=ax+b
+            var a0=null;
+            var b=null;
+            var b0=null;
+            var angle=null;
+            graph.points="";
+            while(pt<=count) {
+                x=points[pt%count].x; // NB: finish with start point/side - hence %
+                y=points[pt%count].y;
+                dx=points[(pt+1)%count].x-x;
+                dy=points[(pt+1)%count].y-y;
+                console.log('side '+pt+' origin: '+x+','+y);
+                if(dx==0) { // vertical - slope is infinite
+                    a=b=null;
+                    if(dy<0) x+=val;
+                    else x-=val;
+                    console.log('vertical - adjust x to '+x);
+                }
+                else {
+                    a=dy/dx;
+                    angle=Math.atan(dx/dy); // orthogonal offset
+                    console.log('side '+pt+' slope: '+a+' ie.'+angle+' radians');
+                    if(dy>=0) {
+                        x-=val*Math.cos(angle);
+                        y+=val*Math.sin(angle);
+                    }
+                    else {
+                        x+=val*Math.cos(angle);
+                        y-=val*Math.sin(angle);
+                    }
+                    b=y-a*x;
+                    console.log('new side function: y='+a+'.x+'+b);
+                }
+                if(a && a0) { // neither side is vertical
+                    x=(b-b0)/(a0-a);
+                    y=a*x+b;
+                }
+                else if(a) y=a*x0+b; // resolve from second segment...
+                else y=a0*x+b0; // ...or first segment function
+                console.log('CORNER at '+x+','+y);
+                var point=Math.round(x)+' '+Math.round(y)+' ';
+                if(pt>0) graph.points+=Math.round(x)+' '+Math.round(y)+' '; // append point or...
+                a0=a;
+                b0=b;
+                pt++;
             }
             graph.spin=element.getAttribute('spin');
             break;
@@ -1238,6 +1342,34 @@ id('confirmDouble').addEventListener('click',function() {
             graph.rx=rx+val;
             graph.ry=ry+val;
             graph.spin=element.getAttribute('spin');
+            break;
+        case 'arc':
+            var d=element.getAttribute('d');
+            getArc(d);
+            var r=arc.r+val; // new arc radius
+            if(r<0) {
+                alert('cannot fit inside');
+                return;
+            }
+            graph.r=r;
+            r/=arc.r; // ratio of new/old radii
+            graph.cx=arc.cx; // same centre point
+            graph.cy=arc.cy;
+            dx=arc.x1-arc.cx; // calculate new start point
+            dy=arc.y1-arc.cy;
+            dx*=r;
+            dy*=r;
+            graph.x1=arc.cx+dx;
+            graph.y1=arc.cy+dy;
+            dx=arc.x2-arc.cx; // calculate new end point
+            dy=arc.y2-arc.cy;
+            dx*=r;
+            dy*=r;
+            graph.x2=arc.cx+dx;
+            graph.y2=arc.cy+dy;
+            graph.major=arc.major;
+            graph.sweep=arc.sweep;
+            graph.spin=arc.spin;
     }
     graph.stroke=element.getAttribute('stroke');
     graph.lineW=element.getAttribute('stroke-width');
@@ -4076,7 +4208,7 @@ function drawElement(el) {
             console.log('DRAW ARC');
             var html="<path id='"+el.id+"' d='M"+el.cx+","+el.cy+" M"+el.x1+","+el.y1+" A"+el.r+","+el.r+" 0 "+el.major+","+el.sweep+" "+el.x2+","+el.y2+"' spin='"+el.spin+"' ";
             // if(el.spin!=0) html+="transform='rotate("+el.spin+","+el.cx+","+el.cy+")' ";
-            html+="stroke="+el.stroke+"' stroke-width='"+el.lineW+"' ";
+            html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
             var dash=setLineStyle(el);
             if(dash) html+=" stroke-dasharray='"+dash+"' ";
             html+="fill='"+el.fill+"'";
