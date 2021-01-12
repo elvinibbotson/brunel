@@ -2,11 +2,11 @@
 <html>
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>A4|2D|DigitalDrawing</title>
-	<link rel="stylesheet" type="text/css" href="ddStyle.css">
-	<link rel="stylesheet" id='swop' type="text/css" href="ddStyleLeft.css">
+	<title>Draft</title>
+	<link rel="stylesheet" type="text/css" href="draftStyle.css">
+	<link rel="stylesheet" id='swop' type="text/css" href="draftStyleLeft.css">
   	<link rel="manifest" href="manifest.json">
-  	<meta name="application-name" content="A4|2D|DigitalDrawing">
+  	<meta name="application-name" content="Draft">
   	<meta name="msapplication-square150x150logo" content="icons/icon150.png">
   	<meta name="msapplication-square70x70logo" content="icons/icon75.png">
 </head>
@@ -36,6 +36,7 @@
 		        <clipPath id='clipper'>
 		            <rect x='0' y='0' width='297' height='210'/>
 		        </clipPath>
+		        <g id='combis'></g>
 		    </defs>
 		    <g id='datumSet'>
 		        <!--circle id='datum' cx='0' cy='0' r='3' stroke='blue' stroke-width='0.25' fill='silver'/-->
@@ -65,7 +66,7 @@
         <button id='lineButton' class='iconButton'></button>
         <button id='shapeButton' class='iconButton'></button>
         <button id='boxButton' class='iconButton'></button>
-        <button id='squircleButton' class='iconButton'></button>
+        <!--button id='squircleButton' class='iconButton'></button-->
         <button id='ovalButton' class='iconButton'></button>
         <button id='arcButton' class='iconButton'></button>
         <button id='textButton' class='iconButton'></button>
@@ -82,6 +83,7 @@
         <button id='alignButton' class='iconButton'></button>
         <button id='doubleButton' class='iconButton'></button>
         <button id='repeatButton' class='iconButton'></button>
+        <button id='filletButton' class='iconButton'></button>
         <button id='anchorButton' class='iconButton'></button>
         <button id='combineButton' class='iconButton'></button>
     </div>
@@ -94,14 +96,12 @@
     <div id='checks'></div>
     <div id='fill'></div>
     <div id='line'></div>
-    <div id='fileMenu' class='dialog'>
-        <p id='new'>new drawing</p>
-        <p id='load'>load drawing</p>
-        <!--p id='loadRef'>load reference drawing</p-->
-        <p id='loadCombi'>load combi</p>
-        <p id='save'>save drawing</p>
-        <p id='print'>print drawing</p>
-        <p id='settings'>settings</p>
+    <div id='docDialog' class='dialog'>
+        <p>DRAWING: <span id='drawingName'></span></p>
+        <p>1:<span id='drawingScale'></span> | <span id='drawingAspect'></span> | current zoom: <span id='zoom'></span></p>
+        <p>grid<input type='checkbox' id='gridSnap'>size: <input type='number' id='gridSize' value=10> mm</p>
+        <p>goofy screen layout<input type='checkbox' id='goofy'></p>
+        <p><button id='new'>NEW</button> <button id='load'>LOAD</button> <button id='save'>SAVE</button> <button id='print'>PRINT</button></p>
     </div>
     <div id='newDrawingDialog' class='dialog'>
         <p><button id='createNewDrawing'>NEW DRAWING</button></p>
@@ -131,7 +131,7 @@
         </p-->
     </div>
     <div id='loadDialog' class='dialog'>
-        <p>LOAD DRAWING</p>
+        <p>LOAD</p>
         <p>
         <input type='radio' name='loadMethod' id='replace' checked>
         <label for='replace'>replace</label><br>
@@ -139,44 +139,22 @@
         <label for='merge'>merge</label><br>
         <input type='radio' name='loadMethod' id='reference'>
         <label for='reference'>reference</label><br>
+        <input type='radio' name='loadMethod' id='combi'>
+        <label for='combi'>combi</label>
         </p>
-        <p><input type="file" id="drawingChooser" class='nameField'>
+        <p><input type="file" id="fileChooser" class='nameField'>
         </p>
-    </div>
-    <div id="loadCombiDialog" class="dialog">
-        <p>LOAD COMBI</p>
-	    <p><input type="file" id="combiChooser" class='nameField'></p>
     </div>
     <div id='saveDialog' class='dialog'>
         <p><button id='confirmSave'>SAVE</button></p>
-        <p>as <input type='text' id='saveName' class='nameField'/></p>
+        <p>as <input type='text' id='saveName' class='nameField'/>.json</p>
         <p>The file will appear in your downloads folder</p>
     </div>
     <div id='printDialog' class='dialog'>
 	    <p><button id='confirmPrint'>SAVE</button> as printable SVG file</p>
 		<p>file name <input id='printName' type='text'>.svg</p>
 		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
-		<!--p>
-            <button id='cancelPrint' class='iconButton'></button>
-            <button id='confirmPrint' class='iconButton'></button>
-        </p-->
 	</div>
-    <div id='settingsDialog' class='dialog'>
-        <p><button id='confirmSettings'>SET</button></p>
-        <p><label for='grid'>snap grid</label><input type='checkbox' id='grid' checked=false></p>
-        <p><input type='number' id='gridSize' value=10> mm</p>
-        <p>box corner radius</p>
-        <p><input type='number' id='boxRadius' value='5'/> <span id='radiusUnit'>mm</span></p>
-        <p>layout</p>
-        <label for='leftLayout'>left-hand</label>
-        <input type='radio' name='hand' id='leftLayout' value='left' checked>
-        <label for='rightLayout'>right-hand</label>
-        <input type='radio' name='hand' id='rightLayout' value='right'>
-        <!--p>
-            <button id='cancelSettings' class='iconButton'></button>
-            <button id='confirmSettings'>DONE</button>
-        </p-->
-    </div>
     <div id='dimDialog' class='dialog'>
         <p><button id='confirmDim'>DIMENSION</button></p>
         <input type='radio' name='dimDir' id='horizontal' value='h'>
@@ -185,10 +163,6 @@
         <label for='vertical'>vertical</label><br>
         <input type='radio' name='dimDir' id='oblique' value='o' checked>
         <label for='oblique'>oblique</label>
-        <!--p>
-            <button id='cancelDim' class='iconButton'></button>
-            <button id='confirmDim'>DONE</button>
-        </p-->
     </div>
     <div id='combiDialog' class='dialog'>
         <p>select a combi</p>
@@ -269,10 +243,15 @@
         <p><button id='confirmRepeat'>REPEAT</button></p>
         <p><input type='number' id='countH'/>@<input type='number' id='distH'/>mm<img src='svg/up.svg' class='spin90'/></p>
         <p><input type='number' id='countV'/>@<input type='number' id='distV'/>mm<img src='svg/up.svg' class='spin180'/></p>
-        <!--p>
-            <button id='cancelRepeat' class='iconButton'></button>
-            <button id='confirmRepeat' class='iconButton'></button>
-        </p-->
+    </div>
+    <div id='filletDialog' class='dialog'>
+        <p><button id='confirmFillet'>FILLET</button></p>
+        <p>radius:<input type='number' id='filletR'/>mm</p>
+    </div>
+    <div id='combineDialog' class='dialog'>
+        <p><button id='confirmCombine'>COMBINE</button></p>
+        <!--p>scale? <input type='checkbox' id='combiScale'/></p-->
+        <p>name: <input type='text' id='combiName'/>.json</p>
     </div>
     <div id='shadeMenu'>
         <svg width='96' height='24'>
@@ -286,6 +265,6 @@
     <div id='textDialog' class='dialog'>
         text: <input id='text' type='text' size='50'/>
     </div>
-	<script src="ddScript.js" async></script>
+	<script src="draftScript.js" async></script>
 </body>
 </html>
