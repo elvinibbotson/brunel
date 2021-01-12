@@ -1346,6 +1346,8 @@ id('repeatButton').addEventListener('click',function() {
         return;
     }
     showDialog('textDialog',false);
+    id('countH').value=id('countV').value=1;
+    id('distH').value=id('distV').value=0;
     // id('countH').value=id('countV').value=id('distH').value=id('distV').value=0;
     showDialog('repeatDialog',true);
 });
@@ -1356,80 +1358,78 @@ id('confirmRepeat').addEventListener('click',function() {
     var dV=parseInt(id('distV').value);
     console.log(nH+' copies across at '+dH+'mm; '+nV+' copie down at '+dV+'mm');
     element=id(elID);
-    var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
-    request.onsuccess=function(event) {
-        var graph=request.result;
-        // console.log('retrieved graph '+graph.type);
-        for(var i=0;i<nH;i++) {
-            for(var j=0;j<nV;j++) {
-                if(i<1 && j<1) continue; // skip in-place duplicate
-                var g={};
-                g.type=graph.type;
-                if(g.type!='combi') {
-                    g.stroke=graph.stroke;
-                    g.lineW=graph.lineW;
-                    g.lineStyle=graph.lineStyle;
-                    g.fill=graph.fill;
-                    g.opacity=graph.opacity;
-                }
-                switch(g.type) {
-                    case 'line':
-                        var points=graph.points;
-                        for(var p=0;p<points.length;p++) {
-                            points.x+=i*dH;
-                            points.y+=j*dV;
-                        }
-                        g.setAttribute('points',points);
-                        addGraph(g);
-                        break;
-                    case 'box':
-                        g.x=Number(graph.x)+i*dH;
-                        g.y=Number(graph.y)+j*dV;
-                        g.width=graph.width;
-                        g.height=graph.height;
-                        g.radius=graph.radius;
-                        g.spin=graph.spin;
-                        console.log('copy['+i+','+j+'] '+g.type+' at '+g.x+','+g.y);
-                        addGraph(g);
-                        break;
-                    case 'text':
-                        g.x=graph.x+i*dH;
-                        g.y=graph.y+j*dV;
-                        g.text=graph.text;
-                        g.textSize=graph.textSize;
-                        g.textStyle=graph.textStyle;
-                        addGraph(g);
-                        break;
-                    case 'combi':
-                        g.x=graph.x+i*dH;
-                        g.y=graph.y+j*dV;
-                        g.width=graph.width;
-                        g.height=graph.height;
-                        addGraph(g);
-                        break;
-                    case 'oval':
-                        g.cx=graph.cx+i*dH;
-                        g.cy=graph.cy+j*dV;
-                        g.rx=graph.rx;
-                        g.ry=graph.ry;
-                        // console.log('copy '+g.type+' at '+g.cx+','+g.cy);
-                        addGraph(g);
-                        break;
-                    case 'arc':
-                        g.cx=graph.cx+i*dH;
-                        g.cy=graph.cy+j*dV;
-                        g.x1=graph.x1+i*dH;
-                        g.y1=graph.y1+j*dV;
-                        g.x2=graph.y2+i*dH;
-                        g.y2=graph.y2+j*dV;
-                        g.r=graph.r;
-                        g.major=graph.major;
-                        g.sweep=graph.sweep;
-                        console.log('copy['+i+','+j+'] of '+g.type+' at '+g.cx+','+g.cy);
-                        addGraph(g);
-                        break;
-                    }
+    for(var i=0;i<nH;i++) {
+        for(var j=0;j<nV;j++) {
+            if(i<1 && j<1) continue; // skip in-place duplicate
+            var g={};
+            g.type=type(element);
+            if(g.type!='combi') { // combis don't have style
+                g.stroke=element.getAttribute('stroke');
+                g.lineW=element.getAttribute('stroke-width');
+                g.lineStyle=getLineStyle(element);
+                g.fill=element.getAttribute('fill');
+                var val=element.getAttribute('fill-opacity');
+                if(val) g.opacity=val;
             }
+            g.spin=element.getAttribute('spin');
+            switch(g.type) {
+                case 'line':
+                    g.points='';
+                    for(var p=0;p<element.points.length;p++) {
+                        g.points+=element.points[p].x+(i*dH)+',';
+                        g.points+=element.points[p].y+(j*dV)+' ';
+                    }
+                    // g.setAttribute('points',points);
+                    // addGraph(g);
+                    break;
+                case 'box':
+                    g.x=Number(element.getAttribute('x'))+(i*dH);
+                    g.y=Number(element.getAttribute('y'))+(j*dV);
+                    g.width=Number(element.getAttribute('width'));
+                    g.height=Number(element.getAttribute('height'));
+                    g.radius=Number(element.getAttribute('rx'));
+                    console.log('copy['+i+','+j+'] '+g.type+' at '+g.x+','+g.y);
+                    // addGraph(g);
+                    break;
+                case 'oval':
+                    g.cx=Number(element.getAttribute('cx'))+(i*dH);
+                    g.cy=Number(element.getAttribute('cy'))+(j*dV);
+                    g.rx=Number(element.getAttribute('rx'));
+                    g.ry=Number(element.getAttribute('ry'));
+                    console.log('copy '+g.type+' at '+g.cx+','+g.cy);
+                    break;
+                case 'arc':
+                    var d=element.getAttribute('d');
+                    getArc(d);
+                    g.cx=arc.cx+(i*dH);
+                    g.cy=arc.cy+(j*dV);
+                    g.x1=arc.x1+(i*dH);
+                    g.y1=arc.y1+(j*dV);
+                    g.x2=arc.x2+(i*dH);
+                    g.y2=arc.y2+(j*dV);
+                    g.r=arc.r;
+                    g.major=arc.major;
+                    g.sweep=arc.sweep;
+                    console.log('copy['+i+','+j+'] of '+g.type+' at '+g.cx+','+g.cy);
+                    break;
+                case 'text':
+                    g.x=Number(element.getAttribute('x'))+(i*dH);
+                    g.y=Number(element.getAttribute('y'))+(j*dV);
+                    g.flip=Number(element.getAttribute('flip'));
+                    g.text=element.innerHTML;
+                    g.textSize=Number(element.getAttribute('font-size'))/scale;
+                    var style=element.getAttribute('font-style');
+                    g.textStyle=(style=='italic')?'italic':'fine';
+                    if(element.getAttribute('font-weight')=='bold') g.textStyle='bold';
+                    break;
+                case 'combi':
+                    g.x=Number(element.getAttribute('x'))+(i*dH);
+                    g.y=Number(element.getAttribute('y'))+(j*dV);
+                    g.flip=Number(element.getAttribute('flip'));
+                    g.name=element.getAttribute('href').substr(1); // strip off leading #
+                    break;
+            }
+            addGraph(g); // ENSURE THIS CREATES SEPARATE GRAPHS & NOT SAME ONE SEVERAL TIMES!
         }
     }
     id('handles').innerHTML='';
@@ -3971,12 +3971,12 @@ function updateGraph(id,parameters) {
 	request.onerror=function(event) {console.log('error updating '+id);};
 }
 function addGraph(el) {
-    console.log('add '+el.type+' element at '+el.x+','+el.y+' spin: '+el.spin);
+    console.log('add '+el.type+' element - spin: '+el.spin);
     var request=db.transaction('graphs','readwrite').objectStore('graphs').add(el);
     request.onsuccess=function(event) {
         // console.log('result: '+event.target.result);
         el.id=event.target.result;
-        console.log('graph added - id: '+el.id+' - draw at '+el.x+','+el.y);
+        console.log('graph added - id: '+el.id+' - draw');
         drawElement(el);
     }
     request.onerror=function(event) {
