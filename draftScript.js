@@ -172,7 +172,9 @@ id('fileChooser').addEventListener('change',function() {
 		    graphStore.clear();
 		    combiStore.clear();
 		    aspect=json.aspect;
+		    window.localStorage.setItem('aspect',aspect);
 		    scale=json.scale;
+		    window.localStorage.setItem('scale',scale);
 		    console.log('load drawing - aspect:'+aspect+' scale:'+scale);
 		}
 		else if(method=='merge') {
@@ -1879,6 +1881,7 @@ id('graphic').addEventListener('pointerdown',function() {
             }
             console.log('mode: '+mode);
         }
+        id('graphic').addEventListener('pointermove',drag);
         return;
     }
     snap=snapCheck();
@@ -1977,7 +1980,7 @@ id('graphic').addEventListener('pointerdown',function() {
     }
     event.stopPropagation();
     console.log('exit pointer down code');
-    id('graphic').addEventListener('pointermove',drag);
+    if(mode!='combi') id('graphic').addEventListener('pointermove',drag);
 });
 // POINTER MOVE
 function drag(event) {
@@ -1986,7 +1989,7 @@ function drag(event) {
     scr.y=Math.round(event.clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
-    // prompt(x+','+y); // TESTING
+    prompt(x+','+y); // TESTING
     if(mode!='arcEnd') {
         snap=snapCheck(); // snap to nearby nodes, datum,...
         if(snap) { // shift datum to snap point to allow easy horizontal/vertical alignment
