@@ -889,15 +889,6 @@ id('flipOptions').addEventListener('click',function() {
                     updateGraph(elID,['cx',arc.cx,'x1',arc.x1,'x2',arc.x2,'sweep',arc.sweep]);
                     d="M"+arc.cx+","+arc.cy+" M"+arc.x1+","+arc.y1+" A"+arc.r+","+arc.r+" 0 "+arc.major+","+arc.sweep+" "+arc.x2+","+arc.y2;
                     element.setAttribute('d',d);
-                    // MAY NEED TO MIRROR SPIN AS WITH BOX & OVAL
-                    /* COULD REPLACE THIS WITH refreshNodes(el)
-                    elNodes[0].x=arc.cx;
-                    elNodes[0].y=arc.cy;
-                    elNodes[1].x=arc.x1;
-                    elNodes[1].y=arc.y1;
-                    elNodes[2].x=arc.x2;
-                    elNodes[2].y=arc.y2;
-                    */
                     refreshNodes(el);
                 }
                 break;
@@ -966,21 +957,23 @@ id('flipOptions').addEventListener('click',function() {
                     var g={};
                     g.type='combi';
                     if(opt<1) { // mirror copy left or right...
-                        dx=parseInt(el.getAttribute('x'))+parseInt(el.getAttribute('width'))-axis.x;
+                        // dx=parseInt(el.getAttribute('x'))+parseInt(el.getAttribute('width'))-axis.x;
                         g.x=axis.x-dx;
                         g.y=parseInt(el.getAttribute('y'));
-                        dx=parseInt(el.getAttribute('ax'))-axis.x;
-                        g.ax=axis.x-dx;
-                        g.ay=parseInt(el.getAttribute('ay'));
+                        // dx=parseInt(el.getAttribute('ax'))-axis.x;
+                        dx=parseInt(el.getAttribute('x'))-axis.x;
+                        // g.ax=axis.x-dx;
+                        // g.ay=parseInt(el.getAttribute('ay'));
                         g.flip=parseInt(el.getAttribute('flip'))^1;
                     }
                     else { // ...above or below
                         g.x=parseInt(el.getAttribute('x'));
-                        dy=parseInt(el.getAttribute('y'))+parseInt(el.getAttribute('height'))-axis.y;
-                        g.y=axis.y-dy;
-                        g.ax=parseInt(el.getAttribute('ax'));
-                        dy=parseInt(el.getAttribute('ay'))-axis.y;
-                        g.ay=axis.y-dy;
+                        // dy=parseInt(el.getAttribute('y'))+parseInt(el.getAttribute('height'))-axis.y;
+                        // g.y=axis.y-dy;
+                        // g.ax=parseInt(el.getAttribute('ax'));
+                        dy=parseInt(el.getAttribute('y'))-axis.y;
+                        // dy=parseInt(el.getAttribute('ay'))-axis.y;
+                        // g.ay=axis.y-dy;
                         g.flip=parseInt(el.getAttribute('flip'))^2; // toggle vertical flip
                     }
                     var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
@@ -999,40 +992,29 @@ id('flipOptions').addEventListener('click',function() {
                 }
                 else { // flip in-situ
                     var flip=parseInt(el.getAttribute('flip'));
-                    console.log(elNodes.length+' nodes');
+                    // console.log(elNodes.length+' nodes');
                     if(opt<1) { // flip left-right
                         console.log('current flip: '+flip);
                         flip^=1; // toggle horizontal flip;
                         dx=parseInt(el.getAttribute('ax'))-axis.x;
                         el.setAttribute('ax',(axis.x-dx));
-                        /* COULD REPLACE THIS WITH refreshNodes(el)
-                        if(elNodes.length>0) {
-                            dx=elNodes[0].x-axis.x; // text and combis have just one node
-                            elNodes[0].x=axis.x-dx;
-                        } */
                     }
                     else { // flip top-bottom
                         flip^=2; // toggle vertical flip
                         dy=parseInt(el.getAttribute('ay'))-axis.y;
                         el.setAttribute('ay',(axis.y-dy));
-                        // transform+='scale(1,-1)';
-                        /* COULD REPLACE THIS WITH refreshNodes(el)
-                        if(elNodes.length>0) {
-                            dy=elNodes[0].y-axis.y; // text and combis have just one node
-                            elNodes[0].y=axis.y-dy;
-                        } */
                     }
                     refreshNodes(el);
-                    w=parseInt(el.getAttribute('width'));
-                    h=parseInt(el.getAttribute('height'));
-                    var s=parseInt(el.getAttribute('scale'));
+                    w=parseInt(el.getAttribute('x'));
+                    h=parseInt(el.getAttribute('y'));
+                    // var s=parseInt(el.getAttribute('scale'));
                     var hor=flip&1;
                     var ver=flip&2;
                     var t='translate('+(hor*w)+','+(ver*h/2)+') ';
-                    t+='scale('+((hor>0)? -1:1)*s+','+((ver>0)? -1:1)*s+')';
+                    t+='scale('+((hor>0)? -1:1)+','+((ver>0)? -1:1)+')';
                     // ADD rotate() FOR SPIN
                     el.setAttribute('flip',flip);
-                    el.firstChild.setAttribute('transform',t);
+                    el.setAttribute('transform',t);
                     updateGraph(elID,['flip',flip]);
                 }
                 break;
@@ -1995,16 +1977,16 @@ id('graphic').addEventListener('pointerdown',function() {
     }
     event.stopPropagation();
     console.log('exit pointer down code');
+    id('graphic').addEventListener('pointermove',drag);
 });
 // POINTER MOVE
-id('graphic').addEventListener('pointermove',function(event) {
-    // console.log('DRAG - offsets: '+dx+','+dy);
-    console.log('mode: '+mode+' x:'+event.clientX+' y;'+event.clientY);
+function drag(event) {
     event.preventDefault();
     scr.x=Math.round(event.clientX);
     scr.y=Math.round(event.clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
+    // prompt(x+','+y); // TESTING
     if(mode!='arcEnd') {
         snap=snapCheck(); // snap to nearby nodes, datum,...
         if(snap) { // shift datum to snap point to allow easy horizontal/vertical alignment
@@ -2222,10 +2204,11 @@ id('graphic').addEventListener('pointermove',function(event) {
             setSizes('box',null,w,h);
     }
     event.stopPropagation();
-});
+};
 // POINTER UP
 id('graphic').addEventListener('pointerup',function() {
     console.log('touch-end at '+x+','+y+' mode: '+mode);
+    id('graphic').removeEventListener('pointermove',drag);
     snap=snapCheck();
     if(mode.startsWith('movePoint')) { // move polyline/polygon point
         id('handles').innerHTML='';
@@ -2791,6 +2774,7 @@ id('graphic').addEventListener('pointerup',function() {
                     if((box.y+box.height)>(selectionBox.y+selectionBox.h)) continue;
                     selection.push(items[i].id); // add to selection if passes tests
                     console.log('select '+items[i].id);
+                    // if(type(el)=='combi') continue; // no blue box for combis
                     var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
                     html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+items[i].id+"'/>";
                     id('selection').innerHTML+=html;
@@ -3004,6 +2988,7 @@ id('graphic').addEventListener('pointerup',function() {
                         var box=getBounds(el);
                         var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
                         html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+hit+"'/>";
+                        console.log('box html: '+html);
                         id('selection').innerHTML+=html; // blue block for this element
                         if(selection.length<3) {
                             console.log('SECOND SELECTED ITEM');
@@ -3436,11 +3421,15 @@ function type(el) {
 }
 function getBounds(el) {
     var b=el.getBBox();
+    /* 
     if(type(el)=='combi') { // adjust combi bounds for this instance
-        console.log('combi - adjust bounds');
-        b.x=parseInt(el.getAttribute('x'));
-        b.y=parseInt(el.getAttribute('y'));
+        console.log('combi - adjust bounds from '+b.x+','+b.y);
+        var combi=id(el.getAttribute('href').substr(1));
+        console.log('use combi ax:'+combi.getAttribute('ax'));
+        b.x-=parseInt(combi.getAttribute('ax'));
+        b.y-=parseInt(combi.getAttribute('ay'));
     }
+    */
     return b;
 }
 function prompt(text) {
@@ -3538,9 +3527,9 @@ function showSizes(visible,promptText) {
 function setSizes(mode,spin,p1,p2,p3,p4) {
     console.log('setSizes - '+mode+','+p1+','+p2+','+p3+','+p4);
     if(mode=='box') {
-        id('first').value=p1;
+        id('first').value=Math.round(p1);
         id('between').innerHTML='x';
-        id('second').value=p2;
+        id('second').value=Math.round(p2);
         id('after').innerHTML='mm';
     }
     else if(mode=='polar') { // drawing line or arc
@@ -3557,9 +3546,9 @@ function setSizes(mode,spin,p1,p2,p3,p4) {
         id('after').innerHTML='&deg;';
     }
     else { // arc
-        id('first').value=p1; // radius
+        id('first').value=Math.round(p1); // radius
         id('between').innerHTML='mm';
-        id('second').value=p2; // angle of arc
+        id('second').value=Math.round(p2); // angle of arc
         id('after').innerHTML='&deg;';
     }
     if((!spin)||(spin==0)) {
@@ -4238,7 +4227,8 @@ function load() {
             // var s=(combi.nts>0)?scale:1;
             // if(combi.nts>0) name='NTS'+name;
             console.log('add combi '+name);
-            var html="<g id='"+name+"' nts='"+combi.nts+"'>"+combi.svg+"</g>";
+            var html="<g id='"+name+"'>"+combi.svg+"</g>"; // TRY WITHOUT ax,ay
+            // var html="<g id='"+name+"' ax='"+combi.ax+"' ay='"+combi.ay+"'>"+combi.svg+"</g>";
             id('combis').innerHTML+=html; // copy combi svg into <defs>...
             html="<option value="+name+">"+name+"</option>";
             id('combiList').innerHTML+=html; //...and combi name into combiList
