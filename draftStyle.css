@@ -149,11 +149,17 @@ button {
 #combineButton {
     background: url(svg/combi.svg) center center no-repeat;
 }
+#addButton {
+    background: url(svg/add.svg) center center no-repeat;
+}
+/*
+#removeButton {
+    background: url(svg/cross.svg) center center no-repeat;
+}
 #fileMenu {
     padding: 5px;
     border-radius: 3px;
 }
-/*
 #newDrawingDialog {
     padding: 5px;
     border-radius: 3px;

@@ -415,16 +415,40 @@ id('combiList').addEventListener('change',function() {
     showDialog('combiDialog',false);
 });
 // EDIT TOOLS
+id('addButton').addEventListener('click',function() { // add point after selected point in line/shape
+    var t=type(element);
+    if((t!='line')&&(t!='shape')) return; // can only add points to lines/shapes
+    console.log('add point');
+    prompt('ADD POINT: tap on previous point');
+    mode='addPoint';
+    // showDialog('pointDialog',false);
+});
 id('deleteButton').addEventListener('click',function() {
-    prompt('DELETE');
+    var t=type(element);
+    if((t=='line')||(t=='shape')) {
+        var n=element.points.length;
+        if(((t=='line')&&(n>2))||((t=='shape')&&(n>3))) { // if minimum number of nodes, just remove element
+            prompt('REMOVE: tap (round) start-point to remove element or a (square) point to remove it');
+            mode='removePoint'; // remove whole element or one point
+            return;
+        }
+    }
+    prompt('REMOVE');
     for(var i=0;i<selection.length;i++) console.log('delete '+selection[i]);
     console.log('element is '+elID);
+    /*
+    if(selection.length>0) {
+        while(selection.length>0) remove(selection.pop());
+    }
+    */
+    showDialog('removeDialog',true);
+});
+id('confirmRemove').addEventListener('click',function() { // complete deletion
     if(selection.length>0) {
         while(selection.length>0) remove(selection.pop());
     }
     else remove(elID);
     element=elID=null;
-	// id('dwg').removeChild(element); // remove element from SVG
     id('handles').innerHTML=''; // remove edit handles...
     id('selection').innerHTML=''; // ...selection shading,...
     id('blueBox').setAttribute('width',0); // ...and text outline...
@@ -1797,7 +1821,11 @@ id('graphic').addEventListener('pointerdown',function() {
         id('blueBox').setAttribute('y',bounds.y);
         id('blueBox').setAttribute('width',bounds.width);
         id('blueBox').setAttribute('height',bounds.height);
-        if(handle instanceof SVGCircleElement) {
+        if(handle instanceof SVGCircleElement) { // remove whole element
+            if(mode=='removePoint') {
+                showDialog('removeDialog',true);
+                return;
+            }
             mode='move';
             offset.x=bounds.x-x0; // offsets to top-left corner
             offset.y=bounds.y-y0;
@@ -1806,7 +1834,62 @@ id('graphic').addEventListener('pointerdown',function() {
             id('textDialog').style.display='none';
         }
         else if(handle instanceof SVGRectElement) {
-            val=val.substr(6);
+            val=Number(val.substr(6));
+            if(mode=='addPoint') {
+                console.log('add point after point '+val);
+                var points=element.points;
+                console.log('point '+val+': '+points[val].x+','+points[val].y);
+                var n=points.length-1;
+                var pts='';
+                if(val==n) { // append point after end-point
+                    dx=points[n].x-points[n-1].x;
+                    dy=points[n].y-points[n-1].y;
+                    x=points[n].x+dx;
+                    y=points[n].y+dy;
+                    for(var i=0;i<points.length;i++) {
+                        pts+=points[i].x+','+points[i].y+' ';
+                    }
+                    pts+=x+','+y;
+                }
+                else { // insert point midway between selected point and next point
+                    x=Math.round((Number(points[val].x)+Number(points[val+1].x))/2);
+                    y=Math.round((Number(points[val].y)+Number(points[val+1].y))/2);
+                    var i=0;
+                    while(i<points.length) {
+                        // if(i<val) pts+=points[i].x+','+points[i].y+' ';
+                        if(i==val) pts+=points[i].x+','+points[i].y+' '+x+','+y+' ';
+                        else pts+=points[i].x+','+points[i].y+' ';
+                        console.log('i: '+i+' pts: '+pts);
+                        i++;
+                    }
+                }
+                element.setAttribute('points',pts);
+                updateGraph(elID,['points',pts]);
+                refreshNodes(element);
+                element=elID=null;
+                id('handles').innerHTML='';
+                selection=[];
+                mode='select';
+                return;
+            }
+            else if(mode=='removePoint') {
+                console.log('remove point '+val);
+                var points=element.points;
+                console.log('point '+val+': '+points[val].x+','+points[val].y);
+                var pts='';
+                for(var i=0;i<points.length-1;i++) {
+                    if(i<val) pts+=points[i].x+','+points[i].y+' ';
+                    else pts+=points[i+1].x+','+points[i+1].y+' ';
+                }
+                element.setAttribute('points',pts);
+                updateGraph(elID,['points',pts]);
+                refreshNodes(element);
+                element=elID=null;
+                id('handles').innerHTML='';
+                selection=[];
+                mode='select';
+                return;
+            }
             console.log('size handle '+val);
             switch(val) {
                 /*
@@ -2859,6 +2942,7 @@ id('graphic').addEventListener('pointerup',function() {
                                 showSizes(true,'LINE');
                                 if(mode=='shape') prompt('SHAPE');
                                 mode='edit';
+                                // showDialog('pointDialog',true); // allow point editing
                                 break;
                             case 'box':
                                 x=parseFloat(el.getAttribute('x'));
@@ -3718,7 +3802,6 @@ function setTransform(el) {
 }
 function refreshNodes(el) {
     // recalculate node.x, node.y after change to element
-    var elNodes=[];
     console.log('check nodes for el '+el.id);
     var elNodes=nodes.filter(function(node) {
         return Number(node.el)==Number(el.id);
@@ -3739,6 +3822,9 @@ function refreshNodes(el) {
             console.log('origin: '+ox+','+oy+' spin: '+spin);
             elNodes[0].x=ox;
             elNodes[0].y=oy;
+            if(points.length>elNodes.length) { // adding point
+                elNodes.push({'x':0,'y':0}); // initialise new node at 0,0 - will soon be reset
+            }
             for(var i=1;i<points.length;i++) {
                 if(spin==0) { // no spin
                     elNodes[i].x=Number(points[i].x);

@@ -74,6 +74,7 @@
         <button id='combiButton' class='iconButton'></button>
     </div>
     <div id='editTools'>
+        <button id='addButton' class='iconButton'></button>
         <button id='deleteButton' class='iconButton'></button>
         <button id='forwardButton' class='iconButton'></button>
         <button id='backButton' class='iconButton'></button>
@@ -155,6 +156,10 @@
 		<p>file name <input id='printName' type='text'>.svg</p>
 		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
 	</div>
+	<!--div id='pointDialog' class='dialog'>
+	    <button id='addButton' class='iconButton'></button>
+	    <button id='removeButton' class='iconButton'></button>
+	</div-->
     <div id='dimDialog' class='dialog'>
         <p><button id='confirmDim'>DIMENSION</button></p>
         <input type='radio' name='dimDir' id='horizontal' value='h'>
@@ -209,6 +214,10 @@
                 <option value=0>none</option>
             </select> opacity</p>
         <!--/div-->
+    </div>
+    <div id='removeDialog' class='dialog'>
+        <p><button id='confirmRemove'>REMOVE</button></p>
+        <p>selected element(s)?</p>
     </div>
     <div id='moveDialog' class='dialog'>
         <p><button id='confirmMove'>MOVE</button></p>
