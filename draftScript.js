@@ -26,7 +26,7 @@ var dy=0;
 var w=0;
 var h=0;
 var datum={'x':0,'y':0};
-var offset={'x':0,'y':0};
+// var offset={'x':0,'y':0};
 var arc={};
 var dim={};
 var selectionBox={}; // for box select
@@ -1797,7 +1797,7 @@ id('graphic').addEventListener('pointerdown',function() {
         // return;
     }
     var holder=event.target.parentNode.id;
-    console.log('holder is '+holder);
+    // console.log('holder is '+holder);
     if((holder=='selection')&&(mode!='anchor')) { // click on a blue box to move multiple selectin
         console.log('move group selection');
         mode='move';
@@ -1808,15 +1808,6 @@ id('graphic').addEventListener('pointerdown',function() {
         var handle=id(val);
         var bounds=getBounds(element);
         console.log('bounds: '+bounds.x+','+bounds.y+' '+bounds.width+'x'+bounds.height);
-        /*
-        if(type(element)=='combi') { // allow for NTS combis
-            var s=element.getAttribute('scale');
-            bounds.x*=s;
-            bounds.y*=s;
-            bounds.width*=s;
-            bounds.height*=s;
-        }
-        */
         id('blueBox').setAttribute('x',bounds.x);
         id('blueBox').setAttribute('y',bounds.y);
         id('blueBox').setAttribute('width',bounds.width);
@@ -1827,9 +1818,8 @@ id('graphic').addEventListener('pointerdown',function() {
                 return;
             }
             mode='move';
-            offset.x=bounds.x-x0; // offsets to top-left corner
-            offset.y=bounds.y-y0;
-            console.log('offsets: '+offset.x+','+offset.y);
+            id('blueBox').setAttribute('x',x);
+            id('blueBox').setAttribute('y',y);
             prompt('drag to MOVE');
             id('textDialog').style.display='none';
         }
@@ -1971,6 +1961,7 @@ id('graphic').addEventListener('pointerdown',function() {
     if(snap) { // snap start/centre to snap target
         x0=x;
         y0=y;
+        console.log('SNAP START');
     }
     console.log('mode: '+mode);
     switch(mode) {
@@ -2017,7 +2008,7 @@ id('graphic').addEventListener('pointerdown',function() {
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
             prompt('BOX: drag to size');
-            console.log('box started');
+            console.log('box started at '+x0+','+y0);
             break;
         case 'oval':
             id('blueOval').setAttribute('cx',x0);
@@ -2075,6 +2066,7 @@ function drag(event) {
     prompt(x+','+y); // TESTING
     if(mode!='arcEnd') {
         snap=snapCheck(); // snap to nearby nodes, datum,...
+        /*
         if(snap) { // shift datum to snap point to allow easy horizontal/vertical alignment
             // id('datum').setAttribute('cx',x);
             // id('datum').setAttribute('cy',y);
@@ -2082,9 +2074,17 @@ function drag(event) {
             id('datumH').setAttribute('y2',y);
             id('datumV').setAttribute('x1',x);
             id('datumV').setAttribute('x2',x);
+            datum.x=x;
+            datum.y=y;
         }
+        */
         if(Math.abs(x-x0)<snapD) x=x0; // ...vertical...
         if(Math.abs(y-y0)<snapD) y=y0; // ...or horizontal
+        // TEST WITH SNAP
+        if(mode=='move') {
+            id('blueBox').setAttribute('x',x);
+            id('blueBox').setAttribute('y',y);
+        }
     }
     if(mode.startsWith('movePoint')) {
         var n=parseInt(mode.substr(9));
@@ -2100,9 +2100,8 @@ function drag(event) {
                 id('selection').setAttribute('transform','translate('+dx+','+dy+')');
             }
             else { // drag  single element
-                // console.log('move element '+elID+' to '+x+','+y);
-                id('blueBox').setAttribute('x',(x+offset.x));
-                id('blueBox').setAttribute('y',(y+offset.y));
+                id('blueBox').setAttribute('x',x);
+                id('blueBox').setAttribute('y',y);
             }
             if(anchor) {
                 id('anchor').setAttribute('cx',x);
@@ -3409,6 +3408,14 @@ function initialise() {
         id('radiusUnit').innerHTML='in';
     }
     */
+    var gridSizes=id('gridSize').options;
+    console.log('set '+gridSizes.length+' grid size options for scale '+scale);
+    gridSizes[0].disabled=(scale>2);
+    gridSizes[1].disabled=(scale>5);
+    gridSizes[2].disabled=((scale<5)||(scale>10));
+    gridSizes[3].disabled=((scale<5)||(scale>20));
+    gridSizes[4].disabled=((scale<10)||(scale>50));
+    gridSizes[5].disabled=gridSizes[6].disabled=gridSizes[7].disabled=gridSizes[8].disabled=gridSizes[9].disabled=(scale<50);
     var blues=document.getElementsByClassName('blue');
     console.log(blues.length+' elements in blue class');
     for(var i=0;i<blues.length;i++) blues[i].style.strokeWidth=0.25*scale;
@@ -3987,6 +3994,26 @@ function redrawDim(d) {
     }
 }
 function snapCheck() {
+    // CHECK FOR SNAP-TO-DATUM
+    console.log(x+','+y+' - datum '+datum.x+','+datum.y+' snap distance: '+snapD);
+    if(Math.abs(x-datum.x)<snapD) {
+        x=datum.x;
+        console.log('SNAP TO DATUM');
+        return 'snapX';
+    }
+    else if(Math.abs(y-datum.y)<snapD) {
+        y=datum.y;
+        console.log('SNAP TO DATUM');
+        return 'snapY';
+    }
+    // CHECK FOR SNAP TO GRID
+    if(gridSnap) {
+        x=Math.round(x/gridSize)*gridSize;
+        y=Math.round(y/gridSize)*gridSize;
+        console.log('SNAP TO GRID AT '+x+','+y);
+        return 'grid';
+    }
+    // CHECK FOR SNAP-TO-NODE
     // console.log('check for snap-to-node');
     var nearNodes=nodes.filter(nearby);
     // console.log('snap potential: '+nearNodes.length);
@@ -4007,11 +4034,18 @@ function snapCheck() {
                 // prompt('snap');
             }
         }
-        // IF SNAP, MOVE DATUM HERE?
+        // IF SNAP, MOVE DATUM HERE
+        datum.x=x;
+        datum.y=y;
+        id('datumH').setAttribute('y1',y);
+        id('datumH').setAttribute('y2',y);
+        id('datumV').setAttribute('x1',x);
+        id('datumV').setAttribute('x2',x);
+        // END
         return {'el':el,'n':n}; // return object with element.id and node number
     }
     // console.log('no snap-to-node');
-    // LOOK AT MOVING DATUM TO SNAP X,Y
+    /* LOOK AT MOVING DATUM TO SNAP X,Y
     else if(Math.abs(x-datum.x)<snapD) {
         x=datum.x;
         return true;
@@ -4020,6 +4054,7 @@ function snapCheck() {
         y=datum.y;
         return true;
     }
+    */
     else return false;
 }
 function nearby(node) {

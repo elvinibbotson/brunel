@@ -100,7 +100,19 @@
     <div id='docDialog' class='dialog'>
         <p>DRAWING: <span id='drawingName'></span></p>
         <p>1:<span id='drawingScale'></span> | <span id='drawingAspect'></span> | current zoom: <span id='zoom'></span></p>
-        <p>grid<input type='checkbox' id='gridSnap'>size: <input type='number' id='gridSize' value=10> mm</p>
+        <p>grid<input type='checkbox' id='gridSnap'>size: <select id='gridSize'>
+            <option value=5>5mm</option>
+            <option vlaue=10>10mm</option>
+            <option value=25>25mm</option>
+            <option value=50>50mm</option>
+            <option value=100>100mm</option>
+            <option value=300>300mm</option>
+            <option value=500>500mm</option>
+            <option value=600>600mm</option>
+            <option value=900>900mm</option>
+            <option value=1000>1m</option>
+        </select>
+        </p>
         <p>goofy screen layout<input type='checkbox' id='goofy'></p>
         <p><button id='new'>NEW</button> <button id='load'>LOAD</button> <button id='save'>SAVE</button> <button id='print'>PRINT</button></p>
     </div>
@@ -156,10 +168,6 @@
 		<p>file name <input id='printName' type='text'>.svg</p>
 		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
 	</div>
-	<!--div id='pointDialog' class='dialog'>
-	    <button id='addButton' class='iconButton'></button>
-	    <button id='removeButton' class='iconButton'></button>
-	</div-->
     <div id='dimDialog' class='dialog'>
         <p><button id='confirmDim'>DIMENSION</button></p>
         <input type='radio' name='dimDir' id='horizontal' value='h'>
