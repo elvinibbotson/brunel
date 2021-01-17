@@ -31,6 +31,7 @@ var arc={};
 var dim={};
 var selectionBox={}; // for box select
 var selection=[]; // list of elements in selectionBox
+var selectedPoints=[]; // list of selected points in line or shape
 var anchor=false; // flags existance of anchor
 var db=null; // indexed database holding SVG elements
 var nodes=[]; // array of nodes each with x,y coordinates and element ID
@@ -425,13 +426,30 @@ id('addButton').addEventListener('click',function() { // add point after selecte
 });
 id('deleteButton').addEventListener('click',function() {
     var t=type(element);
+    var points=element.points;
     if((t=='line')||(t=='shape')) {
-        var n=element.points.length;
-        if(((t=='line')&&(n>2))||((t=='shape')&&(n>3))) { // if minimum number of nodes, just remove element
-            prompt('REMOVE: tap (round) start-point to remove element or a (square) point to remove it');
-            mode='removePoint'; // remove whole element or one point
-            return;
+        if(selectedPoints.length>0) { // remove >1 selected points
+            prompt('REMOVE selected points');
+            var pts='';
+            for(var i=0;i<points.length;i++) {
+                if(selectedPoints.indexOf(i)>=0) continue;
+                pts+=points.x+','+points.y+' ';
+            }
+            selectedPoints=[];
+            selection=[];
+            id('blueBox').setAttribute('width',0);
+            id('blueBox').setAttribute('height',0);
+            mode='select';
         }
+        else { // remove individual point
+            var n=points.length;
+            if(((t=='line')&&(n>2))||((t=='shape')&&(n>3))) { // if minimum number of nodes, just remove element
+                prompt('REMOVE: tap (round) start-point to remove element or a (square) point to remove it');
+                mode='removePoint'; // remove whole element or one point
+                return;
+            }
+        }
+        
     }
     prompt('REMOVE');
     for(var i=0;i<selection.length;i++) console.log('delete '+selection[i]);
@@ -499,7 +517,15 @@ id('confirmMove').addEventListener('click',function() {
         moveY=moveD*Math.sin(moveA);
     }
     if(selection.length<1) selection.push(elID);
-    while(selection.length>0) {
+    if(selectedPoints.length>0) { // move all selected points in a line or shape...
+        var points=element.points;
+        while(selectedPoints.length>0) {
+            var n=selectedPoints.pop();
+            points[n].x+=moveX;
+            points[n].y+=moveY;
+        }
+    }
+    else while(selection.length>0) { // or move all selected elements
         element=id(selection.pop());
         move(element,moveX,moveY);
     }
@@ -509,6 +535,7 @@ id('confirmMove').addEventListener('click',function() {
     id('handles').innerHTML='';
     id('selection').innerHTML='';
     selected=[];
+    selectedPoints=[];
     mode='select';
     showSizes(false);
     elID=null;
@@ -1465,46 +1492,19 @@ id('anchorButton').addEventListener('click',function() {
 });
 id('combineButton').addEventListener('click',function() {
     id('combiName').value='';
-    id('combiScale').checked=true;
-    if(selection.length>1) showDialog('combineDialog',true);
+    if((selection.length>1)&&anchor) showDialog('combineDialog',true);
+    else alert('Please place an anchor for the combi');
 });
 id('confirmCombine').addEventListener('click',function() {
-    if(!anchor) {
-        alert('Place the anchor point before saving');
-        return;
-    }
     var name=id('combiName').value;
     if(!name) {
         alert('Enter a name for the combi');
         return;
     }
-    nts=(id('combiScale').checked)?0:1; // if not checked, combi is NTS
-    var el=id(selection[0]); // first selected element
-    var box=getBounds(el);
-    var minX=box.x;
-    var minY=box.y;
-    var maxX=minX+box.width;
-    var maxY=minY+box.height;
-    // REDO THIS WITHOUT ax,ay AND WITH COORDS RELATIVE TO ANCHOR
-    var ax=0;
-    var ay=0;
-    for(var i=1;i<selection.length;i++) {
-        el=id(selection[i]);
-        var box=getBounds(id(selection[i]));
-        if(box.x<minX) minX=box.x;
-        if((box.x+box.width)>maxX) maxX=box.x+box.width;
-        if(box.y<minY) minY=box.y;
-        if((box.y+box.height)>maxY) maxY=box.y+box.height;
-    }
-    w=Math.round(maxX-minX);
-    h=Math.round(maxY-minY);
-    ax=Math.round(id('anchor').getAttribute('cx'));
-    ay=Math.round(id('anchor').getAttribute('cy'));
-    ax-=minX;
-    ay-=minY;
-    console.log('combi size: '+w+'x'+h+' at '+minX+','+minY);
-    var json='{"combis":[{"name":"'+name+'",width":'+w+',"height":'+h+',"ax":'+ax+',"ay":'+ay+',"svg":"';
-    console.log('preliminary JSON: '+json);
+    var ax=parseInt(id('anchor').getAttribute('cx'));
+    var ay=parseInt(id('anchor').getAttribute('cy'));
+    var json='{"name":"'+name+'","svg":"';
+    console.log('preliminary JSON: '+json+' anchor at '+ax+','+ay);
     for(i=0;i<selection.length;i++) {
         el=id(selection[i]);
         var t=type(el);
@@ -1513,42 +1513,44 @@ id('confirmCombine').addEventListener('click',function() {
         switch(type(el)) {
             case 'line':
                 var points=el.points;
-                for(var j=0;j<points.length;j++) {
-                    points[j].x-=minX;
-                    points[j].y-=minY;
-                }
-                json+="<polyline points=\'"+el.getAttribute('points')+"\' spin=\'"+el.getAttribute('spin')+"\' ";
+                var pts='';
+                for(var j=0;j<points.length;j++) pts+=(points[i].x-ax)+','+(points[i].y-ay)+' ';
+                json+="<polyline points=\'"+pts+"\' spin=\'"+el.getAttribute('spin')+"\' ";
                 break;
             case 'shape':
                 var points=el.points;
+                var pts='';
+                for(var j=0;j<points.length;j++) pts+=(points[i].x-ax)+','+(points[i].y-ay)+' ';
+                /*
                 for(var j=0;j<points.length;j++) {
                     points[j].x-=minX;
                     points[j].y-=minY;
                 }
-                json+="<polygon points=\'"+el.getAttribute('points')+"\' spin=\'"+el.getAttribute('spin')+"\' ";
+                */
+                json+="<polygon points=\'"+pts+"\' spin=\'"+el.getAttribute('spin')+"\' ";
                 break;
             case 'box':
-                json+="<rect x=\'"+(parseInt(el.getAttribute('x'))-minX)+"\' y=\'"+(parseInt(el.getAttribute('y'))-minY)+"\' ";
+                json+="<rect x=\'"+(parseInt(el.getAttribute('x'))-ax)+"\' y=\'"+(parseInt(el.getAttribute('y'))-ay)+"\' ";
                 json+="width=\'"+el.getAttribute('width')+"\' height=\'"+el.getAttribute('height')+"\' rx=\'"+el.getAttribute('rx')+"\' spin=\'"+el.getAttribute('spin')+"\' ";
                 break;
             case 'oval':
-                json+='<ellipse cx="'+parseInt(el.getAttribute('cx'))-minX+'" cy="'+parseInt(el.getAttribute('cy'))-minY+'" ';
-                json+='rx="'+el.getAttribute('rx')+'" ry="'+el.getAttribut('ry')+'" spin="'+el.getAttribute('spin')+'" ';
+                json+="<ellipse cx=\'"+(parseInt(el.getAttribute('cx'))-ax)+"\' cy=\'"+(parseInt(el.getAttribute('cy'))-ay)+"\' ";
+                json+="rx=\'"+el.getAttribute('rx')+"\' ry=\'"+el.getAttribute('ry')+"\' spin=\'"+el.getAttribute('spin')+"\' ";
                 break;
             case 'arc':
                 var d=el.getAttribute('d');
                 getArc(d);
-                arc.cx-=minX;
-                arc.cy-=minY;
-                arc.x1-=minX;
-                arc.y1-=minY;
-                arc.x2-=minX;
-                arc.y2-=minY;
+                arc.cx-=ax;
+                arc.cy-=ay;
+                arc.x1-=ax;
+                arc.y1-=ay;
+                arc.x2-=ax;
+                arc.y2-=ay;
                 d='M'+arc.cx+','+arc.cy+' M'+arc.x1+','+arc.y1+' A'+arc.r+','+arc.r+' 0 '+arc.major+','+arc.sweep+' '+arc.x2+','+arc.y2;
                 json+="<path d=\'"+d+"\' spin=\'"+el.getAttribute('spin')+"\' ";
                 break;
             case 'text':
-                json+="<text x=\'"+parseInt(el.getAttribute('x'))-minX+"\' y=\'"+parseInt(el.getAttribute('y'))-minY+"\' ";
+                json+="<text x=\'"+parseInt(el.getAttribute('x'))-ax+"\' y=\'"+parseInt(el.getAttribute('y'))-ay+"\' ";
                 json+="spin=\'"+el.getAttribute('spin')+"\' flip=\'"+el.getAttribute('flip')+"\' ";
                 json+="stroke=\'"+el.getAttribute('stroke')+"\' fill=\'"+el.getAttribute('fill')+"\' ";
                 json+="font-size=\'"+el.getAttribute('font-size')+"/' ";
@@ -1567,8 +1569,9 @@ id('confirmCombine').addEventListener('click',function() {
             if(val) json+="fill-opacity=\'"+val+"\'";
             json+="/>";
         }
+        console.log('JSON so far: '+json);
     }
-    json+='"}]}';
+    json+='"}';
     console.log('combi JSON: '+json);
     download(json,name+'.json','text/plain');
 });
@@ -1774,6 +1777,7 @@ id('shadeMenu').addEventListener('click',function() {
 });
 // POINTER DOWN
 id('graphic').addEventListener('pointerdown',function() {
+    console.log('pointer down - mode is '+mode);
     event.preventDefault();
     if(currentDialog) showDialog(currentDialog,false); // clicking drawing removes any dialogs/menus
     id('shadeMenu').style.display='none';
@@ -2045,6 +2049,7 @@ id('graphic').addEventListener('pointerdown',function() {
             mode='select';
             break;
         case 'select':
+        case 'pointEdit':
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
             selectionBox.x=x0;
@@ -2274,6 +2279,7 @@ function drag(event) {
             id('blueLine').setAttribute('y2',y);
             break;
         case 'select':
+        case 'pointEdit':
             var boxX=(x<x0)?x:x0;
             var boxY=(y<y0)?y:y0;
             w=Math.abs(x-x0);
@@ -2834,8 +2840,32 @@ id('graphic').addEventListener('pointerup',function() {
                 anchor=true;
                 mode='select';
                 console.log('anchor placed');
+                setButtons();
             }
             else prompt('Click on a node to place anchor');
+            break;
+        case 'pointEdit':
+            console.log('SELECT POINTS');
+            if((selectionBox.w>20)&&(selectionBox.h>20)) { // significant selection box size
+                var left=selectionBox.x;
+                var right=selectionBox.x+selectionBox.w;
+                var top=selectionBox.y;
+                var bottom=selectionBox.y+selectionBox.h;
+                console.log('box: '+left+'-'+right+' x '+top+'-'+bottom);
+                var points=element.points;
+                console.log('element has '+points.length+' points');
+                selectedPoints=[];
+                for(var i=0;i<points.length;i++) {
+                    console.log('point '+i+': '+points[i].x+','+points[i].y);
+                    if(points[i].x<left) continue;
+                    if(points[i].y<top) continue;
+                    if(points[i].x>right) continue;
+                    if(points[i].y>bottom) continue;
+                    selectedPoints.push(i);
+                }
+                console.log(selectedPoints.length+' points selected');
+                if(selectedPoints.length>0) id('handles').innerHTML=''; // remove handles
+            }
             break;
         case 'select':
             id('blueBox').setAttribute('width',0);
@@ -2940,7 +2970,7 @@ id('graphic').addEventListener('pointerup',function() {
                                 // id('bluePolyline').setAttribute('points',el.getAttribute('points'));
                                 showSizes(true,'LINE');
                                 if(mode=='shape') prompt('SHAPE');
-                                mode='edit';
+                                mode='pointEdit';
                                 // showDialog('pointDialog',true); // allow point editing
                                 break;
                             case 'box':
@@ -3089,6 +3119,7 @@ id('graphic').addEventListener('pointerup',function() {
                         setStyle();
                         // SET STYLES TO DEFAULTS
                     }
+                    setButtons();
                 } // else ignore clicks on items already selected
                 showEditTools(true);
             }
@@ -3120,7 +3151,7 @@ id('graphic').addEventListener('pointerup',function() {
                 id('opacity').value=opacity;
                 */
             }
-            event.stopPropagation();
+            // event.stopPropagation();
     }
     event.stopPropagation();
 });
@@ -3613,6 +3644,61 @@ function setLineStyle(g) {
     if(g.lineStyle=='dashed') return (4*g.lineW)+" "+(4*g.lineW);
     else if(g.lineStyle=='dotted') return g.lineW+" "+g.lineW;
     // else return null;
+}
+function setButtons() {
+    var n=selection.length;
+    console.log('set buttons for '+n+' selected elements');
+    var active=[3,9]; // active buttons - remove & move always active
+    // childNodes of editTools are... 0:add 1:remove 2:forward 3:back 4:move 5:spin 6:flip 7:align 8:double 9:repeat 10:fillet 11: anchor 12:combine
+    if(n>1) { // multiple selection
+        if(anchor) { // spin and flip and combine active if anchor available for multiple selection
+            active.push(11);
+            active.push(13);
+            active.push(25);
+        }
+        active.push(15); // align and anchor active for multiple selection
+        active.push(23);
+    }
+    else { // single element selected
+        var t=type(id(selection[0]));
+        console.log('selected element is '+t);
+        if((t=='line')||(t=='shape')) active.push(0); // can add points to selected line/shape
+        else if(t=='box') active.push(10); // fillet tool active for a selected box
+        if(selectedPoints.length<1) { // unless editing line/shape active tools include...
+            active.push(5); // push/pull back/forwards
+            active.push(7);
+            active.push(11); // spin and flip
+            active.push(13);
+            active.push(17); // double, repeat and anchor
+            active.push(19);
+            active.push(23);
+        } 
+    }
+    var set='';
+    for(i=0;i<active.length;i++) set+=active[i]+' ';
+    console.log(active.length+' edit tools active: '+set);
+    var n=id('editTools').childNodes.length;
+    for(var i=0;i<n;i++) {
+        var btn=id('editTools').childNodes[i];
+        console.log(i+' '+btn.id+': '+(active.indexOf(i)>=0));
+        id('editTools').childNodes[i].disabled=(active.indexOf(i)<0);
+    }
+    /* old code
+    id('addButton').disabled=(n>1);
+    id('forwardButton').disabled=(n>1);
+    id('backButton').disabled=(n>1);
+    id('doubleButton').disabled=(n>1);
+    id('repeatButton').disabled=(n>1);
+    id('filletButton').disabled=(n>1);
+    id('alignButton').disabled=(n<2);
+    id('combineButton').disabled=(n<2);
+    if(n<2) {
+        var t=type(id(selection[0]));
+        console.log('selected element is '+t);
+        if((t!='line')&&(t!='shape')) id('addButton').disabled=true;
+        id('filletButton').disabled=(t!='box');
+    }
+    */
 }
 function showSizes(visible,promptText) {
     id('sizes').style.display=(visible)?'block':'none';
