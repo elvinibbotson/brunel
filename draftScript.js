@@ -1,4 +1,4 @@
-// GLOBAL VARIABLES
+// GLOBAL VARIABLES 
 var dbVersion=3;
 var name=''; // drawing name
 var saved=false; // flags whether drawing has been saved
@@ -328,28 +328,28 @@ console.log('zoom; '+zoom+' w: '+w+' h: '+h);
 // DRAWING TOOLS
 id('lineButton').addEventListener('click',function() {
     mode='line';
-    showSizes(true,'LINE: touch at start');
+    showSizes(true,'LINE: drag from start');
 });
 id('shapeButton').addEventListener('click',function() {
     mode='shape';
-    showSizes(true,'SHAPE: touch at start');
+    showSizes(true,'SHAPE: drag from start');
 });
 id('boxButton').addEventListener('click',function() {
     mode='box';
     rad=0;
-    showSizes(true,'BOX: press at start');
+    showSizes(true,'BOX: drag from corner');
 });
 id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
     mode='oval';
-    showSizes(true,'OVAL: press at centre');
+    showSizes(true,'OVAL: drag from centre');
 })
 id('arcButton').addEventListener('click', function() {
    mode='arc';
-   showSizes(true,'ARC: press at start');
+   showSizes(true,'ARC: drag from start');
 });
 id('textButton').addEventListener('click',function() {
     mode='text';
-    prompt('TEXT: press at start');
+    prompt('TEXT: tap at start');
 });
 id('text').addEventListener('change',function() {
     var text=event.target.value;
@@ -389,7 +389,7 @@ id('text').addEventListener('change',function() {
 });
 id('dimButton').addEventListener('click',function() {
    mode='dimStart';
-   prompt('DIMENSION: click on start node');
+   prompt('DIMENSION: tap start node');
 });
 id('confirmDim').addEventListener('click',function() {
     dim.dir=document.querySelector('input[name="dimDir"]:checked').value;
@@ -411,7 +411,7 @@ id('combiList').addEventListener('change',function() {
     combiID=event.target.value;
     console.log('combi '+combiID+' picked');
     mode='combi';
-    prompt('COMBI: touch to place');
+    prompt('COMBI: tap to place');
     id('combiList').value=null; // clear selection for next time
     showDialog('combiDialog',false);
 });
@@ -428,18 +428,16 @@ id('deleteButton').addEventListener('click',function() {
     var t=type(element);
     var points=element.points;
     if((t=='line')||(t=='shape')) {
-        if(selectedPoints.length>0) { // remove >1 selected points
+        if(selectedPoints.length>0) {  // remove >1 selected points
             prompt('REMOVE selected points');
             var pts='';
             for(var i=0;i<points.length;i++) {
                 if(selectedPoints.indexOf(i)>=0) continue;
                 pts+=points.x+','+points.y+' ';
             }
-            selectedPoints=[];
-            selection=[];
-            id('blueBox').setAttribute('width',0);
-            id('blueBox').setAttribute('height',0);
-            mode='select';
+            element.setAttribute('points',pts);
+            updateGraph(elID,['points',pts]);
+            cancel();
         }
         else { // remove individual point
             var n=points.length;
@@ -449,7 +447,6 @@ id('deleteButton').addEventListener('click',function() {
                 return;
             }
         }
-        
     }
     prompt('REMOVE');
     for(var i=0;i<selection.length;i++) console.log('delete '+selection[i]);
@@ -524,21 +521,14 @@ id('confirmMove').addEventListener('click',function() {
             points[n].x+=moveX;
             points[n].y+=moveY;
         }
+        updateGraph(elID,['points',element.getAttribute('points')]);
     }
     else while(selection.length>0) { // or move all selected elements
         element=id(selection.pop());
         move(element,moveX,moveY);
     }
     showDialog('moveDialog',false);
-    id('blueBox').setAttribute('width',0);
-    id('blueBox').setAttribute('height',0);
-    id('handles').innerHTML='';
-    id('selection').innerHTML='';
-    selected=[];
-    selectedPoints=[];
-    mode='select';
-    showSizes(false);
-    elID=null;
+    cancel();
 });
 id('spinButton').addEventListener('click',function() {
     id('spinAngle').value=0;
@@ -1073,16 +1063,17 @@ id('flipOptions').addEventListener('click',function() {
                 break;
         }
     }
-    selection=[];
-    element=elID=null;
-    id('handles').innerHTML='';
-    id('selection').innerHTML='';
+    cancel();
+    // selection=[];
+    // element=elID=null;
+    // id('handles').innerHTML='';
+    // id('selection').innerHTML='';
     if(anchor) {
         id('blue').removeChild(id('anchor'));
         anchor=false;
     }
     showDialog('flipDialog',false);
-    mode='select';
+    // mode='select';
 });
 id('alignButton').addEventListener('click',function() {
     if(selection.length<2) {
@@ -1149,8 +1140,9 @@ id('alignOptions').addEventListener('click',function() {
     }
     // CHECK NODES GET MOVED TOO!!!!! - USE refreshNodes(el)
     showDialog('alignDialog',false);
-    selection=[];
-    id('selection').innerHTML='';
+    cancel();
+    // selection=[];
+    // id('selection').innerHTML='';
 });
 id('doubleButton').addEventListener('click',function() {
     console.log(selection.length+' elements selected: '+elID);
@@ -1376,10 +1368,12 @@ id('confirmDouble').addEventListener('click',function() {
 });
 id('repeatButton').addEventListener('click',function() {
     if(type(element)=='dim') return; // cannot move dimensions
+    /* SHOULDN'T BE NEEDED
     if(selection.length>1) {
         prompt('Sorry. Cannot repeat multiple selection');
         return;
     }
+    */
     showDialog('textDialog',false);
     id('countH').value=id('countV').value=1;
     id('distH').value=id('distV').value=0;
@@ -1488,7 +1482,7 @@ id('confirmFillet').addEventListener('click',function() {
 });
 id('anchorButton').addEventListener('click',function() {
     mode='anchor';
-    prompt('ANCHOR: place on a node');
+    prompt('ANCHOR: tap a node');
 });
 id('combineButton').addEventListener('click',function() {
     id('combiName').value='';
@@ -1741,11 +1735,14 @@ id('shadeMenu').addEventListener('click',function() {
                     element.setAttribute('fill','none'); // ...and no fill
                     id('ref').appendChild(element); // move to <ref> layer
                     remove(elID,true); // remove from database keeping nodes for snap
+                    cancel();
+                    /*
                     elID=null;
                     selection=[];
                     id('handles').innerHTML=''; //remove element handles
                     showSizes(false);
                     showEditTools(false);
+                    */
                 }
             }
         }
@@ -1860,10 +1857,13 @@ id('graphic').addEventListener('pointerdown',function() {
                 element.setAttribute('points',pts);
                 updateGraph(elID,['points',pts]);
                 refreshNodes(element);
+                cancel();
+                /*
                 element=elID=null;
                 id('handles').innerHTML='';
                 selection=[];
                 mode='select';
+                */
                 return;
             }
             else if(mode=='removePoint') {
@@ -1878,10 +1878,13 @@ id('graphic').addEventListener('pointerdown',function() {
                 element.setAttribute('points',pts);
                 updateGraph(elID,['points',pts]);
                 refreshNodes(element);
+                cancel();
+                /*
                 element=elID=null;
                 id('handles').innerHTML='';
                 selection=[];
                 mode='select';
+                */
                 return;
             }
             console.log('size handle '+val);
@@ -1980,14 +1983,13 @@ id('graphic').addEventListener('pointerdown',function() {
             var point=id('svg').createSVGPoint();
             point.x=x;
             point.y=y;
-            if(element.points.length<2) { // start polyline...
-                element.points[0]=point;
-            }
-            else {
+            // try...
+            if(element.points.length>1) {
                 point=element.points[element.points.length-1];
                 x0=point.x;
                 y0=point.y;
             }
+            else if(element.points.length>0) element.points[0]=point;
             id('bluePolyline').points.appendItem(point);
             prompt('LINES: drag to next point; tap twice to end');
             break;
@@ -2018,7 +2020,7 @@ id('graphic').addEventListener('pointerdown',function() {
             id('blueOval').setAttribute('cx',x0);
             id('blueOval').setAttribute('cy',y0);
             // console.log('sizing oval initiated');
-            prompt('OVAL: drag to size'); // JUST PROMPT?
+            prompt('OVAL: drag to size');
             break;
         case 'arc':
             arc.x1=x0;
@@ -2068,24 +2070,10 @@ function drag(event) {
     scr.y=Math.round(event.clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
-    prompt(x+','+y); // TESTING
     if(mode!='arcEnd') {
         snap=snapCheck(); // snap to nearby nodes, datum,...
-        /*
-        if(snap) { // shift datum to snap point to allow easy horizontal/vertical alignment
-            // id('datum').setAttribute('cx',x);
-            // id('datum').setAttribute('cy',y);
-            id('datumH').setAttribute('y1',y);
-            id('datumH').setAttribute('y2',y);
-            id('datumV').setAttribute('x1',x);
-            id('datumV').setAttribute('x2',x);
-            datum.x=x;
-            datum.y=y;
-        }
-        */
         if(Math.abs(x-x0)<snapD) x=x0; // ...vertical...
         if(Math.abs(y-y0)<snapD) y=y0; // ...or horizontal
-        // TEST WITH SNAP
         if(mode=='move') {
             id('blueBox').setAttribute('x',x);
             id('blueBox').setAttribute('y',y);
@@ -2093,7 +2081,7 @@ function drag(event) {
     }
     if(mode.startsWith('movePoint')) {
         var n=parseInt(mode.substr(9));
-        console.log('drag polyline point '+n);
+        // console.log('drag polyline point '+n);
         id('bluePolyline').points[n].x=x;
         id('bluePolyline').points[n].y=y;
     }
@@ -2119,7 +2107,7 @@ function drag(event) {
             h=parseInt(element.getAttribute('height'));
             // WAS var aspect=parseInt(element.getAttribute('width'))/parseInt(element.getAttribute('height'));
             var aspect=w/h;
-            console.log('box size: '+w+'x'+h+'; aspect: '+aspect);
+            // console.log('box size: '+w+'x'+h+'; aspect: '+aspect);
             dx=x-x0;
             dy=y-y0;
             if(Math.abs(dx-w)<(snapD*2)) dx=w; // snap to equal width,...
@@ -2151,7 +2139,7 @@ function drag(event) {
             dx=x-x0;
             dy=y-y0;
             var r=Math.sqrt((dx*dx)+(dy*dy));
-            console.log('radius: '+r);
+            // console.log('radius: '+r);
             id('blueOval').setAttribute('rx',r);
             id('blueOval').setAttribute('ry',r);
             id('first').value=r;
@@ -2310,11 +2298,14 @@ id('graphic').addEventListener('pointerup',function() {
         updateGraph(elID,['points',element.getAttribute('points')]);
         id('bluePolyline').setAttribute('points','0,0');
         refreshNodes(element);
+        cancel();
+        /*
         mode='select';
         elID=null;
         selection=[];
         showSizes(false);
         showEditTools(false);
+        */
     }
     else switch(mode) {
         case 'move':
@@ -2416,12 +2407,15 @@ id('graphic').addEventListener('pointerup',function() {
                 */
             }
             id('selection').setAttribute('transform','translate(0,0)');
+            cancel();
+            /*
             id('selection').innerHTML='';
             mode='select';
             elID=null;
             selection=[];
             showSizes(false);
             showEditTools(false);
+            */
             break;
         case 'boxSize':
             console.log('touchEnd - box size: '+dx+'x'+dy);
@@ -2433,11 +2427,14 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
             refreshNodes(element);
+            cancel();
+            /*
             mode='select';
             elID=null;
             selection=[];
             showSizes(false);
             showEditTools(false);
+            */
             break;
         case 'ovalSize':
             console.log('touchEnd - radii: '+dx+'x'+dy);
@@ -2448,11 +2445,14 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
             refreshNodes(element);
+            cancel();
+            /*
             mode='select';
             elID=null;
             selection=[];
             showSizes(false);
             showEditTools(false);
+            */
             break;
         case 'arcSize':
             dx=x-x0;
@@ -2482,11 +2482,14 @@ id('graphic').addEventListener('pointerup',function() {
             refreshNodes(element);
             id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
+            cancel();
+            /*
             mode='select';
             elID=null;
             selection=[];
             showSizes(false);
             showEditTools(false);
+            */
             break;
         case 'pan':
             console.log('pan ends at '+x+','+y);
@@ -2520,8 +2523,10 @@ id('graphic').addEventListener('pointerup',function() {
                 var graph={};
 	            graph.type='line';
 	            graph.points='';
+	            var len=0;
 	            for(var i=0;i<points.length-1;i++) {
 	                graph.points+=(points[i].x+','+points[i].y+' ');
+	                if(i>0) len+=Math.abs(points[i].x-points[i-1].x)+Math.abs(points[i].y-points[i-1].y);
 	            }
 	            /*
 	            graph.x=points[0].x;
@@ -2541,7 +2546,7 @@ id('graphic').addEventListener('pointerup',function() {
 	            graph.lineW=(pen*scale);
 	            graph.lineStyle=lineType;
 	            graph.fill='none';
-	            addGraph(graph);
+	            if(len>=scale) addGraph(graph); // avoid zero-size lines
 	            id('bluePolyline').setAttribute('points','0,0');
                 element=elID=null;
                 showSizes(false);
@@ -2563,39 +2568,22 @@ id('graphic').addEventListener('pointerup',function() {
             var d=Math.sqrt(dx*dx+dy*dy);
             if(d>snapD) break; // check if close to start point - if not, continue
             console.log('end polyline & create shape');
-            /*
-            var points=''; // remove duplicate end-point
-            for(var i=0;i<id('bluePolyline').points.length-1;i++) {
-                points+=id('bluePolyline').points[i].x+','+id('bluePolyline').points[i].y+' ';
-            }
-            */
             var points=id('bluePolyline').points;
             console.log('points: '+points);
             var graph={}; // create polygon element
             graph.type='shape';
             graph.points='';
+            var len=0;
 	        for(var i=0;i<points.length-1;i++) {
 	            graph.points+=(points[i].x+','+points[i].y+' ');
+	            if(i>0) len+=Math.abs(points[i].x-points[i-1].x)+Math.abs(points[i].y-points[i-1].y);
 	        }
-            /*
-            graph.x=points[0].x;
-	        graph.y=points[0].y;
-	        console.log('start: '+graph.x+','+graph.y);
-	        graph.dx=[]; // relative coords for remaining points
-	        graph.dy=[];
-	        for(var i=1;i<points.length-1;i++) { // omit duplicated end point
-	            console.log('points['+i+']: '+points[i].x+','+points[i].y);
-	            graph.dx.push(points[i].x-graph.x);
-	            graph.dy.push(points[i].y-graph.y);
-	        }
-	        */
-	        // graph.points=points;
 	        graph.spin=0;
 	        graph.stroke=lineShade;
 	        graph.lineW=(pen*scale);
 	        graph.lineStyle=lineType;
 	        graph.fill=fillShade;
-	        addGraph(graph);
+	        if(len>=scale) addGraph(graph); // avoid zero-size shapes
 	        id('bluePolyline').setAttribute('points','0,0');
             element=elID=null;
             showSizes(false);
@@ -2616,6 +2604,8 @@ id('graphic').addEventListener('pointerup',function() {
 	        graph.lineStyle=lineType;
 	        graph.fill=fillShade;
 	        graph.opacity=opacity;
+	        if((graph.width>=scale)&&(graph.width>=scale)) addGraph(graph); // avoid zero-size boxes
+	        /*
 	        var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
             request.onsuccess=function(event) {
                 graph.id=request.result;
@@ -2625,6 +2615,7 @@ id('graphic').addEventListener('pointerup',function() {
 		    request.onerror=function(event) {
 		        console.log("error adding new box element");
 		    };
+		    */
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
             element=elID=null;
@@ -2643,18 +2634,7 @@ id('graphic').addEventListener('pointerup',function() {
 	        graph.lineW=pen*scale;
 	        graph.fill=fillShade;
 	        graph.opacity=opacity;
-	        addGraph(graph);
-	        /*
-	        var request=db.transaction('graphs','readwrite').objectStore('graphs').add(graph);
-	        request.onsuccess=function(event) {
-	            graph.id=request.result;
-			    console.log("new oval graph added: "+graph.id);
-			    drawElement(graph);
-		    };
-		    request.onerror=function(event) {
-		        console.log("error adding new oval element");
-		    };
-		    */
+	        if((graph.rx>=scale)&&(graph.ry>=scale)) addGraph(graph); // avoid zero-size ovals
 		    id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
             element=elID=null;
@@ -2706,7 +2686,7 @@ id('graphic').addEventListener('pointerup',function() {
 	        graph.lineW=pen*scale;
 	        graph.fill='none'; // arcs default to no fill
 	        graph.opacity=0;
-	        addGraph(graph);
+	        if((arc.r>=scale)&&(a!=0)) addGraph(graph); // avoid zero-size arcs
             id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
             id('blueLine').setAttribute('x1',0);
@@ -2729,10 +2709,10 @@ id('graphic').addEventListener('pointerup',function() {
                 dim.n1=snap.n;
                 dim.dir=null;
                 mode='dimEnd';
-                prompt('DIMENSION: click on end point');
+                prompt('DIMENSION: tap end node');
             break;
             }
-            else prompt('Click on a node to start dimension')
+            else prompt('Tap on a node to start dimension')
             break;
         case 'dimEnd':
             if(snap) {
@@ -2754,7 +2734,7 @@ id('graphic').addEventListener('pointerup',function() {
                 else showDialog('dimDialog',true);
                 console.log('dimension direction: '+dim.dir);
             }
-            else prompt('Click on a node at dimension end-point');
+            else prompt('Tap on a node at dimension end-point');
             break;
         case 'dimPlace':
             var graph={};
@@ -2842,7 +2822,7 @@ id('graphic').addEventListener('pointerup',function() {
                 console.log('anchor placed');
                 setButtons();
             }
-            else prompt('Click on a node to place anchor');
+            else prompt('Tap on a node to place anchor');
             break;
         case 'pointEdit':
             console.log('SELECT POINTS');
@@ -2865,12 +2845,13 @@ id('graphic').addEventListener('pointerup',function() {
                 }
                 console.log(selectedPoints.length+' points selected');
                 if(selectedPoints.length>0) id('handles').innerHTML=''; // remove handles
+                break;
             }
-            break;
+            // else cancel();
+            // break;
         case 'select':
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
-            // selection=[];
             console.log('box size: '+selectionBox.w+'x'+selectionBox.h);
             if((selectionBox.w>20)&&(selectionBox.h>20)) { // significant selection box size
                 console.log('GROUP SELECTION - box: '+selectionBox.w+'x'+selectionBox.h+' at '+selectionBox.x+','+selectionBox.y);
@@ -2967,7 +2948,7 @@ id('graphic').addEventListener('pointerup',function() {
                                     html="<rect id='handle"+i+"' x="+(points[i].x-handleR)+" y="+(points[i].y-handleR)+" width='"+(2*handleR)+"' height='"+(2*handleR)+"' stroke='none' fill='#0000FF88'/>";
                                     id('handles').innerHTML+=html; // remaining handles move nodes
                                 }
-                                // id('bluePolyline').setAttribute('points',el.getAttribute('points'));
+                                id('bluePolyline').setAttribute('points',el.getAttribute('points'));
                                 showSizes(true,'LINE');
                                 if(mode=='shape') prompt('SHAPE');
                                 mode='pointEdit';
@@ -3090,14 +3071,6 @@ id('graphic').addEventListener('pointerup',function() {
                                 mode='edit';
                                 break;
                         };
-                        /* DRAW NODE MARKERS BEFORE HANDLES
-                        for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
-                            if(nodes[i].el!=elID) continue;
-                            var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"' stroke='blue' stroke-width='"+0.25*scale+"' fill='none'/>";
-                            console.log('node at '+nodes[i].x+','+nodes[i].y);
-                            id('handles').innerHTML+=html;
-                        }
-                        */
                     }
                     else { // multiple selection
                         console.log('add '+type(el)+' '+el.id+' to multiple selection');
@@ -3124,6 +3097,8 @@ id('graphic').addEventListener('pointerup',function() {
                 showEditTools(true);
             }
             else { // TRY THIS - CLICK ON BACKGROUND CLEARS SELECTION
+                cancel();
+                /*
                 mode='select';
                 elID=null;
                 selection=[];
@@ -3138,20 +3113,8 @@ id('graphic').addEventListener('pointerup',function() {
                 showEditTools(false);
                 id('textDialog').style.display='none';
                 setStyle(); // set styles to defaults
-                /*
-                // console.log('set lineType to current default: '+lineType);
-                id('lineType').value=lineType;
-                // console.log('set border to '+lineType+' pen: '+pen+' shade: '+lineShade);
-                id('line').style.borderStyle=lineType;
-                id('line').style.borderWidth=pen+'mm';
-                // console.log('set lineShade to current default: '+lineShade);
-                id('lineShade').style.backgroundColor=lineShade;
-                id('line').style.borderColor=lineShade;
-                id('fill').style.opacity=opacity;
-                id('opacity').value=opacity;
                 */
             }
-            // event.stopPropagation();
     }
     event.stopPropagation();
 });
@@ -3512,6 +3475,22 @@ function showEditTools(visible) {
         id('tools').style.display='block';
     }
 }
+function cancel() { // cancel current operation and return to select mode
+    mode='select';
+    element=elID=null;
+    selection=[];
+    selectedPoints=[];
+    selectionBox.w=selectionBox.h=0;
+    id('selection').innerHTML='';
+    id('handles').innerHTML=''; //remove element handles...
+    id('blueBox').setAttribute('width',0); // ...and text bounds
+    id('blueBox').setAttribute('height',0);
+    id('bluePolyline').setAttribute('points','0,0');
+    showSizes(false);
+    showEditTools(false);
+    id('textDialog').style.display='none';
+    setStyle(); // set styles to defaults
+}
 function type(el) {
     if(el instanceof SVGPolylineElement) {
         return 'line';
@@ -3662,8 +3641,8 @@ function setButtons() {
     else { // single element selected
         var t=type(id(selection[0]));
         console.log('selected element is '+t);
-        if((t=='line')||(t=='shape')) active.push(0); // can add points to selected line/shape
-        else if(t=='box') active.push(10); // fillet tool active for a selected box
+        if((t=='line')||(t=='shape')) active.push(1); // can add points to selected line/shape
+        else if(t=='box') active.push(21); // fillet tool active for a selected box
         if(selectedPoints.length<1) { // unless editing line/shape active tools include...
             active.push(5); // push/pull back/forwards
             active.push(7);
@@ -3705,7 +3684,7 @@ function showSizes(visible,promptText) {
     if(visible) prompt(promptText);
 }
 function setSizes(mode,spin,p1,p2,p3,p4) {
-    console.log('setSizes - '+mode+','+p1+','+p2+','+p3+','+p4);
+    // console.log('setSizes - '+mode+','+p1+','+p2+','+p3+','+p4);
     if(mode=='box') {
         id('first').value=Math.round(p1);
         id('between').innerHTML='x';
@@ -4081,7 +4060,7 @@ function redrawDim(d) {
 }
 function snapCheck() {
     // CHECK FOR SNAP-TO-DATUM
-    console.log(x+','+y+' - datum '+datum.x+','+datum.y+' snap distance: '+snapD);
+    // console.log(x+','+y+' - datum '+datum.x+','+datum.y+' snap distance: '+snapD);
     if(Math.abs(x-datum.x)<snapD) {
         x=datum.x;
         console.log('SNAP TO DATUM');
@@ -4093,7 +4072,7 @@ function snapCheck() {
         return 'snapY';
     }
     // CHECK FOR SNAP TO GRID
-    if(gridSnap) {
+    if(gridSnap>0) {
         x=Math.round(x/gridSize)*gridSize;
         y=Math.round(y/gridSize)*gridSize;
         console.log('SNAP TO GRID AT '+x+','+y);
