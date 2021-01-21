@@ -61,6 +61,9 @@ button {
     border-radius: 3px;
     color: white;
 }
+.iconButton:disabled {
+    opacity: 0.5;
+}
 .spin90 {
     transform: rotate(90deg);
 }
@@ -112,6 +115,9 @@ button {
 #combiButton {
     background: url(svg/combi.svg) center center no-repeat;
 }
+#addButton {
+    background: url(svg/add.svg) center center no-repeat;
+}
 #deleteButton {
     background: url(svg/cross.svg) center center no-repeat;
 }
@@ -148,9 +154,6 @@ button {
 }
 #combineButton {
     background: url(svg/combi.svg) center center no-repeat;
-}
-#addButton {
-    background: url(svg/add.svg) center center no-repeat;
 }
 /*
 #removeButton {
