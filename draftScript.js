@@ -1823,6 +1823,23 @@ id('graphic').addEventListener('pointerdown',function() {
             id('blueBox').setAttribute('y',y);
             prompt('drag to MOVE');
             id('textDialog').style.display='none';
+            switch(type(element)) {
+                case 'line':
+                case 'shape':
+                    x0=element.points[0].x;
+                    y0=element.points[0].y;
+                    break;
+                case 'box':
+                case 'text':
+                case 'combi':
+                    x0=element.getAttribute('x');
+                    y0=element.getAttribute('y');
+                    break;
+                case 'oval':
+                case 'arc':
+                    x0=element.getAttribute('cx');
+                    y0=element.getAttribute('cy');
+            }
         }
         else if(handle instanceof SVGRectElement) {
             val=Number(val.substr(6));
@@ -1964,7 +1981,8 @@ id('graphic').addEventListener('pointerdown',function() {
         id('graphic').addEventListener('pointermove',drag);
         return;
     }
-    snap=snapCheck();
+    snap=snapCheck(); //  JUST DO if(snapCheck())?
+    console.log('SNAP: '+snap);
     if(snap) { // snap start/centre to snap target
         x0=x;
         y0=y;
@@ -2072,11 +2090,10 @@ function drag(event) {
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
     if(mode!='arcEnd') {
         snap=snapCheck(); // snap to nearby nodes, datum,...
-        if(Math.abs(x-x0)<snapD) x=x0; // ...vertical...
-        if(Math.abs(y-y0)<snapD) y=y0; // ...or horizontal
-        if(mode=='move') {
-            id('blueBox').setAttribute('x',x);
-            id('blueBox').setAttribute('y',y);
+        console.log('SNAP: '+snap);
+        if(!snap) {
+            if(Math.abs(x-x0)<snapD) x=x0; // ...vertical...
+            if(Math.abs(y-y0)<snapD) y=y0; // ...or horizontal
         }
     }
     if(mode.startsWith('movePoint')) {
@@ -2095,6 +2112,7 @@ function drag(event) {
             else { // drag  single element
                 id('blueBox').setAttribute('x',x);
                 id('blueBox').setAttribute('y',y);
+                console.log('dragged to '+x+','+y);
             }
             if(anchor) {
                 id('anchor').setAttribute('cx',x);
@@ -2288,7 +2306,7 @@ function drag(event) {
 id('graphic').addEventListener('pointerup',function() {
     console.log('touch-end at '+x+','+y+' mode: '+mode);
     id('graphic').removeEventListener('pointermove',drag);
-    snap=snapCheck();
+    snap=snapCheck(); // NEEDED???
     if(mode.startsWith('movePoint')) { // move polyline/polygon point
         id('handles').innerHTML='';
         var n=parseInt(mode.substr(9));
@@ -3640,7 +3658,7 @@ function setButtons() {
     }
     else { // single element selected
         var t=type(id(selection[0]));
-        console.log('selected element is '+t);
+        // console.log('selected element is '+t);
         if((t=='line')||(t=='shape')) active.push(1); // can add points to selected line/shape
         else if(t=='box') active.push(21); // fillet tool active for a selected box
         if(selectedPoints.length<1) { // unless editing line/shape active tools include...
@@ -3655,11 +3673,11 @@ function setButtons() {
     }
     var set='';
     for(i=0;i<active.length;i++) set+=active[i]+' ';
-    console.log(active.length+' edit tools active: '+set);
+    // console.log(active.length+' edit tools active: '+set);
     var n=id('editTools').childNodes.length;
     for(var i=0;i<n;i++) {
         var btn=id('editTools').childNodes[i];
-        console.log(i+' '+btn.id+': '+(active.indexOf(i)>=0));
+        // console.log(i+' '+btn.id+': '+(active.indexOf(i)>=0));
         id('editTools').childNodes[i].disabled=(active.indexOf(i)<0);
     }
     /* old code
@@ -4059,70 +4077,42 @@ function redrawDim(d) {
     }
 }
 function snapCheck() {
-    // CHECK FOR SNAP-TO-DATUM
-    // console.log(x+','+y+' - datum '+datum.x+','+datum.y+' snap distance: '+snapD);
-    if(Math.abs(x-datum.x)<snapD) {
-        x=datum.x;
-        console.log('SNAP TO DATUM');
-        return 'snapX';
-    }
-    else if(Math.abs(y-datum.y)<snapD) {
-        y=datum.y;
-        console.log('SNAP TO DATUM');
-        return 'snapY';
-    }
-    // CHECK FOR SNAP TO GRID
+    var snap=false;
     if(gridSnap>0) {
         x=Math.round(x/gridSize)*gridSize;
         y=Math.round(y/gridSize)*gridSize;
         console.log('SNAP TO GRID AT '+x+','+y);
         return 'grid';
     }
-    // CHECK FOR SNAP-TO-NODE
-    // console.log('check for snap-to-node');
-    var nearNodes=nodes.filter(nearby);
-    // console.log('snap potential: '+nearNodes.length);
-    if(nearNodes.length>0) {
-        var dMin=2*snapD;
-        var d=0;
-        var el=null;
-        for (var i=0;i<nearNodes.length;i++) {
-            // console.log('element '+nearNodes[i].el+' at '+nearNodes[i].x+','+nearNodes[i].y);
-            d=Math.abs(nearNodes[i].x-x)+Math.abs(nearNodes[i].y-y);
-            if(d<dMin) {
-                dMin=d;
-                x=nearNodes[i].x;
-                y=nearNodes[i].y;
-                el=nearNodes[i].el;
-                n=nearNodes[i].n;
-                // console.log('snap to '+x+','+y);
-                // prompt('snap');
-            }
+    for(var i=0;i<nodes.length;i++) {
+        var near=false;
+        if(Math.abs(nodes[i].x-x)<snapD) {
+            x=datum.x=nodes[i].x;
+            id('datumV').setAttribute('x1',datum.x);
+            id('datumV').setAttribute('x2',datum.x);
+            near=true;
+            snap='datumX ';
+            console.log('set datum.x to '+datum.x);
         }
-        // IF SNAP, MOVE DATUM HERE
-        datum.x=x;
-        datum.y=y;
-        id('datumH').setAttribute('y1',y);
-        id('datumH').setAttribute('y2',y);
-        id('datumV').setAttribute('x1',x);
-        id('datumV').setAttribute('x2',x);
-        // END
-        return {'el':el,'n':n}; // return object with element.id and node number
+        if(Math.abs(nodes[i].y-y)<snapD) {
+            y=datum.y=nodes[i].y;
+            id('datumH').setAttribute('y1',datum.y);
+            id('datumH').setAttribute('y2',datum.y);
+            if(snap) snap+='datumY';
+            else snap='datumY';
+            console.log('set datum.y to '+datum.y);
+            if(near) return {'el':nodes[i].el,'n':nodes[i].n};
+        }
     }
-    // console.log('no snap-to-node');
-    /* LOOK AT MOVING DATUM TO SNAP X,Y
-    else if(Math.abs(x-datum.x)<snapD) {
-        x=datum.x;
-        return true;
-    }
-    else if(Math.abs(y-datum.y)<snapD) {
-        y=datum.y;
-        return true;
-    }
-    */
-    else return false;
+    return snap;
 }
-function nearby(node) {
+function nearX(node) { // MAY NOT NEED
+    return (node.x>x-snapD)&&(node.x<x+snapD);
+}
+function nearY(node) { // MAY NOT NEED
+    return (node.y>y-snapD)&&(node.y<y+snapD);
+}
+function nearby(node) { // MAY NOT NEED
     return (node.x>x-snapD)&&(node.x<x+snapD)&&(node.y>y-snapD)&&(node.y<y+snapD);
 }
 function updateGraph(id,parameters) {
@@ -4227,7 +4217,8 @@ function drawElement(el) {
             nodes.push({'x':x,'y':y,'el':el.id,'n':0}); // top/left - node 0
             nodes.push({'x':Number(x+w*c),'y':Number(y+w*s),'el':el.id,'n':1}); // top/right - node 1
             nodes.push({'x':Number(x+w*c-h*s),'y':Number(y+w*s+h*c),'el':el.id,'n':2}); // bottom/right - node 2
-            nodes.push({'x':(x-h*s),'y':(y+h*c),'el':el.id,'n':3}); // bottom/left - node 3
+            nodes.push({'x':Number(x-h*s),'y':Number(y+h*c),'el':el.id,'n':3}); // bottom/left - node 3
+            nodes.push({'x':Number(x+w*c/2-h*s/2),'y':Number(y+w*s/2+h*c/2),'el':el.id,'n':4}); // centre - node 4 
             if(el.spin!=0) {  // apply spin
                 el=id(el.id);
                 setTransform(el);
