@@ -1842,7 +1842,7 @@ id('graphic').addEventListener('pointerdown',function() {
             }
         }
         else if(handle instanceof SVGRectElement) {
-            val=Number(val.substr(6));
+            val=val.substr(6);
             if(mode=='addPoint') {
                 console.log('add point after point '+val);
                 var points=element.points;
@@ -2720,7 +2720,7 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'dimStart':
             if(snap) {
-                console.log('SNAP - start dimension element: '+snap.el+' node '+snap.n);
+                console.log('SNAP - start dimension at '+x+','+y+'; element: '+snap.el+' node '+snap.n);
                 dim.x1=x;
                 dim.y1=y;
                 dim.el1=snap.el;
@@ -2734,7 +2734,7 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'dimEnd':
             if(snap) {
-                console.log('SNAP - end dimension element: '+snap.el+' node '+snap.n);
+                console.log('SNAP - end dimension at '+x+','+y+'; element: '+snap.el+' node '+snap.n);
                 dim.x2=x;
                 dim.y2=y;
                 dim.el2=snap.el;
@@ -2805,7 +2805,7 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueLine').setAttribute('x2',0);
             id('blueLine').setAttribute('y2',0);
             id('blueLine').setAttribute('transform','rotate(0)');
-            dy=y1-y0;
+            dy=y0-y1;
             var request=db.transaction('graphs').objectStore('graphs').get(Number(elID));
             request.onsuccess=function(event) {
                 dim=request.result;
@@ -4081,7 +4081,7 @@ function snapCheck() {
     if(gridSnap>0) {
         x=Math.round(x/gridSize)*gridSize;
         y=Math.round(y/gridSize)*gridSize;
-        console.log('SNAP TO GRID AT '+x+','+y);
+        // console.log('SNAP TO GRID AT '+x+','+y);
         return 'grid';
     }
     for(var i=0;i<nodes.length;i++) {
@@ -4092,7 +4092,7 @@ function snapCheck() {
             id('datumV').setAttribute('x2',datum.x);
             near=true;
             snap='datumX ';
-            console.log('set datum.x to '+datum.x);
+            // console.log('set datum.x to '+datum.x);
         }
         if(Math.abs(nodes[i].y-y)<snapD) {
             y=datum.y=nodes[i].y;
@@ -4100,7 +4100,7 @@ function snapCheck() {
             id('datumH').setAttribute('y2',datum.y);
             if(snap) snap+='datumY';
             else snap='datumY';
-            console.log('set datum.y to '+datum.y);
+            // console.log('set datum.y to '+datum.y);
             if(near) return {'el':nodes[i].el,'n':nodes[i].n};
         }
     }
