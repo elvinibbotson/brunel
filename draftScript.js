@@ -26,7 +26,8 @@ var dx=0;
 var dy=0;
 var w=0;
 var h=0;
-var datum={'x':0,'y':0};
+var datum1={'x':0,'y':0,'n':0};
+var datum2={'x':0,'y':0,'n':0};
 var offset={'x':0,'y':0};
 var arc={};
 var dim={};
@@ -2099,7 +2100,7 @@ function drag(event) {
     y=Math.round(scr.y*scaleF/zoom+dwg.y);
     if(mode!='arcEnd') {
         snap=snapCheck(); // snap to nearby nodes, datum,...
-        console.log('SNAP: '+snap);
+        // console.log('SNAP: '+snap);
         if(!snap) {
             if(Math.abs(x-x0)<snapD) x=x0; // ...vertical...
             if(Math.abs(y-y0)<snapD) y=y0; // ...or horizontal
@@ -2194,7 +2195,7 @@ function drag(event) {
             var boxY=(y<y0)?y:y0;
             w=Math.abs(x-x0);
             h=Math.abs(y-y0);
-            console.log('box size: '+w+'x'+h+' at '+x+','+y);
+            // console.log('box size: '+w+'x'+h+' at '+x+','+y);
             if(Math.abs(w-h)<snapD*2) w=h; // snap to square
             id('blueBox').setAttribute('x',boxX);
             id('blueBox').setAttribute('y',boxY);
@@ -2316,6 +2317,7 @@ id('graphic').addEventListener('pointerup',function() {
     console.log('pointer up at '+x+','+y+' mode: '+mode);
     id('graphic').removeEventListener('pointermove',drag);
     snap=snapCheck(); // NEEDED???
+    console.log('snap - x:'+snap.x+' y:'+snap.y+' n:'+snap.n);
     if(mode.startsWith('movePoint')) { // move polyline/polygon point
         id('handles').innerHTML='';
         var n=parseInt(mode.substr(9));
@@ -2729,10 +2731,10 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'dimStart':
             if(snap) {
-                console.log('SNAP - start dimension at '+x+','+y+'; element: '+snap.el+' node '+snap.n);
+                console.log('SNAP - start dimension at '+x+','+y+'; node '+snap.n);
                 dim.x1=x;
                 dim.y1=y;
-                dim.el1=snap.el;
+                // dim.el1=snap.el;
                 dim.n1=snap.n;
                 dim.dir=null;
                 mode='dimEnd';
@@ -2743,10 +2745,10 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'dimEnd':
             if(snap) {
-                console.log('SNAP - end dimension at '+x+','+y+'; element: '+snap.el+' node '+snap.n);
+                console.log('SNAP - end dimension at '+x+','+y+'; node '+snap.n);
                 dim.x2=x;
                 dim.y2=y;
-                dim.el2=snap.el;
+                // dim.el2=snap.el;
                 dim.n2=snap.n;
                 if(dim.x1==dim.x2) dim.dir='v'; // vertical
                 else if(dim.y1==dim.y2) dim.dir='h'; // horizontal
@@ -2771,19 +2773,19 @@ id('graphic').addEventListener('pointerup',function() {
                 graph.y1=dim.y2;
                 graph.x2=dim.x1;
                 graph.y2=dim.y1;
-                graph.el1=dim.el2;
-                graph.n1=dim.n1;
-                graph.el2=dim.el1;
-                graph.n2=dim.n2;
+                // graph.el1=dim.el2;
+                graph.n1=dim.n2;
+                // graph.el2=dim.el1;
+                graph.n2=dim.n1;
             }
             else {
                 graph.x1=dim.x1;
                 graph.y1=dim.y1;
                 graph.x2=dim.x2;
                 graph.y2=dim.y2;
-                graph.el1=dim.el1;
+                // graph.el1=dim.el1;
                 graph.n1=dim.n1;
-                graph.el2=dim.el2;
+                // graph.el2=dim.el2;
                 graph.n2=dim.n2;
             }
             graph.dir=dim.dir; // direction: h/v/o (horizontal/vertical/oblique)
@@ -3449,9 +3451,16 @@ function initialise() {
     var html="<rect x='0' y='0' width='"+w+"' height='"+h+"' stroke='gray' fill='none'/>";
     id('ref').innerHTML+=html;
     // scale datum
-    // id('datum').setAttribute('r',3*scale);
-    id('datumH').setAttribute('stroke-width',0.25*scale);
-    id('datumV').setAttribute('stroke-width',0.25*scale);
+    // id('datumH').setAttribute('stroke-width',0.25*scale);
+    // id('datumV').setAttribute('stroke-width',0.25*scale);
+    id('datum').setAttribute('transform','scale('+scale+')');
+    /* 
+    datum.x1=datum.x2=datum.y1=datum.y2=0;
+    id('datum1').setAttribute('x',datum.x1);
+    id('datum1').setAttribute('y',datum.y1);
+    id('datum2').setAttribute('x',datum.x2);
+    id('datum2').setAttribute('y',datum.y2);
+    */
     html="<rect x='0' y='0' width='"+w+"' height='"+h+"'/>"; // clip to drawing edges
     // console.log('clipPath: '+html);
     id('clipper').innerHTML=html;
@@ -3811,11 +3820,12 @@ function remove(elID,keepNodes) {
 	    console.log('graph '+elID+' deleted from database');
 	    if(keepNodes) return;
 	    var n=nodes.length;
-        for(var i=0;i<nodes.length;i++) { // remove element's snap nodes
-            if(Math.nodes[i].el==elID) nodes.splice(i,1);
+        for(var i=0;i<nodes.length;i++) { // remove element's nodes
+            if(Math.floor(nodes[i].n/10)==elID) nodes.splice(i,1);
         }
         console.log((n-nodes.length)+' nodes deleted');
-	    id('dwg').removeChild(el); // remove element from SVG
+	    id('dwg').removeChild(el); // remove element from SVG...
+	    drawOrder(); // ...and ffrom drawing order
 	}
 	request.onerror=function(event) {
 	    console.log("error deleting element "+el.id);
@@ -4026,20 +4036,20 @@ function refreshNodes(el) {
 function checkDims(el) {
     console.log('check linked dimensions for element '+el.id);
     for(var i=0;i<dims.length;i++) {
-        if((dims[i].el1==el.id)||(dims[i].el2==el.id)) {
+        if((Math.floor(dims[i].n1/10)==Number(el.id))||(Math.floor(dims[i].el2/10)==Number(el.id))) {
             refreshDim(dims[i]); // adjust and redraw linked dimension
         }
     }
 }
 function refreshDim(d) {
-    console.log('refresh dimension '+d.dim+' from element '+d.el1+'/node '+d.n1+' to element '+d.el2+'/node '+d.n2);
+    console.log('refresh dimension '+d.dim+' from node '+d.n1+' to node '+d.n2);
     var node1=nodes.find(function(node) {
-        return (node.n==Number(d.el1*10+d.n1));
+        return (node.n==Number(d.n1));
         // return ((node.el==d.el1)&&(node.n==d.n1));
     });
     console.log('start node: '+node1);
     var node2=nodes.find(function(node) {
-        return (node.n==Number(d.el2*10+d.n2));
+        return (node.n==Number(d.n2));
         // return ((node.el==d.el2)&&(node.n==d.n2));
     });
     console.log('end node: '+node2);
@@ -4107,6 +4117,47 @@ function redrawDim(d) {
     }
 }
 function snapCheck() {
+    var near=nodes.filter(function(node) {
+        return (Math.abs(node.x-x)<snapD)&&(Math.abs(node.y-y)<snapD);
+    });
+    if(near.length) { // snap to nearest node...
+        var min=snapD*2;
+        for(var i=0;i<near.length;i++) {
+            var d=Math.abs(near[i].x-x)+Math.abs(near[i].y-y);
+            if(d<min) {
+                min=d;
+                snap={'x':near[i].x,'y':near[i].y,'n':near[i].n};
+            }
+        }
+        console.log('SNAP x: '+snap.x+' y: '+snap.y+' n: '+snap.n);
+        if(snap.n!=datum2.n) {
+            datum1.x=datum2.x;
+            datum1.y=datum2.y;
+            datum1.n=datum2.n;
+            id('datum1').setAttribute('x',datum1.x);
+            id('datum1').setAttribute('y',datum1.y);
+            console.log('DATUM1: '+datum1.n+' at '+datum1.x+','+datum1.y);
+            datum2.x=snap.x;
+            datum2.y=snap.y;
+            datum2.n=snap.n;
+            id('datum2').setAttribute('x',datum2.x);
+            id('datum2').setAttribute('y',datum2.y);
+            console.log('DATUM2: '+datum2.n+' at '+datum2.x+','+datum2.y);
+        }
+        x=snap.x;
+        y=snap.y;
+        return snap;
+    }
+    else { // if no nearby nodes...
+        if(Math.abs(x-datum.x1)<snapD) x=datum.x1;
+        else if(Math.abs(x-datum.x2)<snapD) x=datum.x2;
+        else if(gridSnap>0) x=Math.round(x/gridSize)*gridSize;
+        if(Math.abs(y-datum.y1)<snapD) y=datum.y1;
+        else if(Math.abs(y-datum.y2)<snapD) y=datum.y2;
+        else if(gridSnap>0) y=Math.round(y/gridSize)*gridSize;
+        return false;
+    }
+    /*
     var nearX=[];
     var nearY=[];
     var nearN=[];
@@ -4177,50 +4228,6 @@ function snapCheck() {
         y=datum.y;
         id('datumH').setAttribute('y1',datum.y);
         id('datumH').setAttribute('y2',datum.y);
-    }
-    return snap;
-    /*
-    var snap='';
-    if(gridSnap>0) {
-        x=Math.round(x/gridSize)*gridSize;
-        y=Math.round(y/gridSize)*gridSize;
-        // console.log('SNAP TO GRID AT '+x+','+y);
-        return 'grid';
-    }
-    var nearNodes=[];
-    for(var i=0;i<nodes.length;i++) {
-        var near=false;
-        if(Math.abs(nodes[i].x-x)<snapD) {
-            x=datum.x=nodes[i].x;
-            id('datumV').setAttribute('x1',datum.x);
-            id('datumV').setAttribute('x2',datum.x);
-            near=true;
-            snap='datumX ';
-            // console.log('set datum.x to '+datum.x);
-        }
-        if(Math.abs(nodes[i].y-y)<snapD) {
-            y=datum.y=nodes[i].y;
-            id('datumH').setAttribute('y1',datum.y);
-            id('datumH').setAttribute('y2',datum.y);
-            if(snap.startsWith('datumX')) snap+=',datumY';
-            else snap='datumY';
-            // console.log('set datum.y to '+datum.y);
-            if(near) nearNodes.push(nodes[i]); // SIMPLE VERSION... return {'el':nodes[i].el,'n':nodes[i].n};
-        }
-    }
-    if(nearNodes.length>0) {
-        console.log(nearNodes.length+' near nodes to check');
-        var d=0;
-        var min=2*snapD;
-        // var nearest=null;
-        for(i=0;i<nearNodes.length;i++) {
-            d=Math.abs(nearNodes[i].x-x)+Math.abs(nearNodes[i].y-y);
-            console.log('d: '+d+'; min: '+min);
-            if(d<min) {
-                min=d;
-                snap={'el':nodes[i].el,'n':nodes[i].n};
-            }
-        }
     }
     return snap;
     */
@@ -4514,8 +4521,9 @@ function load() {
 	    	cursor.continue();  
         }
 	    else {
-		    console.log("No more entries - "+elements.length+' nodes');
+		    console.log("No more entries - "+elements.length+' nodes - node 0: '+elements[0].id);
 		    for(var i=0;i<elements.length;i++) {
+		        console.log('add element '+i+' - id: '+elements[i].id);
 		        id('dwg').appendChild(elements[i]);
 		    }
 	    }
@@ -4606,7 +4614,7 @@ function makeElement(g) {
             nodes.push({'x':g.x,'y':(Number(g.y)+Number(g.height)),'n':Number(g.id*10+3)}); // bottom/left - node 3
             nodes.push({'x':(Number(g.x)+Number(g.width/2)),'y':(Number(g.y)+Number(g.height/2)),'n':Number(g.id*10+4)}); // centre - node 4
             if(g.spin!=0) {  // apply spin MAY NOT WORK!!!
-                el=id(el.id);
+                el=id(el.id); // NO ID YET!
                 setTransform(el);
             }
             break;
@@ -4695,7 +4703,7 @@ function makeElement(g) {
                 d=Math.round(Math.sqrt(dx*dx+dy*dy));
                 a=Math.atan(dy/dx); // oblique dimension - angle in radians
             }
-            console.log('dimension length: '+d+'; angle: '+a+' rad; elements: '+g.el1+' '+g.el2);
+            console.log('dimension length: '+d+'; angle: '+a+' rad; nodes: '+g.n1+' '+g.n2);
             var x1=g.x1; // start point/anchor of dimension line
             var y1=g.y1;
             var o=parseInt(g.offset);
@@ -4713,7 +4721,7 @@ function makeElement(g) {
             var dim=document.createElementNS(ns,'line');
             dim.setAttribute('x1',x1);
             dim.setAttribute('y1',y1);
-            dim.setAttribute('x2',Number(x1+d));
+            dim.setAttribute('x2',Number(x1)+Number(d));
             dim.setAttribute('y2',y1);
             dim.setAttribute('marker-start','url(#startArrow)');
             dim.setAttribute('marker-end','url(#endArrow)');
@@ -4722,7 +4730,7 @@ function makeElement(g) {
             dim.setAttribute('fill','none');
             el.appendChild(dim);
             dim=document.createElementNS(ns,'text');
-            dim.setAttribute('x',(x1+d/2));
+            dim.setAttribute('x',Number(x1)+d/2);
             dim.setAttribute('y',(y1-scale));
             dim.setAttribute('text-anchor','middle');
             dim.setAttribute('font-size',(4*scale));
@@ -4733,14 +4741,14 @@ function makeElement(g) {
             el.appendChild(dim);
             dim={}; // no nodes for dimensions but add to dims array
             dim.dim=g.id;
-            dim.el1=g.el1;
+            // dim.el1=g.el1;
             dim.n1=g.n1;
-            dim.el2=g.el2;
+            // dim.el2=g.el2;
             dim.n2=g.n2;
-            console.log('add link - dim. '+dim.dim+' el/nodes: '+dim.el1+'/'+dim.n1+','+dim.el2+'/'+dim.n2);
+            console.log('add link - dim. '+dim.dim+' nodes: '+dim.n1+','+dim.n2);
             dims.push(dim);
             console.log('links added for dimension '+g.id);
-            for(var i=0;i<dims.length;i++) console.log('link '+i+': dim:'+dims[i].dim+' el/nodes: '+dims[i].el1+'/'+dims[i].n1+','+dims[i].el2+'/'+dims[i].n2);
+            for(var i=0;i<dims.length;i++) console.log('link '+i+': dim:'+dims[i].dim+' nodes: '+dims[i].n1+','+dims[i].n2);
             break;
         case 'combi':
             var el=document.createElementNS(ns,'use');
