@@ -26,6 +26,9 @@ body {
 	top: 0;
     z-index: 2;
 }
+#guides {
+    display: none;
+}
 input {
     width: 64px;
 	height: 24px;
@@ -155,50 +158,17 @@ button {
 #combineButton {
     background: url(svg/combi.svg) center center no-repeat;
 }
-/*
-#removeButton {
-    background: url(svg/cross.svg) center center no-repeat;
-}
-#fileMenu {
-    padding: 5px;
-    border-radius: 3px;
-}
-#newDrawingDialog {
-    padding: 5px;
-    border-radius: 3px;
-}
-#loadCombiDialog {
+#prompt {
+    position: fixed;
+    left: 48px;
+    top: 48px;
+    background-color: #FFFF8888;
+    opacity: 1;
+    padding: 4px;
+    font-size: 1.2em;
     display: none;
+    z-index: 13;
 }
-#printDialog {
-    display: none;
-}
-#settingsDialog {
-    padding: 5px;
-    border-radius: 3px;
-}
-#dimDialog {
-    display: none;
-}
-#combiDialog {
-    display: none;
-}
-#stylesDialog {
-    display: none;
-}
-#moveDialog {
-    display: none;
-}
-#spinDialog {
-    display: none;
-}
-#flipDialog {
-    display: none;
-}
-#repeatDialog {
-    display: none;
-}
-*/
 #lineShade {
     width: 24px;
     height: 24px;

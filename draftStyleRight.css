@@ -25,19 +25,6 @@
     z-index: 10;
     display: none;
 }
-#prompt {
-    position: fixed;
-    left: 6px;
-    top: 8px;
-    left: 10px;
-    bottom: 10px;
-    background-color: #FFFFFF44;
-    opacity: 1;
-    padding: 4px;
-    font-size: 1.2em;
-    display: none;
-    z-index: 13;
-}
 #checks {
     position: fixed;
     right: 6px;

@@ -36,23 +36,33 @@
 		        <clipPath id='clipper'>
 		            <rect x='0' y='0' width='297' height='210'/>
 		        </clipPath>
+		        <g id='datum'>
+		            <polygon id='datumCross' points='-0.2,-0.2 -0.2,-80 0.2,-80 0.2,-0.2 80,-0.2 80,0.2 0.2,0.2 0.2,80 -0.2,80 -0.2,0.2 -80,0.2 -80,-0.2' stroke='none' fill='url(#fade)'/>
+		        </g>
+		        <radialGradient id="fade" r="50%" spreadMethod="pad">
+                    <stop offset='0%' stop-color='blue' stop-opacity="0.25"/>
+                    <stop offset='100%' stop-color='blue' stop-opacity="0"/>
+                </radialGradient>
 		        <g id='combis'></g>
 		    </defs>
-		    <g id='datumSet'>
-		        <!--circle id='datum' cx='0' cy='0' r='3' stroke='blue' stroke-width='0.25' fill='silver'/-->
-                <line id='datumH' x1='-1000' y1='0' x2='2000' y2='0' stroke='blue' stroke-width='0.25' stroke-opacity='0.25'/>
-                <line id='datumV' x1='0' y1='-1000' x2='0' y2='2000' stroke='blue' stroke-width='0.25' stroke-opacity='0.25'/>
-            </g>
-		    <g id='dwg' style="clip-path: url(#clipper);"></g>
+		    <g id='dwg' style="clip-path: url(#clipper);">
+		    </g>
 		    <g id='selection'></g>
 		    <g id='handles'></g>
 		    <g id='blue'>
-		        <polyline class='blue' id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
-		        <rect class='blue' id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
-		        <ellipse class='blue' id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/>
-		        <line class='blue' id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue' fill='none'/>
-		        <line class='blue' id='blueRadius' x1='0' y1='0' x2='-10' y2='-10' marker-end='url(#arcArrows)' stroke='blue' fill='none'/>
-		        <line class='blue' id='blueDim' x1='0' y1='0' x2='-10' y2='-10' marker-start='url(#dimStart)' marker-end='url(#dimEnd)' stroke='blue' stroke-width='0.25' fill='none'/>
+		        <g id='datumSet'>
+		            <use id='datum1' href='#datum' x='0' y='0'/>
+		            <use id='datum2' href='#datum' x='0' y='0'/>
+                </g>
+                <g id='guides'>
+                    <polyline class='blue' id='bluePolyline' points='0,0' stroke='blue' fill='none'/>
+		            <rect class='blue' id='blueBox' x='0' y='0' width='0' height='0' stroke='blue' fill='none'/>
+		            <ellipse class='blue' id='blueOval' cx='0' cy='0' rx='0' ry='0' stroke='blue' fill='none'/>
+		            <line class='blue' id='blueLine' x1='0' y1='0' x2='0' y2='0' stroke='blue' fill='none'/>
+		            <line class='blue' id='blueRadius' x1='0' y1='0' x2='-10' y2='-10' marker-end='url(#arcArrows)' stroke='blue' fill='none'/>
+		            <line class='blue' id='blueDim' x1='0' y1='0' x2='-10' y2='-10' marker-start='url(#dimStart)' marker-end='url(#dimEnd)' stroke='blue' stroke-width='0.25' fill='none'/>
+                </g>
+		        
 		    </g>
 		    </svg>
 		</div>
@@ -74,7 +84,7 @@
         <button id='combiButton' class='iconButton'></button>
     </div>
     <div id='editTools'>
-        <button id='addButton' class='iconButton'></button>
+        <button id='addButton' class='iconButton' disabled></button>
         <button id='deleteButton' class='iconButton'></button>
         <button id='forwardButton' class='iconButton'></button>
         <button id='backButton' class='iconButton'></button>

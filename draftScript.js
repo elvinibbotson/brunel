@@ -407,6 +407,7 @@ id('confirmDim').addEventListener('click',function() {
     id('blueDim').setAttribute('y1',dim.y1);
     id('blueDim').setAttribute('x2',(dim.dir=='v')? dim.x1:dim.x2);
     id('blueDim').setAttribute('y2',(dim.dir=='h')? dim.y1:dim.y2);
+    id('guides').style.display='block';
     prompt('DIMENSION: drag to position');
     mode='dimPlace';
 });
@@ -476,8 +477,11 @@ id('confirmRemove').addEventListener('click',function() { // complete deletion
     id('selection').innerHTML=''; // ...selection shading,...
     id('blueBox').setAttribute('width',0); // ...and text outline...
     id('blueBox').setAttribute('height',0);
+    cancel();
+    /*
     showDialog('textDialog',false); // ...and content (if shown)
 	showEditTools(false);
+	*/
 });
 id('backButton').addEventListener('click',function() {
     /* SHOULDN'T HAPPEN
@@ -1724,7 +1728,6 @@ id('shadeMenu').addEventListener('click',function() {
     console.log('set '+id('shadeMenu').mode+' shade to '+val);
     if(id('shadeMenu').mode=='line') {
         if(val=='white') val='blue';
-        // var val=(shade=='white')?'blue':shade;
         if(elID) { // change selected element
             element=id(elID);
             if(type(element)=='text') { // text is filled not stroked
@@ -1820,14 +1823,13 @@ id('graphic').addEventListener('pointerdown',function() {
         id('blueBox').setAttribute('y',bounds.y);
         id('blueBox').setAttribute('width',bounds.width);
         id('blueBox').setAttribute('height',bounds.height);
+        id('guides').style.display='block';
         if(handle instanceof SVGCircleElement) { // remove whole element
             if(mode=='removePoint') {
                 showDialog('removeDialog',true);
                 return;
             }
             mode='move';
-            // id('blueBox').setAttribute('x',x);
-            // id('blueBox').setAttribute('y',y);
             prompt('drag to MOVE');
             id('textDialog').style.display='none';
             switch(type(element)) {
@@ -1851,6 +1853,7 @@ id('graphic').addEventListener('pointerdown',function() {
             offset.y=bounds.y-y0;
             id('blueBox').setAttribute('x',x+offset.x);
             id('blueBox').setAttribute('y',y+offset.y);
+            id('guides').style.display='block';
         }
         else if(handle instanceof SVGRectElement) {
             val=val.substr(6);
@@ -1951,6 +1954,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     id('blueOval').setAttribute('cy',y0);
                     id('blueOval').setAttribute('rx',arc.radius);
                     id('blueOval').setAttribute('ry',arc.radius);
+                    id('guides').style.display='block';
                     break;
                 case 'Dim':
                     id('blueBox').setAttribute('width',0);
@@ -1966,6 +1970,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     id('blueLine').setAttribute('y2',(y0+dy));
                     var spin=element.getAttribute('transform');
                     id('blueLine').setAttribute('transform',spin);
+                    id('guides').style.display='block';
                     /*
                     if(dx==0) dim.dir='v';
                     else if(dy==0) dim.dir='h';
@@ -1986,6 +1991,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     id('bluePolyline').setAttribute('points',points);
                     id('blueBox').setAttribute('width',0);
                     id('blueBox').setAttribute('height',0);
+                    id('guides').style.display='none';
             }
             console.log('mode: '+mode);
         }
@@ -2019,6 +2025,7 @@ id('graphic').addEventListener('pointerdown',function() {
             }
             else if(element.points.length>0) element.points[0]=point;
             id('bluePolyline').points.appendItem(point);
+            id('guides').style.display='block';
             prompt('LINES: drag to next point; tap twice to end');
             break;
         case 'shape':
@@ -2036,17 +2043,20 @@ id('graphic').addEventListener('pointerdown',function() {
                 y0=point.y;
             }
             id('bluePolyline').points.appendItem(point);
+            id('guides').style.display='block';
             prompt('SHAPE: drag to next point; finish on start point');
             break;
         case 'box':
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
+            id('guides').style.display='block';
             prompt('BOX: drag to size');
             console.log('box started at '+x0+','+y0);
             break;
         case 'oval':
             id('blueOval').setAttribute('cx',x0);
             id('blueOval').setAttribute('cy',y0);
+            id('guides').style.display='block';
             // console.log('sizing oval initiated');
             prompt('OVAL: drag to size');
             break;
@@ -2058,6 +2068,7 @@ id('graphic').addEventListener('pointerdown',function() {
             id('blueLine').setAttribute('y1',arc.y1);
             id('blueLine').setAttribute('x2',arc.x1);
             id('blueLine').setAttribute('y2',arc.y1);
+            id('guides').style.display='block';
             break;
         case 'text':
             console.log('show text dialog');
@@ -2082,6 +2093,7 @@ id('graphic').addEventListener('pointerdown',function() {
         case 'pointEdit':
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
+            id('guides').style.display='block';
             selectionBox.x=x0;
             selectionBox.y=y0;
             selectionBox.w=selectionBox.h=0;
@@ -2328,13 +2340,6 @@ id('graphic').addEventListener('pointerup',function() {
         id('bluePolyline').setAttribute('points','0,0');
         refreshNodes(element);
         cancel();
-        /*
-        mode='select';
-        elID=null;
-        selection=[];
-        showSizes(false);
-        showEditTools(false);
-        */
     }
     else switch(mode) {
         case 'move':
@@ -2437,14 +2442,6 @@ id('graphic').addEventListener('pointerup',function() {
             }
             id('selection').setAttribute('transform','translate(0,0)');
             cancel();
-            /*
-            id('selection').innerHTML='';
-            mode='select';
-            elID=null;
-            selection=[];
-            showSizes(false);
-            showEditTools(false);
-            */
             break;
         case 'boxSize':
             console.log('pointer up - box size: '+dx+'x'+dy);
@@ -2457,13 +2454,6 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueBox').setAttribute('height',0);
             refreshNodes(element);
             cancel();
-            /*
-            mode='select';
-            elID=null;
-            selection=[];
-            showSizes(false);
-            showEditTools(false);
-            */
             break;
         case 'ovalSize':
             console.log('pointer up - radii: '+dx+'x'+dy);
@@ -2475,13 +2465,6 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueBox').setAttribute('height',0);
             refreshNodes(element);
             cancel();
-            /*
-            mode='select';
-            elID=null;
-            selection=[];
-            showSizes(false);
-            showEditTools(false);
-            */
             break;
         case 'arcSize':
             dx=x-x0;
@@ -2512,13 +2495,6 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
             cancel();
-            /*
-            mode='select';
-            elID=null;
-            selection=[];
-            showSizes(false);
-            showEditTools(false);
-            */
             break;
         case 'pan':
             console.log('pan ends at '+x+','+y);
@@ -2540,12 +2516,6 @@ id('graphic').addEventListener('pointerup',function() {
             var d=Math.sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
             if((d<snapD)||(n>9)) { // click/tap to finish polyline - capped to 10 points
                 console.log('end polyline');
-                /* remove duplicate end-point
-                var points='';
-                for(var i=0;i<id('bluePolyline').points.length-1;i++) {
-                    points+=id('bluePolyline').points[i].x+','+id('bluePolyline').points[i].y+' ';
-                }
-                */
                 var points=id('bluePolyline').points;
                 console.log('points: '+points);
                 // create polyline element
@@ -2577,9 +2547,12 @@ id('graphic').addEventListener('pointerup',function() {
 	            graph.fill='none';
 	            if(len>=scale) addGraph(graph); // avoid zero-size lines
 	            id('bluePolyline').setAttribute('points','0,0');
+	            cancel();
+	            /*
                 element=elID=null;
                 showSizes(false);
                 mode='select';
+                */
             }
             break;
         case 'shape':
@@ -2614,9 +2587,12 @@ id('graphic').addEventListener('pointerup',function() {
 	        graph.fill=fillShade;
 	        if(len>=scale) addGraph(graph); // avoid zero-size shapes
 	        id('bluePolyline').setAttribute('points','0,0');
+	        cancel();
+	        /*
             element=elID=null;
             showSizes(false);
             mode='select';
+            */
             break;
         case 'box':
             console.log('finish box');
@@ -2647,8 +2623,11 @@ id('graphic').addEventListener('pointerup',function() {
 		    */
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
+            cancel();
+            /*
             element=elID=null;
             mode='select';
+            */
             break;
         case 'oval':
             var graph={};
@@ -2666,8 +2645,11 @@ id('graphic').addEventListener('pointerup',function() {
 	        if((graph.rx>=scale)&&(graph.ry>=scale)) addGraph(graph); // avoid zero-size ovals
 		    id('blueOval').setAttribute('rx',0);
             id('blueOval').setAttribute('ry',0);
+            cancel();
+            /*
             element=elID=null;
             mode='select';
+            */
             break;
         case 'arc':
             arc.cx=x;
@@ -2726,8 +2708,11 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueRadius').setAttribute('y1',0);
             id('blueRadius').setAttribute('x2',0);
             id('blueRadius').setAttribute('y2',0);
+            cancel();
+            /*
             element=elID=null;
             mode='select';
+            */
             break;
         case 'dimStart':
             if(snap) {
@@ -2757,6 +2742,7 @@ id('graphic').addEventListener('pointerup',function() {
                     id('blueDim').setAttribute('y1',dim.y1);
                     id('blueDim').setAttribute('x2',dim.x2);
                     id('blueDim').setAttribute('y2',dim.y2);
+                    id('guides').style.display='block';
                     prompt('DIMENSION: drag to position');
                     mode='dimPlace';
                 }
@@ -2833,9 +2819,12 @@ id('graphic').addEventListener('pointerup',function() {
             request.onerror=function(event) {
                 console.log('get error');
             }
+            cancel();
+            /*
             mode='select';
             id('handles').innerHTML='';
             element=elID=null;
+            */
             break;
         case 'anchor':
             if(snap) {
@@ -2878,6 +2867,7 @@ id('graphic').addEventListener('pointerup',function() {
         case 'select':
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
+            id('guides').style.display='none';
             console.log('box size: '+selectionBox.w+'x'+selectionBox.h);
             if((selectionBox.w>20)&&(selectionBox.h>20)) { // significant selection box size
                 console.log('GROUP SELECTION - box: '+selectionBox.w+'x'+selectionBox.h+' at '+selectionBox.x+','+selectionBox.y);
@@ -2886,7 +2876,7 @@ id('graphic').addEventListener('pointerup',function() {
                 for(var i=0;i<items.length;i++) { // collect elements entirely within selectionBox
                     console.log('item '+i+': '+items[i].id);
                     var el=id(items[i].id);
-                    if(type(el)=='dim') continue; // don't include dimensions
+                    if((type(el)=='dim')||!el) continue; // don't include dimensions or 'null' nodes
                     var box=getBounds(items[i]);
                     console.log('bounds for '+items[i].id+": "+box.x+','+box.y);
                     console.log('item '+items[i].id+' box: '+box.width+'x'+box.height+' at '+box.x+','+box.y);
@@ -2977,6 +2967,7 @@ id('graphic').addEventListener('pointerup',function() {
                                     id('handles').innerHTML+=html; // remaining handles move nodes
                                 }
                                 id('bluePolyline').setAttribute('points',el.getAttribute('points'));
+                                id('guides').style.display='none';
                                 showSizes(true,'LINE');
                                 if(mode=='shape') prompt('SHAPE');
                                 mode='pointEdit';
@@ -2992,6 +2983,7 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('blueBox').setAttribute('y',y);
                                 id('blueBox').setAttribute('width',w);
                                 id('blueBox').setAttribute('height',h);
+                                id('guides').style.display='none';
                                 // draw handles
                                 var html="<circle id='handleNW' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                                 id('handles').innerHTML+=html; // top-left circle handle at top-left used to move whole box
@@ -3011,6 +3003,7 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('blueBox').setAttribute('y',(y-h/2));
                                 id('blueBox').setAttribute('width',w);
                                 id('blueBox').setAttribute('height',h);
+                                id('guides').style.display='none';
                                 // draw handles
                                 var html="<circle id='handleCentre' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                                 id('handles').innerHTML+=html; // hollow circle handle at centre used to move whole box
@@ -3128,22 +3121,6 @@ id('graphic').addEventListener('pointerup',function() {
             }
             else { // TRY THIS - CLICK ON BACKGROUND CLEARS SELECTION
                 cancel();
-                /*
-                mode='select';
-                elID=null;
-                selection=[];
-                id('handles').innerHTML=''; //remove element handles...
-                id('blueBox').setAttribute('width',0); // ...and text bounds
-                id('blueBox').setAttribute('height',0);
-                console.log('clear selection');
-                selection=[];
-                selectionBox.w=selectionBox.h=0;
-                id('selection').innerHTML='';
-                showSizes(false);
-                showEditTools(false);
-                id('textDialog').style.display='none';
-                setStyle(); // set styles to defaults
-                */
             }
     }
     event.stopPropagation();
@@ -3448,7 +3425,7 @@ function initialise() {
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
     // draw dashed drawing outline in 'ref' layer
-    var html="<rect x='0' y='0' width='"+w+"' height='"+h+"' stroke='gray' fill='none'/>";
+    var html="<rect x='0' y='0' width='"+w+"' height='"+h+"' stroke='gray' stroke-width='"+(2*scale)+"' stroke-opacity='0.25' fill='none'/>";
     id('ref').innerHTML+=html;
     // scale datum
     // id('datumH').setAttribute('stroke-width',0.25*scale);
@@ -3474,12 +3451,12 @@ function setLayout() {
     console.log('set layout to '+hand+' sizes width: '+id('sizes').clientWidth);
     if(hand=='left') { // LH tools and dialogs
         id('swop').setAttribute('href','draftStyleLeft.css');
-        id('prompt').style.left=parseInt(id('sizes').style.width)+54+'px';
+        id('prompt').style.top='48px';
         id('goofy').checked=false;
     }
     else { // RH tools and dialogs
         id('swop').setAttribute('href','draftStyleRight.css');
-        id('prompt').style.left='6px';
+        id('prompt').style.top='8px';
         id('goofy').checked=true;
     }
 }
@@ -3524,6 +3501,7 @@ function cancel() { // cancel current operation and return to select mode
     id('blueOval').setAttribute('rx',0);
     id('blueOval').setAttribute('ry',0);
     id('bluePolyline').setAttribute('points','0,0');
+    id('guides').style.display='none';
     if(anchor) {
         // id('blue').removeChild(id('anchor'));
         id('anchor').remove();
@@ -3804,8 +3782,12 @@ function getArc(d) {
 } 
 function drawOrder() { // saves drawing order
     var items=id('dwg').childNodes;
+    console.log('order '+items.length+' elements');
     var order=[];
     for(var i=0;i<items.length;i++) {
+        var a=items[i].id;
+        console.log('item '+i+': '+a);
+        if(!a) continue;
         order.push(Number(items[i].getAttribute('id'))); // element.ids in stacking order
         console.log('order item '+i+': '+order[i]);
     }
@@ -4270,208 +4252,6 @@ function addGraph(el) {
         console.log('add copy failed');
     }
 }
-/* NO LONGER USED
-function drawElement(el,index) {
-    console.log('draw '+el.type+' element '+el.id+' at index '+index);
-    switch(el.type) {
-        case 'line':
-            var html="<polyline id='"+el.id+"' points='"+el.points+"' spin='"+el.spin+"' ";
-            // if(el.spin!=0) html+="transform='rotate("+el.spin+","+el.points[0].x+","+el.points[0].y+")' ";
-			html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
-			var dash=setLineStyle(el);
-            if(dash) html+=" stroke-dasharray='"+dash+"' ";
-			html+="fill='none'/>";
-			console.log('line html: '+html);
-			if(el.stroke=='blue') id('ref').innerHTML+=html;
-			else id('dwg').innerHTML+=html;
-			var spin=el.spin;
-			el=id(el.id); // get nodes from draw polyline
-			console.log('el '+el.id+' points: '+el.points);
-			for(var i=0;i<el.points.length;i++) { // IF HAS SPIN - USE refreshNodes()?
-                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id,'n':i});
-            }
-			if(spin!=0) setTransform(el); // apply spin
-            break;
-        case 'shape':
-            var html="<polygon id='"+el.id+"' points='"+el.points+"' spin='"+el.spin+"' ";
-            // if(el.spin!=0) html+="transform='rotate("+el.spin+","+el.points[0].x+","+el.points[0].y+")' ";
-            html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
-            var dash=setLineStyle(el);
-            if(dash) html+=" stroke-dasharray='"+dash+"' "; // +setLineStyle(el);
-			html+="fill='"+el.fill;
-			if(el.opacity<1) html+="' fill-opacity='"+el.opacity;
-			html+="'/>";
-			console.log('shape html: '+html);
-			if(el.stroke=='blue') id('ref').innerHTML+=html;
-			else id('dwg').innerHTML+=html;
-			var spin=el.spin;
-			el=id(el.id); // get nodes from element points
-			console.log('el '+el.id+' points: '+el.points);
-			for(var i=0;i<el.points.length;i++) { // IF HAS SPIN - USE refreshNodes()?
-                nodes.push({'x':el.points[i].x,'y':el.points[i].y,'el':el.id,'n':i});
-            }
-			if(spin!=0) setTransform(el); // apply spin
-            break;
-        case 'box':
-            console.log('draw box '+el.id+' at '+el.x+','+el.y);
-            var html="<rect id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' width='"+el.width+"' height='"+el.height+"' rx='"+el.radius+"' spin='"+el.spin+"' ";
-            // if(el.spin!=0) html+="transform='rotate("+el.spin+","+el.x+","+el.y+")' ";
-            html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' "
-            var dash=setLineStyle(el);
-            if(dash) html+=" stroke-dasharray='"+dash+"' ";
-            html+="fill='"+el.fill+"'";
-            if(el.opacity<1) html+=" fill-opacity='"+el.opacity+"'";
-            html+="/>";
-            console.log('box svg: '+html);
-            if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
-            else id('dwg').innerHTML+=html;
-            // add nodes
-            x=parseInt(el.x); // ALL THIS COULD BE IN refreshNodes() CALLED AFTER setTransform()?
-            y=parseInt(el.y);
-            w=parseInt(el.width);
-            h=parseInt(el.height);
-            var a=el.spin*Math.PI/180; // JUST ADD NODES FOR NOW refreshNodes() CAN ADJUST FOR SPIN
-            var c=Math.cos(a);
-            var s=Math.sin(a);
-            console.log('top/left: '+x+','+y+' size: '+w+'x'+h+' spin: '+a+' radians cos: '+c+' sine: '+s);
-            nodes.push({'x':x,'y':y,'el':el.id,'n':0}); // top/left - node 0
-            nodes.push({'x':Number(x+w*c),'y':Number(y+w*s),'el':el.id,'n':1}); // top/right - node 1
-            nodes.push({'x':Number(x+w*c-h*s),'y':Number(y+w*s+h*c),'el':el.id,'n':2}); // bottom/right - node 2
-            nodes.push({'x':Number(x-h*s),'y':Number(y+h*c),'el':el.id,'n':3}); // bottom/left - node 3
-            nodes.push({'x':Number(x+w*c/2-h*s/2),'y':Number(y+w*s/2+h*c/2),'el':el.id,'n':4}); // centre - node 4 
-            if(el.spin!=0) {  // apply spin
-                el=id(el.id);
-                setTransform(el);
-            }
-            break;
-        case 'oval':
-            var html="<ellipse id='"+el.id+"' cx='"+el.cx+"' cy='"+el.cy+"' rx='"+el.rx+"' ry='"+el.ry+"' spin='"+el.spin+"' ";
-            // if(el.spin!=0) html+="transform='rotate("+el.spin+","+el.cx+","+el.cy+")' ";
-            html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
-            var dash=setLineStyle(el);
-            if(dash) html+=" stroke-dasharray='"+dash+"' ";
-            html+=" fill='"+el.fill;
-            if(el.opacity<1) html+="' fill-opacity='"+el.opacity;
-            html+="'/>";
-            console.log('oval svg: '+html);
-            if(el.stroke=='blue') id('ref').innerHTML+=html;
-            else id('dwg').innerHTML+=html;
-            // add nodes
-            nodes.push({'x':el.cx,'y':el.cy,'el':el.id,'n':0}); // centre (node 0) then clockwise from...
-            nodes.push({'x':el.cx,'y':el.cy-el.ry,'el':el.id,'n':1}); // ...top - node 1
-            nodes.push({'x':Number(el.cx)+Number(el.rx),'y':el.cy,'el':el.id,'n':2}); // right - node 2
-            nodes.push({'x':el.cx,'y':Number(el.cy)+Number(el.ry),'el':el.id,'n':3}); // bottom - node 3
-            nodes.push({'x':el.cx-el.rx,'y':el.cy,'el':el.id,'n':4}); // left - node 4
-            // console.log('oval nodes added');
-            if(el.spin!=0) { // apply spin
-                el=id(el.id);
-                setTransform(el);
-            }
-            break;
-        case 'arc':
-            console.log('DRAW ARC');
-            var html="<path id='"+el.id+"' d='M"+el.cx+","+el.cy+" M"+el.x1+","+el.y1+" A"+el.r+","+el.r+" 0 "+el.major+","+el.sweep+" "+el.x2+","+el.y2+"' spin='"+el.spin+"' ";
-            // if(el.spin!=0) html+="transform='rotate("+el.spin+","+el.cx+","+el.cy+")' ";
-            html+="stroke='"+el.stroke+"' stroke-width='"+el.lineW+"' ";
-            var dash=setLineStyle(el);
-            if(dash) html+=" stroke-dasharray='"+dash+"' ";
-            html+="fill='"+el.fill+"'";
-            if(el.opacity<1) html+=" fill-opacity='"+el.opacity+"'";
-            html+="/>";
-            console.log('arc svg: '+html);
-            if(el.stroke=='blue') id('ref').innerHTML+=html; // blue boxes go in <ref> layer
-            else id('dwg').innerHTML+=html;
-            // create nodes for arc start, centre & end points USE refreshNodes()? AND ALLOW FOR SPIN
-            nodes.push({'x':el.cx,'y':el.cy,'el':el.id,'n':0}); // centre - node 0
-            nodes.push({'x':el.x1,'y':el.y1,'el':el.id,'n':1}); // start - node 1
-            nodes.push({'x':el.x2,'y':el.y2,'el':el.id,'n':2}); // end - node 2
-            if(el.spin!=0) { // apply spin
-                el=id(el.id);
-                setTransform(el);
-            }
-            break;
-        case 'text':
-            var html="<text id='"+el.id+"' x='"+el.x+"' y='"+el.y+"' spin='"+el.spin+"' flip='"+el.flip+"' ";
-            html+="font-size='"+(el.textSize*scale)+"' ";
-            if(el.textStyle=='bold') html+="font-weight='bold' ";
-            else if(el.textStyle=='italic') html+="font-style='italic' ";
-            html+="stroke='none' fill='"+el.fill+"'>"+el.text+"</text>";
-            console.log('text html: '+html);
-            if(el.fill=='blue') id('ref').innerHTML+=html;
-            else id('dwg').innerHTML+=html;
-            id('textDialog').style.display='none';
-            if((el.spin!=0)||(el.flip!=0)) { // apply spin/flip
-                el=id(el.id);
-                setTransform(el);
-            }
-            break;
-        case 'dim':
-            dx=Math.round(el.x2-el.x1);
-            dy=Math.round(el.y2-el.y1);
-            var d=0; // dimension length
-            var a=0; // dimension angle
-            if(el.dir=='h') {
-                    d=dx;
-                    a=0;
-                }
-            else if(el.dir=='v') {
-                    d=dy;
-                    a=Math.PI/2;
-                }
-            else {
-                d=Math.round(Math.sqrt(dx*dx+dy*dy));
-                a=Math.atan(dy/dx); // oblique dimension - angle in radians
-            }
-            console.log('dimension length: '+d+'; angle: '+a+' rad; elements: '+el.el1+' '+el.el2);                var x1=el.x1; // start point/anchor of dimension line
-            var y1=el.y1;
-            var o=parseInt(el.offset);
-            if(a==0) y1+=o;
-            else if(a==Math.PI/2) x1+=o;
-            else {
-                x1-=o*Math.sin(a);
-                y1+=o*Math.cos(a);
-            }
-            a*=180/Math.PI; // angle in degrees
-            var html="<g id='"+el.id+"' transform='rotate("+a+","+x1+","+y1+")'>"
-            // draw dimension line and text horizontally then rotate to angle a;
-            html+="<line x1='"+x1+"' y1='"+y1+"' x2='"+(x1+d)+"' y2='"+y1+"' ";
-            html+="marker-start='url(#startArrow)' marker-end='url(#endArrow)' ";
-            html+="stroke='gray' stroke-width='"+(0.25*scale)+"' fill='none'/>"
-            html+="<text x='"+(x1+d/2)+"' y='"+(y1-scale)+"' style='text-anchor: middle; font-size:"+(4*scale)+"; stroke:none; fill:gray'>"+Math.abs(d)+"</text>";
-            html+="</g>";
-            console.log('dimension html: '+html);
-            id('dwg').innerHTML+=html;
-            var dim={}; // no nodes for dimensions but add to dims array
-            dim.dim=el.id;
-            dim.el1=el.el1;
-            dim.n1=el.n1;
-            dim.el2=el.el2;
-            dim.n2=el.n2;
-            console.log('add link - dim. '+dim.dim+' el/nodes: '+dim.el1+'/'+dim.n1+','+dim.el2+'/'+dim.n2);
-            dims.push(dim);
-            console.log('links added for dimension '+el.id);
-            for(var i=0;i<dims.length;i++) console.log('link '+i+': dim:'+dims[i].dim+' el/nodes: '+dims[i].el1+'/'+dims[i].n1+','+dims[i].el2+'/'+dims[i].n2);
-            break;
-        case 'combi':
-            var html="<use id='"+el.id+"' href='#"+el.name+"' x='"+el.x+"' y='"+el.y+"' flip='"+el.flip+"' spin='"+el.spin+"'/>";
-            console.log('combi html: '+html);
-            id('dwg').innerHTML+=html;
-            nodes.push({'x':(el.x),'y':(el.y),'el':el.id});
-            el=id(el.id);
-            setTransform(el);
-            console.log("DONE");
-            break;
-        case 'anchor':
-            console.log('draw anchor at '+el.cx+','+el.cy);
-            var html="<circle id='"+el.id+"' cx='"+el.cx+"' cy='"+el.cy+"' r='"+(2*scale)+"' ";
-            html+="stroke='blue' stroke-width='"+(0.25*scale)+"' fill='gray' fill-opacity='0.5'/>";
-            console.log('anchor html: '+html);
-            id('blue').innerHTML+=html; // anchor is pseudo-element - put in <blue> layer
-            console.log('anchor drawn');
-            break;
-    }
-};
-*/
 function saveSVG() {
     id('datumSet').style.display='none';
     var fileName=id('printName').value+'.svg';
