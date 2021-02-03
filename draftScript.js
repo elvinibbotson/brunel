@@ -56,6 +56,10 @@ var currentDialog=null;
 scr.w=screen.width;
 scr.h=screen.height;
 dwg.x=dwg.y=0;
+/*
+dwg.w=scr.w/scaleF;
+dwg.h=scr.h/scaleF;
+*/
 console.log("screen size "+scr.w+"x"+scr.h);
 name=window.localStorage.getItem('name');
 aspect=window.localStorage.getItem('aspect');
@@ -1768,7 +1772,7 @@ id('shadeMenu').addEventListener('click',function() {
         if(elID) { // change selected element
             element=id(elID);
             console.log('element '+elID+' is '+type(element));
-            if(type(element)=='line') return; // lines never have fill
+            // if(type(element)=='line') return; // lines never have fill - NOT SO!!
             element.setAttribute('fill',val);
             // console.log('set element '+element.id+' fill shade to '+val);
             updateGraph(element.id,['fill',val]);
@@ -2091,8 +2095,12 @@ id('graphic').addEventListener('pointerdown',function() {
             break;
         case 'select':
         case 'pointEdit':
+            id('selectionBox').setAttribute('x',x0);
+            id('selectionBox').setAttribute('y',y0);
+            /*
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
+            */
             id('guides').style.display='block';
             selectionBox.x=x0;
             selectionBox.y=y0;
@@ -2134,7 +2142,7 @@ function drag(event) {
             else { // drag  single element
                 id('blueBox').setAttribute('x',x+offset.x);
                 id('blueBox').setAttribute('y',y+offset.y);
-                console.log('dragged to '+x+','+y);
+                // console.log('dragged to '+x+','+y);
             }
             if(anchor) {
                 id('anchor').setAttribute('cx',x);
@@ -2145,9 +2153,7 @@ function drag(event) {
         case 'boxSize':
             w=parseInt(element.getAttribute('width'));
             h=parseInt(element.getAttribute('height'));
-            // WAS var aspect=parseInt(element.getAttribute('width'))/parseInt(element.getAttribute('height'));
             var aspect=w/h;
-            // console.log('box size: '+w+'x'+h+'; aspect: '+aspect);
             dx=x-x0;
             dy=y-y0;
             if(Math.abs(dx-w)<(snapD*2)) dx=w; // snap to equal width,...
@@ -2312,10 +2318,16 @@ function drag(event) {
             var boxY=(y<y0)?y:y0;
             w=Math.abs(x-x0);
             h=Math.abs(y-y0);
+            id('selectionBox').setAttribute('x',boxX);
+            id('selectionBox').setAttribute('y',boxY);
+            id('selectionBox').setAttribute('width',w);
+            id('selectionBox').setAttribute('height',h);
+            /*
             id('blueBox').setAttribute('x',boxX);
             id('blueBox').setAttribute('y',boxY);
             id('blueBox').setAttribute('width',w);
             id('blueBox').setAttribute('height',h);
+            */
             selectionBox.x=boxX;
             selectionBox.y=boxY;
             selectionBox.w=w;
@@ -2507,12 +2519,13 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'line':
             if(snap) {  // adjust previous point to snap target
-                var n=element.points.length;
                 var point=element.points[n-1];
                 point.x=x;
                 point.y=y;
                 element.points[n-1]=point;
             }
+            var n=element.points.length;
+            console.log(n+' points');
             var d=Math.sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
             if((d<snapD)||(n>9)) { // click/tap to finish polyline - capped to 10 points
                 console.log('end polyline');
@@ -3371,44 +3384,9 @@ function initialise() {
     // SET DRAWING ASPECT
     console.log('set up 1:'+scale+' scale '+aspect+' drawing');
     scaleF=25.4*scale/96; // 96px/inch
-    // if(units=='mm') {
-    // scaleF*=25.4; // ...or 25.4mm
-    snapD=5*scale; // ...5mm snap distance...
-    handleR=2.5*scale; // ...2.5mm radius handles...
-    boxR=5*scale; // ... and 5mm roundbox corners at 1:1 scale
-    if(aspect=='landscape') {
-        dwg.w=297; // A4 landscape...
-        dwg.h=210;
-    }
-    else {
-        dwg.w=210; // ...or portrait
-        dwg.h=297;
-    }
-    id('svg').setAttribute('width',dwg.w+'mm');
-    id('svg').setAttribute('height',dwg.h+'mm');
-    id('ref').setAttribute('width',dwg.w+'mm');
-    id('ref').setAttribute('height',dwg.h+'mm');
-    /* }
-    else {
-        snapD=0.2*scale; // ...0.2in snap distance...
-        handleR=0.1*scale; // ...0.1in handle radius...
-        boxR=0.25*scale; // ...and 0.25in roundbox corner radius at 1:1 scale
-        if(aspect=='landscape') {
-            dwg.w=11.7; // A4 landscape...
-            dwg.h=8.27;
-        }
-        else {
-            dwg.w=8.27; // ...or portrait
-            dwg.h=11.7;
-        }
-        id('svg').setAttribute('width',dwg.w+'in');
-        id('svg').setAttribute('height',dwg.h+'in');
-        id('ref').setAttribute('width',dwg.w+'in');
-        id('ref').setAttribute('height',dwg.h+'in');
-        id('gridUnit').innerHTML='in';
-        id('radiusUnit').innerHTML='in';
-    }
-    */
+    dwg.w=(aspect=='landscape')?297:210;
+    dwg.h=(aspect=='landscape')?210:297;
+    console.log()
     var gridSizes=id('gridSize').options;
     console.log('set '+gridSizes.length+' grid size options for scale '+scale);
     gridSizes[0].disabled=(scale>2);
@@ -3419,17 +3397,16 @@ function initialise() {
     gridSizes[5].disabled=gridSizes[6].disabled=gridSizes[7].disabled=gridSizes[8].disabled=gridSizes[9].disabled=(scale<50);
     var blues=document.getElementsByClassName('blue');
     console.log(blues.length+' elements in blue class');
-    for(var i=0;i<blues.length;i++) blues[i].style.strokeWidth=0.25*scale;
+    for(var i=0;i<blues.length;i++) blues[i].style.strokeWidth=0.1*scale;
+    id('selectionBox').setAttribute('stroke-dasharray',(scale+' '+scale+' '));
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
+    console.log('viewbox: '+w+'x'+h);
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
     // draw dashed drawing outline in 'ref' layer
     var html="<rect x='0' y='0' width='"+w+"' height='"+h+"' stroke='gray' stroke-width='"+(2*scale)+"' stroke-opacity='0.25' fill='none'/>";
     id('ref').innerHTML+=html;
-    // scale datum
-    // id('datumH').setAttribute('stroke-width',0.25*scale);
-    // id('datumV').setAttribute('stroke-width',0.25*scale);
     id('datum').setAttribute('transform','scale('+scale+')');
     /* 
     datum.x1=datum.x2=datum.y1=datum.y2=0;
@@ -3496,6 +3473,8 @@ function cancel() { // cancel current operation and return to select mode
     selectionBox.w=selectionBox.h=0;
     id('selection').innerHTML='';
     id('handles').innerHTML=''; //remove element handles...
+    id('selectionBox').setAttribute('width',0);
+    id('selectionBox').setAttribute('height',0);
     id('blueBox').setAttribute('width',0);
     id('blueBox').setAttribute('height',0);
     id('blueOval').setAttribute('rx',0);
@@ -4346,7 +4325,9 @@ function makeElement(g) {
             el.setAttribute('stroke-width',g.lineW);
             var dash=setLineStyle(g);
             if(dash) el.setAttribute('stroke-dasharray',dash);
-            el.setAttribute('fill','none');
+            el.setAttribute('fill',g.fill);
+            if(g.opacity<1) el.setAttribute('fill-opacity',g.opacity);
+            // el.setAttribute('fill','none');
             var points=el.points;
             for(var i=0;i<points.length;i++) { // IF HAS SPIN - USE refreshNodes()?
                 nodes.push({'x':points[i].x,'y':points[i].y,'n':Number(g.id*10+i)});
@@ -4364,6 +4345,8 @@ function makeElement(g) {
             var dash=setLineStyle(g);
             if(dash) el.setAttribute('stroke-dasharray',dash);
             el.setAttribute('fill',g.fill);
+            if(g.opacity<1) el.setAttribute('fill-opacity',g.opacity);
+            // el.setAttribute('fill',g.fill);
             if(g.opacity<1) el.setAttribute('fill-opacity',g.opacity);
             var points=el.points;
             for(var i=0;i<points.length;i++) { // IF HAS SPIN - USE refreshNodes()?
