@@ -4,6 +4,9 @@
     /* WHEN TESTED MOVE TOOLS, STYLE BOX & EDIT TOOLS TO RH EDGE right: 6px;*/
     top: 48px;
     width: 32px;
+    border: none;
+    border-radius: 3px;
+    background-color: black;
     display: block;
     z-index: 10;
 }
@@ -12,6 +15,9 @@
     left: 6px;
     top: 48px;
     width: 32px;
+    border: none;
+    border-radius: 3px;
+    background-color: black;
     display: none;
     z-index: 11;
 }

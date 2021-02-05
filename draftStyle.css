@@ -94,15 +94,19 @@ button {
 #lineButton {
     background: url(svg/line.svg) center center no-repeat;
 }
+/*
 #shapeButton {
     background: url(svg/shape.svg) center center no-repeat;
 }
+*/
 #boxButton {
     background: url(svg/box.svg) center center no-repeat;
 }
+/*
 #squircleButton {
     background: url(svg/roundbox.svg) center center no-repeat;
 }
+*/
 #ovalButton {
     background: url(svg/oval.svg) center center no-repeat;
 }
@@ -162,8 +166,10 @@ button {
     position: fixed;
     left: 48px;
     top: 48px;
-    background-color: #FFFF8888;
+    color: #0000FF88;
+    background-color: #FFFFFF88;
     opacity: 1;
+    font-weight: bold;
     padding: 4px;
     font-size: 1.2em;
     display: none;
@@ -207,4 +213,10 @@ button {
 }
 #text {
     width: 96px;
+}
+#dimDialog {
+    left: 8px;
+}
+#combiDialog {
+    left: 8px;
 }

@@ -38,9 +38,11 @@ var anchor=false; // flags existance of anchor
 var db=null; // indexed database holding SVG elements
 var nodes=[]; // array of nodes each with x,y coordinates and element ID
 var node=null;
+var drawNodes=true; // switch for diagnostics
 var dims=[]; // array of links between elements and dimensions
 var element=null; // current element
-var elID=null; // id of current element 
+var elID=null; // id of current element
+var blueline=null; // bluePolyline
 var combi=null; // current combi
 var combiID=null; // id of current combi
 // var combis=[]; // holds dimensions for combis to aid selection
@@ -79,6 +81,8 @@ id('gridSnap').checked=(gridSnap>0)?true:false;
 console.log('grid checked: '+id('gridSnap').checked);
 id('zoom').innerHTML=zoom;
 console.log('name: '+name+'; aspect: '+aspect+'; scale: '+scale+'; hand: '+hand+'; grid: '+gridSize+' '+gridSnap);
+for(var i=0;i<10;i++) nodes.push({'x':0,'y':0,'n':i}); // 10 nodes for blueline
+for(var i=0;i<10;i++) console.log('node '+i+': '+nodes[i].n+' at '+nodes[i].x+','+nodes[i].y);
 if(!aspect) {
     aspect=(scr.w>scr.h)?'landscape':'portrait';
     id('aspect').innerHTML=aspect;
@@ -339,28 +343,35 @@ id('panButton').addEventListener('click',function() {
 console.log('zoom; '+zoom+' w: '+w+' h: '+h);
 // DRAWING TOOLS
 id('lineButton').addEventListener('click',function() {
+    id('tools').style.display='none';
     mode='line';
     showSizes(true,'LINE: drag from start');
 });
+/*
 id('shapeButton').addEventListener('click',function() {
     mode='shape';
     showSizes(true,'SHAPE: drag from start');
 });
+*/
 id('boxButton').addEventListener('click',function() {
     mode='box';
     rad=0;
+    id('tools').style.display='none';
     showSizes(true,'BOX: drag from corner');
 });
 id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
     mode='oval';
+    id('tools').style.display='none';
     showSizes(true,'OVAL: drag from centre');
 })
 id('arcButton').addEventListener('click', function() {
    mode='arc';
+   id('tools').style.display='none';
    showSizes(true,'ARC: drag from start');
 });
 id('textButton').addEventListener('click',function() {
     mode='text';
+    id('tools').style.display='none';
     prompt('TEXT: tap at start');
 });
 id('text').addEventListener('change',function() {
@@ -396,11 +407,15 @@ id('text').addEventListener('change',function() {
 	    };
 	    */
     }
+    cancel();
+    /*
     element=elID=null;
     mode='select';
+    */
 });
 id('dimButton').addEventListener('click',function() {
    mode='dimStart';
+   id('tools').style.display='none';
    prompt('DIMENSION: tap start node');
 });
 id('confirmDim').addEventListener('click',function() {
@@ -416,7 +431,7 @@ id('confirmDim').addEventListener('click',function() {
     mode='dimPlace';
 });
 id('combiButton').addEventListener('click',function() {
-    // PLACE CURRENT COMBI OR HOLD TO SHOW LIST OF COMBIS
+    id('tools').style.display='none';
     showDialog('combiDialog',true);
 });
 id('combiList').addEventListener('change',function() {
@@ -439,8 +454,8 @@ id('addButton').addEventListener('click',function() { // add point after selecte
 });
 id('deleteButton').addEventListener('click',function() {
     var t=type(element);
-    var points=element.points;
     if((t=='line')||(t=='shape')) {
+        var points=element.points;
         if(selectedPoints.length>0) {  // remove >1 selected points
             prompt('REMOVE selected points');
             var pts='';
@@ -461,7 +476,7 @@ id('deleteButton').addEventListener('click',function() {
             }
         }
     }
-    prompt('REMOVE');
+    // prompt('REMOVE');
     for(var i=0;i<selection.length;i++) console.log('delete '+selection[i]);
     console.log('element is '+elID);
     /*
@@ -481,6 +496,7 @@ id('confirmRemove').addEventListener('click',function() { // complete deletion
     id('selection').innerHTML=''; // ...selection shading,...
     id('blueBox').setAttribute('width',0); // ...and text outline...
     id('blueBox').setAttribute('height',0);
+    showDialog('removeDialog',false);
     cancel();
     /*
     showDialog('textDialog',false); // ...and content (if shown)
@@ -1922,6 +1938,7 @@ id('graphic').addEventListener('pointerdown',function() {
                 */
                 return;
             }
+            // else prompt('drag to SIZE');
             console.log('size handle '+val);
             switch(val) {
                 /*
@@ -1938,11 +1955,13 @@ id('graphic').addEventListener('pointerdown',function() {
                     mode='boxSize';
                     x0=parseInt(element.getAttribute('x'));
                     y0=parseInt(element.getAttribute('y'));
+                    prompt('drag to SIZE');
                     break;
                 case 'Size':
                     mode='ovalSize';
                     x0=parseInt(element.getAttribute('cx'));
                     y0=parseInt(element.getAttribute('cy'));
+                    prompt('drag to SIZE');
                     break;
                 case 'Start':
                 case 'End':
@@ -1959,6 +1978,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     id('blueOval').setAttribute('rx',arc.radius);
                     id('blueOval').setAttribute('ry',arc.radius);
                     id('guides').style.display='block';
+                    prompt('drag to SIZE');
                     break;
                 case 'Dim':
                     id('blueBox').setAttribute('width',0);
@@ -2016,22 +2036,24 @@ id('graphic').addEventListener('pointerdown',function() {
             // console.log('view: '+view+' - dwg.x,y: '+dwg.x+','+dwg.y);
             break;
         case 'line':
-            element=id('bluePolyline');
-            elID='bluePolyline';
+            blueline=id('bluePolyline');
             var point=id('svg').createSVGPoint();
             point.x=x;
             point.y=y;
-            // try...
-            if(element.points.length>1) {
-                point=element.points[element.points.length-1];
+            if(blueline.points.length>1) {
+            // if(element.points.length>1) {
+                point=blueline.points[blueline.points.length-1];
+                // point=element.points[element.points.length-1];
                 x0=point.x;
                 y0=point.y;
             }
-            else if(element.points.length>0) element.points[0]=point;
-            id('bluePolyline').points.appendItem(point);
+            else if(blueline.points.length>0) blueline.points[0]=point;
+            blueline.points.appendItem(point);
+            refreshNodes(blueline); // set blueline nodes to match new point
             id('guides').style.display='block';
-            prompt('LINES: drag to next point; tap twice to end');
+            prompt('LINES: drag to next point; tap twice to end lines or on start to close shape');
             break;
+        /*
         case 'shape':
             element=id('bluePolyline');
             elID='bluePolyline';
@@ -2050,6 +2072,7 @@ id('graphic').addEventListener('pointerdown',function() {
             id('guides').style.display='block';
             prompt('SHAPE: drag to next point; finish on start point');
             break;
+        */
         case 'box':
             id('blueBox').setAttribute('x',x0);
             id('blueBox').setAttribute('y',y0);
@@ -2091,7 +2114,8 @@ id('graphic').addEventListener('pointerdown',function() {
             graph.spin=0;
 	        graph.flip=0;
 	        addGraph(graph);
-            mode='select';
+	        cancel();
+            // mode='select';
             break;
         case 'select':
         case 'pointEdit':
@@ -2105,7 +2129,7 @@ id('graphic').addEventListener('pointerdown',function() {
             selectionBox.x=x0;
             selectionBox.y=y0;
             selectionBox.w=selectionBox.h=0;
-            showSizes(true,'SELECT: drag selection box');
+            showSizes(true);
     }
     event.stopPropagation();
     console.log('exit pointer down code');
@@ -2198,14 +2222,17 @@ function drag(event) {
             id('ref').setAttribute('viewBox',dx+' '+dy+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
             break;
         case 'line':
-        case 'shape':
+        // case 'shape':
             if(Math.abs(x-x0)<snapD) x=x0; // snap to vertical
             if(Math.abs(y-y0)<snapD) y=y0; // snap to horizontal
-            var n=element.points.length;
-            var point=element.points[n-1];
+            var n=blueline.points.length;
+            // var n=element.points.length;
+            var point=blueline.points[n-1];
+            // var point=element.points[n-1];
             point.x=x;
             point.y=y;
-            element.points[n-1]=point;
+            blueline.points[n-1]=point;
+            // element.points[n-1]=point;
             setSizes('polar',null,x0,y0,x,y);
             break;
         case 'box':
@@ -2518,18 +2545,27 @@ id('graphic').addEventListener('pointerup',function() {
             // console.log('mode is '+mode);
             break;
         case 'line':
+            console.log('pointer up - blueline is '+blueline.id);
+            var n=blueline.points.length;
             if(snap) {  // adjust previous point to snap target
-                var point=element.points[n-1];
+                blueline.points[n-1].x=x;
+                blueline.points[n-1].y=y;
+                /*
+                var point=blueline.points[n-1];
+                // var point=element.points[n-1];
                 point.x=x;
                 point.y=y;
-                element.points[n-1]=point;
+                blueline.points[n-1]=point;
+                */
             }
-            var n=element.points.length;
+            // var n=element.points.length;
             console.log(n+' points');
             var d=Math.sqrt((x-x0)*(x-x0)+(y-y0)*(y-y0));
+            refreshNodes(blueline); // set blueline nodes to match new point
             if((d<snapD)||(n>9)) { // click/tap to finish polyline - capped to 10 points
-                console.log('end polyline');
-                var points=id('bluePolyline').points;
+                console.log('END LINE');
+                var points=blueline.points;
+                // var points=id('bluePolyline').points;
                 console.log('points: '+points);
                 // create polyline element
                 var graph={};
@@ -2540,32 +2576,50 @@ id('graphic').addEventListener('pointerup',function() {
 	                graph.points+=(points[i].x+','+points[i].y+' ');
 	                if(i>0) len+=Math.abs(points[i].x-points[i-1].x)+Math.abs(points[i].y-points[i-1].y);
 	            }
-	            /*
-	            graph.x=points[0].x;
-	            graph.y=points[0].y;
-	            console.log('start: '+graph.x+','+graph.y);
-	            graph.dx=[]; // relative coords for remaining points
-	            graph.dy=[];
-	            for(var i=1;i<points.length-1;i++) { // omit duplicated end point
-	                console.log('points['+i+']: '+points[i].x+','+points[i].y);
-	                graph.dx.push(points[i].x-graph.x);
-	                graph.dy.push(points[i].y-graph.y);
-	            }
-	            */
-	            // graph.points=points;
 	            graph.spin=0;
 	            graph.stroke=lineShade;
 	            graph.lineW=(pen*scale);
 	            graph.lineStyle=lineType;
 	            graph.fill='none';
 	            if(len>=scale) addGraph(graph); // avoid zero-size lines
-	            id('bluePolyline').setAttribute('points','0,0');
+	            blueline.setAttribute('points','0,0');
+	            // id('bluePolyline').setAttribute('points','0,0');
 	            cancel();
 	            /*
                 element=elID=null;
                 showSizes(false);
                 mode='select';
                 */
+            }
+            else { // check if close to start point
+                point=blueline.points[0]; // start point
+                console.log('at '+x+','+y+' start at '+point.x+','+point.y);
+                dx=x-point.x;
+                dy=y-point.y;
+                var d=Math.sqrt(dx*dx+dy*dy);
+                if(d<snapD) { // close to start - create shape
+                    console.log('CLOSE SHAPE');
+                    var points=blueline.points;
+                    // var points=id('bluePolyline').points;
+                    console.log('points: '+points);
+                    var graph={}; // create polygon element
+                    graph.type='shape';
+                    graph.points='';
+                    var len=0;
+	                for(var i=0;i<points.length-1;i++) {
+	                    graph.points+=(points[i].x+','+points[i].y+' ');
+	                    if(i>0) len+=Math.abs(points[i].x-points[i-1].x)+Math.abs(points[i].y-points[i-1].y);
+	                }
+	                graph.spin=0;
+	                graph.stroke=lineShade;
+	                graph.lineW=(pen*scale);
+	                graph.lineStyle=lineType;
+	                graph.fill=fillShade;
+	                if(len>=scale) addGraph(graph); // avoid zero-size shapes
+	                blueline.setAttribute('points','0,0');
+	                // id('bluePolyline').setAttribute('points','0,0');
+	                cancel();
+                }
             }
             break;
         case 'shape':
@@ -2794,8 +2848,11 @@ id('graphic').addEventListener('pointerup',function() {
             id('blueDim').setAttribute('x2',0);
             id('blueDim').setAttribute('y2',0);
             addGraph(graph);
+            cancel();
+            /*
             element=elID=null;
             mode='select';
+            */
             break;
         case 'dimAdjust':
             var x1=parseInt(id('blueLine').getAttribute('x1'));
@@ -2956,7 +3013,7 @@ id('graphic').addEventListener('pointerup',function() {
                         // add node markers, boxes and handles to single selected item
                         id('handles').innerHTML=''; // clear any handles then add handles for selected element 
                         // first draw node markers
-                        for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
+                        if(drawNodes) for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
                             if(Math.floor(nodes[i].n/10)!=elID) continue;
                             var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"' stroke='blue' stroke-width='"+0.25*scale+"' fill='none'/>";
                             console.log('node at '+nodes[i].x+','+nodes[i].y);
@@ -3125,8 +3182,7 @@ id('graphic').addEventListener('pointerup',function() {
                             id('selection').innerHTML+=html; // blue block for first element
                         }
                         showSizes(false);
-                        setStyle();
-                        // SET STYLES TO DEFAULTS
+                        setStyle(); // SET STYLES TO DEFAULTS
                     }
                     setButtons();
                 } // else ignore clicks on items already selected
@@ -3439,6 +3495,7 @@ function setLayout() {
 }
 function showDialog(dialog,visible) {
     console.log('show dialog '+dialog);
+    if(visible) id('prompt').style.display='none';
     if(currentDialog) id(currentDialog).style.display='none'; // hide any currentDialog
     id('shadeMenu').style.display='none';
     id(dialog).style.display=(visible)?'block':'none'; // show/hide dialog
@@ -3467,6 +3524,7 @@ function showEditTools(visible) {
 }
 function cancel() { // cancel current operation and return to select mode
     mode='select';
+    id('tools').style.display='block';
     element=elID=null;
     selection=[];
     selectedPoints=[];
@@ -3681,7 +3739,7 @@ function setButtons() {
 }
 function showSizes(visible,promptText) {
     id('sizes').style.display=(visible)?'block':'none';
-    if(visible) prompt(promptText);
+    if(visible && promptText) prompt(promptText);
 }
 function setSizes(mode,spin,p1,p2,p3,p4) {
     // console.log('setSizes - '+mode+','+p1+','+p2+','+p3+','+p4);
@@ -3890,6 +3948,16 @@ function setTransform(el) {
 function refreshNodes(el) {
     // recalculate node.x, node.y after change to element
     console.log('check nodes for el '+el.id);
+    if(el==blueline) {
+        var points=el.points;
+        console.log(points.length+' points in blueline');
+        for(var i=0;i<points.length;i++) { // blueline nodes are first 10 in nodes[]
+            nodes[i].x=Number(points[i].x);
+            nodes[i].y=Number(points[i].y);
+            console.log('node '+i+': '+nodes[i].x+','+nodes[i].y);
+        }
+        return;
+    }
     var elNodes=nodes.filter(function(node) {
         return (Math.floor(node.n/10)==Number(el.id));
     });
@@ -4560,4 +4628,4 @@ else { //Register the ServiceWorker
 	navigator.serviceWorker.register('draftSW.js').then(function(reg) {
 		console.log('Service worker has been registered for scope:'+ reg.scope);
 	});
-}  
+}
