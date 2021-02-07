@@ -1,7 +1,6 @@
 // GLOBAL VARIABLES 
 var dbVersion=3;
 var name=''; // drawing name
-var saved=false; // flags whether drawing has been saved
 var aspect=null;
 var scale=1; // default scale is 1:1
 var hand='left';
@@ -37,7 +36,7 @@ var selectedPoints=[]; // list of selected points in line or shape
 var anchor=false; // flags existance of anchor
 var db=null; // indexed database holding SVG elements
 var nodes=[]; // array of nodes each with x,y coordinates and element ID
-var node=null;
+// var node=null; NOT USED?
 var drawNodes=true; // switch for diagnostics
 var dims=[]; // array of links between elements and dimensions
 var element=null; // current element
@@ -45,7 +44,6 @@ var elID=null; // id of current element
 var blueline=null; // bluePolyline
 var combi=null; // current combi
 var combiID=null; // id of current combi
-// var combis=[]; // holds dimensions for combis to aid selection
 var lineType='solid'; // default styles
 var lineShade='black';
 var pen=0.25; // 0.25mm at 1:1 scale - increase for smaller scales (eg.12.5 at 1:50 scale)
@@ -81,8 +79,6 @@ id('gridSnap').checked=(gridSnap>0)?true:false;
 console.log('grid checked: '+id('gridSnap').checked);
 id('zoom').innerHTML=zoom;
 console.log('name: '+name+'; aspect: '+aspect+'; scale: '+scale+'; hand: '+hand+'; grid: '+gridSize+' '+gridSnap);
-for(var i=0;i<10;i++) nodes.push({'x':0,'y':0,'n':i}); // 10 nodes for blueline
-for(var i=0;i<10;i++) console.log('node '+i+': '+nodes[i].n+' at '+nodes[i].x+','+nodes[i].y);
 if(!aspect) {
     aspect=(scr.w>scr.h)?'landscape':'portrait';
     id('aspect').innerHTML=aspect;
@@ -121,7 +117,7 @@ id('goofy').addEventListener('change',function() {
     setLayout();
 });
 id('new').addEventListener('click',function() {
-    if(!saved) alert('You may want to save your work before starting a new drawing');
+    alert('You may want to save your work before starting a new drawing');
     console.log("show newDrawingDialog");
     // showDialog('fileMenu',false);
     aspect=(scr.w>scr.h)?'landscape':'portrait';
@@ -185,11 +181,14 @@ id('fileChooser').addEventListener('change',function() {
             id('handles').innerHTML=''; // clear any edit handles
 		    graphStore.clear();
 		    combiStore.clear();
+		    nodes=[];
+		    dims=[];
 		    aspect=json.aspect;
 		    window.localStorage.setItem('aspect',aspect);
 		    scale=json.scale;
 		    window.localStorage.setItem('scale',scale);
 		    console.log('load drawing - aspect:'+aspect+' scale:'+scale);
+		    initialise();
 		}
 		else if(method=='merge') {
 		    name='';
@@ -222,8 +221,8 @@ id('fileChooser').addEventListener('change',function() {
 		}
 		transaction.oncomplete=function() {
 		    console.log('drawing imported - load & draw');
-		    initialise();
-            load();
+		    // initialise();
+            if(method!='combi') load();
 		}
     });
     loader.addEventListener('error',function(event) {
@@ -298,7 +297,7 @@ id('confirmPrint').addEventListener('click',function() {
     showDialog('printDialog',false);
 });
 id('zoomInButton').addEventListener('click',function() {
-    prompt('ZOOM IN');
+    // prompt('ZOOM IN');
     zoom*=2;
     // console.log('zoom in to '+zoom);
     w=Math.round(dwg.w*scale/zoom);
@@ -311,7 +310,7 @@ id('zoomInButton').addEventListener('click',function() {
     id('zoom').innerHTML=zoom;
 });
 id('zoomOutButton').addEventListener('click',function() {
-    prompt('ZOOM OUT');
+    // prompt('ZOOM OUT');
     if(zoom<2) return;
     zoom/=2;
     // console.log('zoom out to '+zoom);
@@ -325,7 +324,7 @@ id('zoomOutButton').addEventListener('click',function() {
     id('zoom').innerHTML=zoom;
 });
 id('extentsButton').addEventListener('click',function() {
-    prompt('ZOOM ALL');
+    // prompt('ZOOM ALL');
     // console.log('zoom out to full drawing');
     zoom=1;
     dwg.x=0;
@@ -338,7 +337,7 @@ id('extentsButton').addEventListener('click',function() {
 id('panButton').addEventListener('click',function() {
     // console.log('pan mode');
     mode='pan';
-    prompt('PAN');
+    // prompt('PAN');
 });
 console.log('zoom; '+zoom+' w: '+w+' h: '+h);
 // DRAWING TOOLS
@@ -510,7 +509,7 @@ id('backButton').addEventListener('click',function() {
         return;
     }
     */
-    prompt('PUSH BACK');
+    // prompt('PUSH BACK');
     var previousElement=element.previousSibling;
     if(previousElement===null) alert('already at back');
     else id('dwg').insertBefore(element,previousElement);
@@ -523,7 +522,7 @@ id('forwardButton').addEventListener('click',function() {
         return;
     }
     */
-    prompt('PULL FORWARD');
+    // prompt('PULL FORWARD');
     var nextElement=element.nextSibling;
     if(nextElement===null) alert('already at front');
     else id('dwg').insertBefore(nextElement,element);
@@ -724,23 +723,6 @@ id('flipOptions').addEventListener('click',function() {
         if((box.y+box.height)>maxY) maxY=box.y+box.height;
     }
     console.log('overall box '+minX+'-'+maxX+'x'+minY+'-'+maxY);
-    /*
-    if(copy) { // mirror copy/copies just to left/right/above/below
-        switch(opt) {
-            case 0: //flip copy to left
-                axis.x=minX-snapD;
-                break;
-            case 1: // flip copy to right
-                axis.x=maxX+snapD;
-                break;
-            case 2: // flip copy above
-                axis.y=minY-snapD;
-                break;
-            case 3: // flip copy below
-                axis.y=maxY+snapD;
-        }
-    }
-    */
     if(anchor) { // flip around anchor
         axis.x=parseInt(id('anchor').getAttribute('cx'));
         axis.y=parseInt(id('anchor').getAttribute('cy'));
@@ -1107,10 +1089,12 @@ id('flipOptions').addEventListener('click',function() {
     // mode='select';
 });
 id('alignButton').addEventListener('click',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length<2) {
         prompt('OOPS!'); // can only align multiple elements
         return;
     }
+    */
     showDialog('alignDialog',true);
 });
 id('alignOptions').addEventListener('click',function() {
@@ -1396,6 +1380,7 @@ id('confirmDouble').addEventListener('click',function() {
     n=element.getAttribute('fill-opacity');
     if(n) graph.opacity=n;
     addGraph(graph);
+    cancel();
 });
 id('repeatButton').addEventListener('click',function() {
     if(type(element)=='dim') return; // cannot move dimensions
@@ -1492,10 +1477,13 @@ id('confirmRepeat').addEventListener('click',function() {
             addGraph(g); // ENSURE THIS CREATES SEPARATE GRAPHS & NOT SAME ONE SEVERAL TIMES!
         }
     }
+    showDialog('repeatDialog',false);
+    cancel();
+    /*
     id('handles').innerHTML='';
     mode='select';
-    showDialog('repeatDialog',false);
     showSizes(false);
+    */
 });
 id('filletButton').addEventListener('click',function() {
     if(type(element!='box')) return; // can only fillet box corners
@@ -1506,10 +1494,15 @@ id('confirmFillet').addEventListener('click',function() {
     var r=parseInt(id('filletR').value);
     element.setAttribute('rx',r);
     updateGraph(elID,['radius',r]);
-    id('handles').innerHTML='';
+    showDialog('filletDialog',false);
+    showSizes(false);
+    // id('handles').innerHTML='';
+    cancel();
+    /*
     mode='select';
     showDialog('filletDialog',false);
     showSizes(false);
+    */
 });
 id('anchorButton').addEventListener('click',function() {
     mode='anchor';
@@ -1605,10 +1598,12 @@ id('line').addEventListener('click',function() {
     showDialog('stylesDialog',true);
 });
 id('lineType').addEventListener('change',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length>1) {
         prompt('OOPS');
         return;
     }
+    */
     var type=event.target.value;
     // console.log('line type: '+type);
     if(elID) { // change selected element
@@ -1635,10 +1630,12 @@ id('lineType').addEventListener('change',function() {
     id('line').style.borderStyle=type;
 });
 id('penSelect').addEventListener('change',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length>1) {
         prompt('OOPS');
         return;
     }
+    */
     var val=event.target.value;
     // console.log('pen width: '+val+'mm at 1:1');
     // id('penWidth').value=val;
@@ -1658,10 +1655,12 @@ id('penSelect').addEventListener('change',function() {
     id('line').style.borderWidth=(pen/scaleF)+'px';
 });
 id('textSize').addEventListener('change',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length>1) {
         prompt('OOPS');
         return;
     }
+    */
     var val=event.target.value;
     if(elID) { // change selected text element
         element=id(elID);
@@ -1676,10 +1675,12 @@ id('textSize').addEventListener('change',function() {
     }
 });
 id('textStyle').addEventListener('change',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length>1) {
         prompt('OOPS');
         return;
     }
+    */
     var val=event.target.value;
     if(elID) { // change selected text element
         element=id(elID);
@@ -1705,28 +1706,34 @@ id('textStyle').addEventListener('change',function() {
     }
 });
 id('lineShade').addEventListener('click',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length>1) {
         prompt('OOPS');
         return;
     }
+    */
     // console.log('show shadeMenu');
     id('shadeMenu').mode='line';
     showShadeMenu(true,event.clientX-16,event.clientY-16);
 });
 id('fillShade').addEventListener('click',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length>1) {
         prompt('OOPS');
         return;
     }
+    */
     console.log('show shadeMenu');
     id('shadeMenu').mode='fill';
     var shade=showShadeMenu(true,event.clientX-16,event.clientY-16);
 });
 id('opacity').addEventListener('change',function() {
+    /* SHOULDN'T HAPPEN
     if(selection.length>1) {
         prompt('OOPS');
         return;
     }
+    */
     var val=event.target.value;
     // console.log('opacity: '+val);
     if(elID) { // change selected element
@@ -2164,8 +2171,8 @@ function drag(event) {
                 id('selection').setAttribute('transform','translate('+dx+','+dy+')');
             }
             else { // drag  single element
-                id('blueBox').setAttribute('x',x+offset.x);
-                id('blueBox').setAttribute('y',y+offset.y);
+                id('blueBox').setAttribute('x',Number(x)+Number(offset.x));
+                id('blueBox').setAttribute('y',Number(y)+Number(offset.y));
                 // console.log('dragged to '+x+','+y);
             }
             if(anchor) {
@@ -3394,10 +3401,6 @@ id('second').addEventListener('change',function() {
             refreshNodes(element);
             id('handles').innerHTML='';
             mode='select';
-            /*
-            id('handleEnd').setAttribute('x',(arc.x2-handleR));
-            id('handleEnd').setAttribute('y',(arc.y2-handleR));
-            */
     }
 });
 id('spin').addEventListener('change',function() {
@@ -3440,6 +3443,8 @@ function initialise() {
     // SET DRAWING ASPECT
     console.log('set up 1:'+scale+' scale '+aspect+' drawing');
     scaleF=25.4*scale/96; // 96px/inch
+    handleR=2*scale;
+    snapD=2*scale;
     dwg.w=(aspect=='landscape')?297:210;
     dwg.h=(aspect=='landscape')?210:297;
     console.log()
@@ -3458,11 +3463,14 @@ function initialise() {
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
     console.log('viewbox: '+w+'x'+h);
+    id('background').setAttribute('width',w);
+    id('background').setAttribute('height',h);
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
-    // draw dashed drawing outline in 'ref' layer
+    /* draw dashed drawing outline in 'ref' layer
     var html="<rect x='0' y='0' width='"+w+"' height='"+h+"' stroke='gray' stroke-width='"+(2*scale)+"' stroke-opacity='0.25' fill='none'/>";
     id('ref').innerHTML+=html;
+    */
     id('datum').setAttribute('transform','scale('+scale+')');
     /* 
     datum.x1=datum.x2=datum.y1=datum.y2=0;
@@ -3476,9 +3484,11 @@ function initialise() {
     id('clipper').innerHTML=html;
     // console.log('drawing scale size: '+w+'x'+h+'mm; scaleF: '+scaleF+'; snapD: '+snapD);
     setLayout();
+    for(var i=0;i<10;i++) nodes.push({'x':0,'y':0,'n':i}); // 10 nodes for blueline
+    // for(var i=0;i<10;i++) console.log('node '+i+': '+nodes[i].n+' at '+nodes[i].x+','+nodes[i].y);
     id('countH').value=id('countV').value=1;
     // drawOrder();
-    mode='select';
+    cancel(); // set select mode
 }
 function setLayout() {
     console.log('set layout to '+hand+' sizes width: '+id('sizes').clientWidth);
@@ -3819,14 +3829,14 @@ function getArc(d) {
 } 
 function drawOrder() { // saves drawing order
     var items=id('dwg').childNodes;
-    console.log('order '+items.length+' elements');
+    // console.log('order '+items.length+' elements');
     var order=[];
     for(var i=0;i<items.length;i++) {
         var a=items[i].id;
-        console.log('item '+i+': '+a);
+        // console.log('item '+i+': '+a);
         if(!a) continue;
         order.push(Number(items[i].getAttribute('id'))); // element.ids in stacking order
-        console.log('order item '+i+': '+order[i]);
+        // console.log('order item '+i+': '+order[i]);
     }
     window.localStorage.setItem('order',order);
     return order;
@@ -4186,80 +4196,6 @@ function snapCheck() {
         else if(gridSnap>0) y=Math.round(y/gridSize)*gridSize;
         return false;
     }
-    /*
-    var nearX=[];
-    var nearY=[];
-    var nearN=[];
-    var snap='';
-    var node=null;
-    var min=0;
-    for(var i=0;i<nodes.length;i++) {
-        if(Math.abs(nodes[i].x-x)<snapD) nearX.push(nodes[i].n); // nodes close to x
-        if(Math.abs(nodes[i].y-y)<snapD) nearY.push(nodes[i].n); // nodes close to y
-    }
-    for(i=0;i<nearX.length;i++) {
-        if(nearY.indexOf(nearX[i].n)>=0) nearN.push(nearX[i].n); // nodes close to x,y
-    }
-    if(nearN.length>0) {
-        min=snapD*2;
-        for(i=0;i<nearN.length;i++) {
-            node=nodes.find(function(node) {
-                return (node.n==nearN[i]);
-            });
-            var d=Math.abs(node.x-x)+Math.abs(node.y-y);
-            if(d<min) {
-                min=d;
-                snap={'x':node.x,'y':node.y,'n':node.n};
-                datum.x=node.x;
-                datum.y=node.y;
-            }
-        }
-    }
-    else { // if no nodes within snap distance...
-        min=snapD*2;
-        for(i=0;i<nearX.length;i++) { // ...set datumX to nearest node.x...
-            node=nodes.find(function(node) {
-                return (node.n==nearX[i]);
-            });
-            if(Math.abs(node.x-x)<min) {
-                min=Math.abs(node.x-x);
-                datum.x=node.x;
-                snap='datumX';
-            }
-        }
-        if((gridSnap>0)&&(nearX.length<1)) { // ...or snap datumX to grid
-            x=Math.round(x/gridSize)*gridSize;
-            snap='gridX';
-        }
-        for(i=0;i<nearY.length;i++) { // ...set datumY to nearest node.y...
-            node=nodes.find(function(node) {
-                return (node.n==nearY[i]);
-            });
-            if(Math.abs(node.y-y)<min) {
-                min=Math.abs(node.y-y);
-                datum.y=node.y;
-                if(snap) snap+=' datumY';
-                else snap='datumY';
-            }
-        }
-        if((gridSnap>0)&&(nearY.length<1)) { // ...or snap datumY to grid
-            y=Math.round(y/gridSize)*gridSize;
-            if(snap) snap+=' gridY';
-            else snap='gridY';
-        }
-    }
-    if(snap.includes('datumX')) {
-        x=datum.x;
-        id('datumV').setAttribute('x1',datum.x);
-        id('datumV').setAttribute('x2',datum.x);
-    }
-    if(snap.includes('datumY')) {
-        y=datum.y;
-        id('datumH').setAttribute('y1',datum.y);
-        id('datumH').setAttribute('y2',datum.y);
-    }
-    return snap;
-    */
 }
 function updateGraph(id,parameters) {
     // console.log('adjust '+attribute+' of graph '+id+' to '+val);
@@ -4348,11 +4284,12 @@ function load() {
 	    	cursor.continue();  
         }
 	    else {
-		    console.log("No more entries - "+elements.length+' nodes - node 0: '+elements[0].id);
-		    for(var i=0;i<elements.length;i++) {
+		    console.log("No more entries - "+elements.length+' nodes still to be drawn');
+		    if(elements.length>0) for(var i=0;i<elements.length;i++) {
 		        console.log('add element '+i+' - id: '+elements[i].id);
 		        id('dwg').appendChild(elements[i]);
 		    }
+		    drawOrder(); // initialise drawing order
 	    }
     };
     console.log('all graphs loaded');
