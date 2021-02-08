@@ -1753,7 +1753,7 @@ id('shadeMenu').addEventListener('click',function() {
     var val=shades[x];
     showShadeMenu(false);
     console.log('set '+id('shadeMenu').mode+' shade to '+val);
-    if(id('shadeMenu').mode=='line') {
+    if(id('shadeMenu').mode=='line') { // line shade
         if(val=='white') val='blue';
         if(elID) { // change selected element
             element=id(elID);
@@ -1768,10 +1768,16 @@ id('shadeMenu').addEventListener('click',function() {
                 if(val=='blue') { // move element into <ref> layer...
                     console.log('blue line - shift to <ref>');
                     element.setAttribute('stroke-width',0.25*scale); // ...with thin lines...
-                    // updateGraph(element.id,['stroke-width',0.25*scale]);
                     element.setAttribute('fill','none'); // ...and no fill
                     id('ref').appendChild(element); // move to <ref> layer
                     remove(elID,true); // remove from database keeping nodes for snap
+                    drawOrder(); // remove element from drawing order...
+                    for(var i=0;i<dims.length;i++) { // ...and remove any linked dimensions
+                        if((Math.floor(dims[i].n1/10)==Number(el.id))||(Math.floor(dims[i].n2/10)==Number(el.id))) {
+                            remove(dims[i].dim);
+                            dims.splice(i,1);
+                        }
+                    }
                     cancel();
                     /*
                     elID=null;
@@ -1791,20 +1797,17 @@ id('shadeMenu').addEventListener('click',function() {
         id('line').style.borderColor=val;
         id('lineShade').style.backgroundColor=val;
     }
-    else {
+    else { // fill shade
         if(elID) { // change selected element
             element=id(elID);
             console.log('element '+elID+' is '+type(element));
-            // if(type(element)=='line') return; // lines never have fill - NOT SO!!
             element.setAttribute('fill',val);
-            // console.log('set element '+element.id+' fill shade to '+val);
             updateGraph(element.id,['fill',val]);
         }
         else { // change default fill shade
             // console.log('fill shade: '+val);
             fillShade=val;
         }
-        // if(shade=='none') id('fillType').value=0;
         id('fill').style.background=val;
         id('fillShade').style.backgroundColor=val;
     }
@@ -1820,19 +1823,10 @@ id('graphic').addEventListener('pointerdown',function() {
     x=x0=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=y0=Math.round(scr.y*scaleF/zoom+dwg.y);
     var val=event.target.id;
-    console.log('tap on '+val);
-    if(val=='anchor') { // can move either anchor or selected elements
-        if(selection.length<1) {
-            element=id(val);
-            elID=val;
-            prompt('ANCHOR: drag to move')
-        }
-        else {
-            selection.push(val); // include anchor in selection
-            prompt('drag ANCHOR to MOVE selection');
-        }
+    console.log('tap on '+val+' x,y:'+x+','+y+' x0,y0: '+x0+','+y0);
+    if(val=='anchor')  { // move selected elements using anchor
         mode='move';
-        // return;
+        prompt('drag ANCHOR to MOVE selection');
     }
     var holder=event.target.parentNode.id;
     // console.log('holder is '+holder);
@@ -1851,8 +1845,20 @@ id('graphic').addEventListener('pointerdown',function() {
         id('blueBox').setAttribute('width',bounds.width);
         id('blueBox').setAttribute('height',bounds.height);
         id('guides').style.display='block';
-        if(handle instanceof SVGCircleElement) { // remove whole element
-            if(mode=='removePoint') {
+        if(handle instanceof SVGCircleElement) {
+            if(mode=='addPoint') { // add point after start-point
+                var points=element.points;
+                x=Math.round((Number(points[0].x)+Number(points[1].x))/2);
+                y=Math.round((Number(points[0].y)+Number(points[1].y))/2);
+                var pts=points[0].x+','+points[0].y+' '+x+','+y+' ';
+                for(var i=1;i<points.length;i++) pts+=points[i].x+','+points[i].y+' ';
+                element.setAttribute('points',pts);
+                updateGraph(elID,['points',pts]);
+                refreshNodes(element);
+                cancel();
+                return;
+            }
+            else if(mode=='removePoint') {
                 showDialog('removeDialog',true);
                 return;
             }
@@ -1873,17 +1879,20 @@ id('graphic').addEventListener('pointerdown',function() {
                     break;
                 case 'oval':
                 case 'arc':
-                    x0=element.getAttribute('cx');
-                    y0=element.getAttribute('cy');
+                    var d=element.getAttribute('d');
+                    getArc(d);
+                    x0=arc.cx;
+                    y0=arc.cy;
             }
             offset.x=bounds.x-x0;
             offset.y=bounds.y-y0;
+            console.log('offsets: '+offset.x+','+offset.y);
             id('blueBox').setAttribute('x',x+offset.x);
             id('blueBox').setAttribute('y',y+offset.y);
             id('guides').style.display='block';
         }
         else if(handle instanceof SVGRectElement) {
-            val=val.substr(6);
+            val=Number(val.substr(6));
             if(mode=='addPoint') {
                 console.log('add point after point '+val);
                 var points=element.points;
@@ -2022,7 +2031,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     id('bluePolyline').setAttribute('points',points);
                     id('blueBox').setAttribute('width',0);
                     id('blueBox').setAttribute('height',0);
-                    id('guides').style.display='none';
+                    id('guides').style.display='block';
             }
             console.log('mode: '+mode);
         }
@@ -2145,6 +2154,7 @@ id('graphic').addEventListener('pointerdown',function() {
 // POINTER MOVE
 function drag(event) {
     event.preventDefault();
+    id('datumSet').style.display='block'; // show datum lines while dragging
     scr.x=Math.round(event.clientX);
     scr.y=Math.round(event.clientY);
     x=Math.round(scr.x*scaleF/zoom+dwg.x);
@@ -2996,7 +3006,7 @@ id('graphic').addEventListener('pointerup',function() {
                         // console.log('check at '+e+','+n+' '+(scr.x+e)+','+(scr.y+n));
                         el=document.elementFromPoint(scr.x+e,scr.y+n);
                         console.log('element '+el.id);
-                        if((el.id!='svg')&&(el.id!='datumSet')) hit=el.id; 
+                        if((el.id!='svg')&&(!el.id.startsWith('datum'))) hit=el.id; 
                         n++; 
                     }
                     e++;
@@ -3549,6 +3559,7 @@ function cancel() { // cancel current operation and return to select mode
     id('blueOval').setAttribute('ry',0);
     id('bluePolyline').setAttribute('points','0,0');
     id('guides').style.display='none';
+    id('datumSet').style.display='none';
     if(anchor) {
         // id('blue').removeChild(id('anchor'));
         id('anchor').remove();
@@ -3843,22 +3854,30 @@ function drawOrder() { // saves drawing order
 }
 function remove(elID,keepNodes) {
     console.log('remove element '+elID);
+    var linkedDims=[]; // first check for any linked dimensions
+    for(var i=0;i<dims.length;i++) {
+        if((Math.floor(dims[i].n1/10)==Number(elID))||(Math.floor(dims[i].n2/10)==Number(elID))) {
+            linkedDims.push(dims[i].dim);
+            dims.splice(i,1); // remove dimension link
+        }
+    }
     var el=id(elID);
     var request=db.transaction('graphs','readwrite').objectStore('graphs').delete(Number(elID));
 	request.onsuccess=function(event) {
 	    console.log('graph '+elID+' deleted from database');
-	    if(keepNodes) return;
+	    if(keepNodes) return; // applies if element has been shifted to <ref> layer
 	    var n=nodes.length;
         for(var i=0;i<nodes.length;i++) { // remove element's nodes
             if(Math.floor(nodes[i].n/10)==elID) nodes.splice(i,1);
         }
         console.log((n-nodes.length)+' nodes deleted');
 	    id('dwg').removeChild(el); // remove element from SVG...
-	    drawOrder(); // ...and ffrom drawing order
+	    drawOrder(); // ...and from drawing order
 	}
 	request.onerror=function(event) {
 	    console.log("error deleting element "+el.id);
 	};
+	while(linkedDims.length>0) remove(linkedDims.pop()); // remove any linked dimensions
 }
 function move(el,dx,dy) {
     switch(type(el)) {
@@ -4075,7 +4094,7 @@ function refreshNodes(el) {
 function checkDims(el) {
     console.log('check linked dimensions for element '+el.id);
     for(var i=0;i<dims.length;i++) {
-        if((Math.floor(dims[i].n1/10)==Number(el.id))||(Math.floor(dims[i].el2/10)==Number(el.id))) {
+        if((Math.floor(dims[i].n1/10)==Number(el.id))||(Math.floor(dims[i].n2/10)==Number(el.id))) {
             refreshDim(dims[i]); // adjust and redraw linked dimension
         }
     }

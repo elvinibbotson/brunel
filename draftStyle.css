@@ -30,6 +30,9 @@ body {
 #guides {
     display: none;
 }
+#datumSet {
+    display: none;
+}
 input {
     width: 64px;
 	height: 24px;
