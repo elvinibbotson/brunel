@@ -177,7 +177,7 @@ id('fileChooser').addEventListener('change',function() {
 		    name=name.substr(0,n);
 		    window.localStorage.setItem('name',name);
 		    id('dwg').innerHTML=''; // clear drawing
-            id('ref').innerHTML=''; // clear reference layer
+            id('ref').innerHTML="<rect id='background' x='0' y='0' width='297' height='210' stroke='none' fill='white'/>"; // clear reference layer
             id('handles').innerHTML=''; // clear any edit handles
 		    graphStore.clear();
 		    combiStore.clear();
@@ -215,7 +215,7 @@ id('fileChooser').addEventListener('change',function() {
 		        var request=graphStore.add(json.graphs[i]);
 		    }
 		    for(i=0;i<json.combis.length;i++) {
-		        console.log('add combi '+json.combi[i].name);
+		        console.log('add combi '+json.combis[i].name);
 		        request=combiStore.add(json.combis[i]);
 		    }
 		}
@@ -1878,6 +1878,9 @@ id('graphic').addEventListener('pointerdown',function() {
                     y0=element.getAttribute('y');
                     break;
                 case 'oval':
+                    x0=element.getAttribute('cx');
+                    y0=element.getAttribute('cy');
+                    break;
                 case 'arc':
                     var d=element.getAttribute('d');
                     getArc(d);
@@ -3468,7 +3471,7 @@ function initialise() {
     gridSizes[5].disabled=gridSizes[6].disabled=gridSizes[7].disabled=gridSizes[8].disabled=gridSizes[9].disabled=(scale<50);
     var blues=document.getElementsByClassName('blue');
     console.log(blues.length+' elements in blue class');
-    for(var i=0;i<blues.length;i++) blues[i].style.strokeWidth=0.1*scale;
+    for(var i=0;i<blues.length;i++) blues[i].style.strokeWidth=0.25*scale;
     id('selectionBox').setAttribute('stroke-dasharray',(scale+' '+scale+' '));
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
