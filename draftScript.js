@@ -36,8 +36,6 @@ var selectedPoints=[]; // list of selected points in line or shape
 var anchor=false; // flags existance of anchor
 var db=null; // indexed database holding SVG elements
 var nodes=[]; // array of nodes each with x,y coordinates and element ID
-// var node=null; NOT USED?
-var drawNodes=true; // switch for diagnostics
 var dims=[]; // array of links between elements and dimensions
 var element=null; // current element
 var elID=null; // id of current element
@@ -52,6 +50,8 @@ var opacity='1';
 var textSize=5; // default text size
 var textStyle='fine'; // normal text
 var currentDialog=null;
+
+var drawNodes=true; // SWITCH FOR DIAGNOSTICS
 
 scr.w=screen.width;
 scr.h=screen.height;
@@ -135,7 +135,7 @@ id('createNewDrawing').addEventListener('click',function() {
     elID=0;
     // CLEAR DRAWING IN HTML & DATABASE
     id('dwg').innerHTML=''; // clear drawing
-    id('ref').innerHTML=''; // clear reference layer
+    id('ref').innerHTML="<rect id='background' x='0' y='0' width='297' height='210' stroke='none' fill='white'/>"; // clear reference layer
     id('handles').innerHTML=''; // clear any edit handles
     drawOrder();
     var request=db.transaction('graphs','readwrite').objectStore('graphs').clear(); // clear graphs database
@@ -1895,7 +1895,7 @@ id('graphic').addEventListener('pointerdown',function() {
             id('guides').style.display='block';
         }
         else if(handle instanceof SVGRectElement) {
-            val=Number(val.substr(6));
+            val=val.substr(6);
             if(mode=='addPoint') {
                 console.log('add point after point '+val);
                 var points=element.points;
@@ -2029,6 +2029,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     prompt('MOVE DIMENSION (UP/DOWN)');
                     break;
                 default:
+                    val=Number(val);
                     mode='movePoint'+val;
                     var points=element.getAttribute('points');
                     id('bluePolyline').setAttribute('points',points);
@@ -3057,7 +3058,7 @@ id('graphic').addEventListener('pointerup',function() {
                                     id('handles').innerHTML+=html; // remaining handles move nodes
                                 }
                                 id('bluePolyline').setAttribute('points',el.getAttribute('points'));
-                                id('guides').style.display='none';
+                                id('guides').style.display='block';
                                 showSizes(true,'LINE');
                                 if(mode=='shape') prompt('SHAPE');
                                 mode='pointEdit';
@@ -3073,7 +3074,7 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('blueBox').setAttribute('y',y);
                                 id('blueBox').setAttribute('width',w);
                                 id('blueBox').setAttribute('height',h);
-                                id('guides').style.display='none';
+                                id('guides').style.display='block';
                                 // draw handles
                                 var html="<circle id='handleNW' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                                 id('handles').innerHTML+=html; // top-left circle handle at top-left used to move whole box
@@ -3093,7 +3094,7 @@ id('graphic').addEventListener('pointerup',function() {
                                 id('blueBox').setAttribute('y',(y-h/2));
                                 id('blueBox').setAttribute('width',w);
                                 id('blueBox').setAttribute('height',h);
-                                id('guides').style.display='none';
+                                id('guides').style.display='block';
                                 // draw handles
                                 var html="<circle id='handleCentre' cx="+x+" cy="+y+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>"
                                 id('handles').innerHTML+=html; // hollow circle handle at centre used to move whole box
@@ -4046,7 +4047,7 @@ function refreshNodes(el) {
             elNodes[0].x=x; // top/left
             elNodes[0].y=y;
             elNodes[1].x=(x+w*c); // top/right
-            elNodes[1].y=(y+h*s);
+            elNodes[1].y=(y+w*s);
             elNodes[2].x=(x+w*c-h*s); // bottom/right
             elNodes[2].y=(y+w*s+h*c);
             elNodes[3].x=(x-h*s); // bottom/left
@@ -4403,10 +4404,7 @@ function makeElement(g) {
             nodes.push({'x':(Number(g.x)+Number(g.width)),'y':(Number(g.y)+Number(g.height)),'n':Number(g.id*10+2)}); // bottom/right - node 2
             nodes.push({'x':g.x,'y':(Number(g.y)+Number(g.height)),'n':Number(g.id*10+3)}); // bottom/left - node 3
             nodes.push({'x':(Number(g.x)+Number(g.width/2)),'y':(Number(g.y)+Number(g.height/2)),'n':Number(g.id*10+4)}); // centre - node 4
-            if(g.spin!=0) {  // apply spin MAY NOT WORK!!!
-                el=id(el.id); // NO ID YET!
-                setTransform(el);
-            }
+            if(g.spin!=0) setTransform(el);
             break;
         case 'oval':
             var el=document.createElementNS(ns,'ellipse');
@@ -4430,10 +4428,7 @@ function makeElement(g) {
             nodes.push({'x':g.cx,'y':Number(g.cy)+Number(g.ry),'n':Number(g.id*10+3)}); // bottom - node 3
             nodes.push({'x':(g.cx-g.rx),'y':g.cy,'n':Number(g.id*10+4)}); // left - node 4
             // console.log('oval nodes added');
-            if(g.spin!=0) { // apply spin MAY NOT WORK!!!
-                el=id(el.id);
-                setTransform(el);
-            }
+            if(g.spin!=0) setTransform(el);
             break;
         case 'arc':
             var el=document.createElementNS(ns,'path');
@@ -4451,10 +4446,7 @@ function makeElement(g) {
             nodes.push({'x':g.cx,'y':g.cy,'n':(g.id*10)}); // centre - node 0
             nodes.push({'x':g.x1,'y':g.y1,'n':Number(g.id*10+1)}); // start - node 1
             nodes.push({'x':g.x2,'y':g.y2,'n':Number(g.id*10+2)}); // end - node 2
-            if(g.spin!=0) { // apply spin MAY NOT WORK!!!
-                el=id(el.id);
-                setTransform(el);
-            }
+            if(g.spin!=0) setTransform(el);
             break;
         case 'text':
             var el=document.createElementNS(ns,'text');
@@ -4471,10 +4463,7 @@ function makeElement(g) {
             var t=document.createTextNode(g.text);
             el.appendChild(t);
             id('textDialog').style.display='none';
-            if((g.spin!=0)||(g.flip!=0)) { // apply spin/flip MAY NOT WORK!!!
-                el=id(el.id);
-                setTransform(el);
-            }
+            if((g.spin!=0)||(g.flip!=0)) setTransform(el);
             break;
         case 'dim':
             dx=Math.round(g.x2-g.x1);
@@ -4549,7 +4538,7 @@ function makeElement(g) {
             el.setAttribute('spin',g.spin);
             el.setAttribute('flip',g.flip);
             nodes.push({'x':g.x,'y':g.y,'n':(g.id*10)});
-            if((g.spin!=0)||(g.flip!=0)) setTransform(el); // MAY NOT WORK
+            if((g.spin!=0)||(g.flip!=0)) setTransform(el);
             break;
     }
     return el;
