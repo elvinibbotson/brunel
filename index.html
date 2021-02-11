@@ -125,7 +125,7 @@
             <option value=1000>1m</option>
         </select>
         </p>
-        <p>goofy screen layout<input type='checkbox' id='goofy'></p>
+        <p>goofy screen layout<input type='checkbox' id='goofy'> <button id='helpButton' class='iconButton'></button></p>
         <p><button id='new'>NEW</button> <button id='load'>LOAD</button> <button id='save'>SAVE</button> <button id='print'>PRINT</button></p>
     </div>
     <div id='newDrawingDialog' class='dialog'>
@@ -177,7 +177,7 @@
     </div>
     <div id='printDialog' class='dialog'>
 	    <p><button id='confirmPrint'>SAVE</button> as printable SVG file</p>
-		<p>file name <input id='printName' type='text'>.svg</p>
+		<p>file name <input type='text' id='printName' class='nameField'>.svg</p>
 		<p>The saved <i>scalable vector graphics</i> file<br>will appear in your downloads folder.</p>
 	</div>
     <div id='dimDialog' class='dialog'>
@@ -294,6 +294,7 @@
     <div id='textDialog' class='dialog'>
         text: <input id='text' type='text' size='50'/>
     </div>
+    <div id='diagnostics'></div>
 	<script src="draftScript.js" async></script>
 </body>
 </html>

@@ -51,7 +51,10 @@ var textSize=5; // default text size
 var textStyle='fine'; // normal text
 var currentDialog=null;
 
+
 var drawNodes=true; // SWITCH FOR DIAGNOSTICS
+var reports=[];
+var timer=null;
 
 scr.w=screen.width;
 scr.h=screen.height;
@@ -115,6 +118,10 @@ id('goofy').addEventListener('change',function() {
         window.localStorage.setItem('hand','left');
     }
     setLayout();
+});
+id('helpButton').addEventListener('click',function() {
+    window.open('Draft.pdf');
+    cancel();
 });
 id('new').addEventListener('click',function() {
     alert('You may want to save your work before starting a new drawing');
@@ -433,6 +440,18 @@ id('combiButton').addEventListener('click',function() {
     id('tools').style.display='none';
     showDialog('combiDialog',true);
 });
+id('combiButton').addEventListener('pointerdown',function() {
+    timer=setTimeout(function() {
+        id('diagnostics').innerHTML='REPORTS<br>';
+        for(var i=0;i<reports.length;i++) id('diagnostics').innerHTML+=reports[i]+'<br>';
+        id('diagnostics').style.display='block';
+    },2000);
+});
+/* id('combiButton').addEventListener('pointerup',function() {
+    clearTimeout(timer);
+    id('tools').style.display='none';
+    showDialog('combiDialog',true);
+}); */
 id('combiList').addEventListener('change',function() {
     console.log('choose '+event.target.value);
     combiID=event.target.value;
@@ -441,6 +460,9 @@ id('combiList').addEventListener('change',function() {
     prompt('COMBI: tap to place');
     id('combiList').value=null; // clear selection for next time
     showDialog('combiDialog',false);
+});
+id('diagnostics').addEventListener('click',function() {
+   id('diagnostics').style.display='none'; 
 });
 // EDIT TOOLS
 id('addButton').addEventListener('click',function() { // add point after selected point in line/shape
@@ -1256,6 +1278,7 @@ id('confirmDouble').addEventListener('click',function() {
             var a0=null;
             var b=null;
             var b0=null;
+            x0=0;
             var angle=null;
             graph.points="";
             while(pt<=count) {
@@ -1294,8 +1317,9 @@ id('confirmDouble').addEventListener('click',function() {
                 console.log('CORNER at '+x+','+y);
                 var point=Math.round(x)+' '+Math.round(y)+' ';
                 if(pt>0) graph.points+=Math.round(x)+' '+Math.round(y)+' '; // append point or...
-                a0=a;
+                a0=a; // parameters for previous side
                 b0=b;
+                x0=x; // start of next side
                 pt++;
             }
             graph.spin=element.getAttribute('spin');
@@ -1822,6 +1846,7 @@ id('graphic').addEventListener('pointerdown',function() {
     scr.y=Math.round(event.clientY);
     x=x0=Math.round(scr.x*scaleF/zoom+dwg.x);
     y=y0=Math.round(scr.y*scaleF/zoom+dwg.y);
+    report('pointer down - screen: '+scr.x+','+scr.y+' drawing: '+x+','+y);
     var val=event.target.id;
     console.log('tap on '+val+' x,y:'+x+','+y+' x0,y0: '+x0+','+y0);
     if(val=='anchor')  { // move selected elements using anchor
@@ -3477,6 +3502,7 @@ function initialise() {
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
     console.log('viewbox: '+w+'x'+h);
+    report('viewbox: 'w+'x'+h);
     id('background').setAttribute('width',w);
     id('background').setAttribute('height',h);
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
@@ -3503,6 +3529,7 @@ function initialise() {
     id('countH').value=id('countV').value=1;
     // drawOrder();
     cancel(); // set select mode
+    report('screen size: '+scr.w+'x'+scr.h+' aspect: '+aspect+' drawing size: '+dwg.w+'x'+dwg.h+' scale: '+scale+' scaleF: '+scaleF);
 }
 function setLayout() {
     console.log('set layout to '+hand+' sizes width: '+id('sizes').clientWidth);
@@ -4542,6 +4569,10 @@ function makeElement(g) {
             break;
     }
     return el;
+}
+function report(text) {
+    if(reports.length>50) reports.shift();
+    reports.push(text);
 }
 // START-UP CODE
 var request=window.indexedDB.open("draftDB",dbVersion);
