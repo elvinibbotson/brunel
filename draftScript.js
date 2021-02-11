@@ -3502,7 +3502,7 @@ function initialise() {
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
     console.log('viewbox: '+w+'x'+h);
-    report('viewbox: 'w+'x'+h);
+    report('viewbox: '+w+'x'+h);
     id('background').setAttribute('width',w);
     id('background').setAttribute('height',h);
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
