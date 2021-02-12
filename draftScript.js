@@ -1,4 +1,4 @@
-// GLOBAL VARIABLES 
+// GLOBAL VARIABLES
 var dbVersion=3;
 var name=''; // drawing name
 var aspect=null;
@@ -24,7 +24,7 @@ var y0=0;
 var dx=0;
 var dy=0;
 var w=0;
-var h=0;
+var h=0; 
 var datum1={'x':0,'y':0,'n':0};
 var datum2={'x':0,'y':0,'n':0};
 var offset={'x':0,'y':0};
@@ -51,8 +51,6 @@ var textSize=5; // default text size
 var textStyle='fine'; // normal text
 var currentDialog=null;
 
-
-var drawNodes=true; // SWITCH FOR DIAGNOSTICS
 var reports=[];
 var timer=null;
 
@@ -309,7 +307,7 @@ id('zoomInButton').addEventListener('click',function() {
     // console.log('zoom in to '+zoom);
     w=Math.round(dwg.w*scale/zoom);
     h=Math.round(dwg.h*scale/zoom);
-    // console.log('new viewBox: '+dwg.x+','+dwg.y+' '+w+'x'+h);
+    // console.log('new viewBox: '+ +','+dwg.y+' '+w+'x'+h);
     id('svg').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+w+' '+h);
     id('ref').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+w+' '+h);
     snapD/=2; // avoid making snap too easy
@@ -442,8 +440,8 @@ id('combiButton').addEventListener('click',function() {
 });
 id('combiButton').addEventListener('pointerdown',function() {
     timer=setTimeout(function() {
-        id('diagnostics').innerHTML='REPORTS<br>';
-        for(var i=0;i<reports.length;i++) id('diagnostics').innerHTML+=reports[i]+'<br>';
+        id('reports').innerHTML='REPORTS<br>';
+        for(var i=0;i<reports.length;i++) id('reports').innerHTML+=reports[i]+'<br>';
         id('diagnostics').style.display='block';
     },2000);
 });
@@ -1278,7 +1276,6 @@ id('confirmDouble').addEventListener('click',function() {
             var a0=null;
             var b=null;
             var b0=null;
-            x0=0;
             var angle=null;
             graph.points="";
             while(pt<=count) {
@@ -1287,6 +1284,7 @@ id('confirmDouble').addEventListener('click',function() {
                 dx=points[(pt+1)%count].x-x;
                 dy=points[(pt+1)%count].y-y;
                 console.log('side '+pt+' origin: '+x+','+y);
+                a=0;
                 if(dx==0) { // vertical - slope is infinite
                     a=b=null;
                     if(dy<0) x+=val;
@@ -1312,6 +1310,7 @@ id('confirmDouble').addEventListener('click',function() {
                     x=(b-b0)/(a0-a);
                     y=a*x+b;
                 }
+                else if(a==0) y=b; // NEW
                 else if(a) y=a*x0+b; // resolve from second segment...
                 else y=a0*x+b0; // ...or first segment function
                 console.log('CORNER at '+x+','+y);
@@ -3059,7 +3058,7 @@ id('graphic').addEventListener('pointerup',function() {
                         // add node markers, boxes and handles to single selected item
                         id('handles').innerHTML=''; // clear any handles then add handles for selected element 
                         // first draw node markers
-                        if(drawNodes) for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
+                        if(id('nodeswitch').checked) for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
                             if(Math.floor(nodes[i].n/10)!=elID) continue;
                             var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"' stroke='blue' stroke-width='"+0.25*scale+"' fill='none'/>";
                             console.log('node at '+nodes[i].x+','+nodes[i].y);
@@ -3486,6 +3485,7 @@ function initialise() {
     snapD=2*scale;
     dwg.w=(aspect=='landscape')?297:210;
     dwg.h=(aspect=='landscape')?210:297;
+    if(((dwg.w/scaleF)>scr.w)||((dwg.h/scaleF)>scr.h)) scaleF*=2; // ensure drawing fits screen at zoom 1
     console.log()
     var gridSizes=id('gridSize').options;
     console.log('set '+gridSizes.length+' grid size options for scale '+scale);
@@ -3525,7 +3525,7 @@ function initialise() {
     // console.log('drawing scale size: '+w+'x'+h+'mm; scaleF: '+scaleF+'; snapD: '+snapD);
     setLayout();
     for(var i=0;i<10;i++) nodes.push({'x':0,'y':0,'n':i}); // 10 nodes for blueline
-    // for(var i=0;i<10;i++) console.log('node '+i+': '+nodes[i].n+' at '+nodes[i].x+','+nodes[i].y);
+    for(var i=0;i<10;i++) console.log('node '+i+': '+nodes[i].n+' at '+nodes[i].x+','+nodes[i].y);
     id('countH').value=id('countV').value=1;
     // drawOrder();
     cancel(); // set select mode
@@ -4578,7 +4578,7 @@ function report(text) {
 var request=window.indexedDB.open("draftDB",dbVersion);
 request.onsuccess=function(event) {
     db=event.target.result;
-    nodes=[];
+    // nodes=[];
     load();
 };
 request.onupgradeneeded=function(event) {

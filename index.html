@@ -131,10 +131,6 @@
     <div id='newDrawingDialog' class='dialog'>
         <p><button id='createNewDrawing'>NEW DRAWING</button></p>
         <p>size: A4 (<span id='aspect'></span>)</p>
-        <!--input type='radio' name='aspect' id='landscape' value='landscape' checked>
-        <label for='landscape'>landscape</label><br>
-        <input type='radio' name='aspect' id='portrait' value='portrait'>
-        <label for='portrait'>portrait</label-->
         <p>scale:
         <select id='scaleSelect'>
             <option value='1'>1:1</option>
@@ -145,15 +141,6 @@
             <option value='50'>1:50</option>
             <option value='100'>1:100</option>
         </select>
-        <!--p>units:</p>
-        <input type='radio' name='units' id='mm' value='mm' checked>
-        <label for='mm'>millimeters</label><br>
-        <input type='radio' name='units' id='inches' value='in'>
-        <label for='in'>inches</label-->
-        <!--p>
-            <button id='cancelNewDrawing' class='iconButton'></button>
-            <button id='createNewDrawing' class='iconButton'></button>
-        </p-->
     </div>
     <div id='loadDialog' class='dialog'>
         <p>LOAD</p>
@@ -196,44 +183,38 @@
         </select></p>
     </div>
     <div id='stylesDialog' class='dialog'>
-        <!--div id='lineStyle'-->
-            <p>line 
-            <select id='lineType'>
-                <option value='solid' selected>solid</option>
-                <option value='dashed'>dashed</option>
-                <option value='dotted'>dotted</option>
-            </select>
-            <select id='penSelect'>
-                <option value='0.25' selected>0.25mm</option>
-                <option value='0.5'>0.5mm</option>
-                <option value='1.0'>1.0mm</option>
-                <!--option value='1.4'>1.4mm</option-->
-                <option value='2.0'>2.0mm</option>
-            </select></p>
-            <p>text <select id='textSize'>
-                <option value=3.5>7pt</option>
-                <option value=5 selected>10pt</option>
-                <option value=7>14pt</option>
-                <option value=10>20pt</option>
-                <option value=14>28pt</option>
-                
-            </select>
-            <select id='textStyle'>
-                <option value='fine' selected>fine</option>
-                <option value='bold'>bold</option>
-                <option value='italic'>italic</option>
-            </select> <img id='lineShade'/></p>
-        <!--/div>
-        <div id='fillStyle'-->
-            <p>fill  
-            <img id='fillShade'/>
-            <select id='opacity'>
-                <option value=1 selected>100%</option>
-                <option value=0.5>50%</option>
-                <option value=0.25>25%</option>
-                <option value=0>none</option>
-            </select> opacity</p>
-        <!--/div-->
+        <p>line 
+        <select id='lineType'>
+            <option value='solid' selected>solid</option>
+            <option value='dashed'>dashed</option>
+            <option value='dotted'>dotted</option>
+        </select>
+        <select id='penSelect'>
+            <option value='0.25' selected>0.25mm</option>
+            <option value='0.5'>0.5mm</option>
+            <option value='1.0'>1.0mm</option>
+            <option value='2.0'>2.0mm</option>
+        </select></p>
+        <p>text <select id='textSize'>
+            <option value=3.5>7pt</option>
+            <option value=5 selected>10pt</option>
+            <option value=7>14pt</option>
+            <option value=10>20pt</option>
+            <option value=14>28pt</option>
+        </select>
+        <select id='textStyle'>
+            <option value='fine' selected>fine</option>
+            <option value='bold'>bold</option>
+            <option value='italic'>italic</option>
+        </select> <img id='lineShade'/></p>
+        <p>fill  
+        <img id='fillShade'/>
+        <select id='opacity'>
+            <option value=1 selected>100%</option>
+            <option value=0.5>50%</option>
+            <option value=0.25>25%</option>
+            <option value=0>none</option>
+        </select> opacity</p>
     </div>
     <div id='removeDialog' class='dialog'>
         <p><button id='confirmRemove'>REMOVE</button></p>
@@ -285,7 +266,6 @@
     <div id='shadeMenu'>
         <svg width='96' height='24'>
             <rect id='blueWhite' x='0' y='0' width='24' height='24' stroke='none' fill='whiter'/>
-            <!--line x1='0' y1='24' x2='24' y2='0' stroke='blue' fill='none'/-->
             <rect x='24' y='0' width='24' height='24' stroke='none' fill='silver'/>
             <rect x='48' y='0' width='24' height='24' stroke='none' fill='gray'/>
             <rect x='72' y='0' width='24' height='24' stroke='none' fill='black'/>
@@ -294,7 +274,10 @@
     <div id='textDialog' class='dialog'>
         text: <input id='text' type='text' size='50'/>
     </div>
-    <div id='diagnostics'></div>
+    <div id='diagnostics'>
+        <p><input type='checkbox' id='nodeswitch'>show nodes</p>
+        <div id='reports'></div>
+    </div>
 	<script src="draftScript.js" async></script>
 </body>
 </html>
