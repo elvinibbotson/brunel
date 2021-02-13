@@ -54,13 +54,16 @@ var currentDialog=null;
 var reports=[];
 var timer=null;
 
+class Point {
+    constructor(x,y) {
+        this.x=x;
+        this.y=y;
+    }
+}
+
 scr.w=screen.width;
 scr.h=screen.height;
 dwg.x=dwg.y=0;
-/*
-dwg.w=scr.w/scaleF;
-dwg.h=scr.h/scaleF;
-*/
 console.log("screen size "+scr.w+"x"+scr.h);
 name=window.localStorage.getItem('name');
 aspect=window.localStorage.getItem('aspect');
@@ -1188,84 +1191,106 @@ id('doubleButton').addEventListener('click',function() {
 });
 id('confirmDouble').addEventListener('click',function() {
     console.log('DOUBLE');
-    var val=parseInt(id('offset').value);
-    console.log('double offset: '+val+'mm');
+    var d=parseInt(id('offset').value);
+    console.log('double offset: '+d+'mm');
     showDialog('doubleDialog',false);
     var graph={}; // initiate new element
     graph.type=type(element);
     switch(graph.type) {
         case 'line':
             var points=element.points;
-            var count=points.length-1; // eg. line with 3 points has 2 segments
-            var pt=0; // point counter
-            var a=null; // for line function y=ax+b
-            var a0=null;
-            var b=null;
-            var b0=null;
-            var angle=null;
-            graph.points="";
-            while(pt<count) {
-                x=points[pt].x;
-                y=points[pt].y;
-                console.log('segment '+pt+' origin: '+x+','+y);
-                dx=points[pt+1].x-x;
-                dy=points[pt+1].y-y;
-                a=0;
-                if(dx==0) { // vertical - slope is infinite
-                    a=b=null;
-                    if(dy<0) x+=val;
-                    else x-=val;
-                    console.log('vertical - adjust x to '+x);
+            var count=points.length;
+            var pts=[count]; // points in new line
+            var i=0; // counter
+            for(i=0;i<count;i++) {
+                pts[i]=new Point();
+                console.log('pt '+i+': '+pts[i].x+','+pts[i].y); // JUST CHECKING
+            }
+            var p=new Point(); // current point
+            var p1=new Point(); // next point
+            var a=null; // slope of current and...
+            var a0=null; // ...previous segment
+            var b=null; // y-offset for current and...
+            var b0=null; // ...previous segment
+            var n=null; // normal to current line segment
+            i=0;
+            while(i<count-1) {
+                a=b=null;
+                p.x=points[i].x;
+                p.y=points[i].y;
+                p1.x=points[i+1].x;
+                p1.y=points[i+1].y;
+                console.log('segment '+i+' '+p.x+','+p.y+' to '+p1.x+','+p1.y);
+                if(p.x==p1.x) { // vertical
+                    a='v';
+                    if((p1.y-p.y)>0) pts[i].x=pts[i+1].x=p.x-d;
+                    else pts[i].x=pts[i+1].x=p.x+d;
+                    if(i<1) pts[0].y=p.y; // start point
                 }
-                else {
-                    a=dy/dx;
-                    angle=Math.atan(dx/dy); // orthogonal offset
-                    console.log('segment slope: '+a+' ie.'+angle+' radians');
-                    if(dy>=0) {
-                        x-=val*Math.cos(angle);
-                        y+=val*Math.sin(angle);
+                else if(p.y==p1.y) { // horizontal
+                    a='h';
+                    if((p1.x-p.x)>0) pts[i].y=pts[i+1].y=p.y+d;
+                    else pts[i].y=p[i+1].y=p.y-d;
+                    if(i<1) pts[0].x=p.x; // start point
+                }
+                else { // sloping
+                    a=((p1.y-p.y)/(p1.x-p.x)); // slope of line (dy/dx)
+                    n=Math.atan((p1.x-p.x)/(p1.y-p.y)); // angle of normal to line
+                    console.log('line slope: '+a+'; normal: '+(180*n/Math.PI));
+                    if(p1.y>=p.y) {
+                        p.x-=d*Math.cos(n);
+                        p.y+=d*Math.sin(n);
                     }
                     else {
-                        x+=val*Math.cos(angle);
-                        y-=val*Math.sin(angle);
+                        p.x+=d*Math.cos(n);
+                        p.y-=d*Math.sin(n);
                     }
-                    b=y-a*x;
+                    b=p.y-a*p.x;
                     console.log('new segment function: y='+a+'.x+'+b);
-                }
-                console.log('new segment origin: '+x+','+y);
-                if(pt<1) graph.points+=Math.round(x)+' '+Math.round(y)+' '; // start of new line
-                // if(count-pt<) graph.points+=Math.round(x+dx)+' '+Math.round(y+dy); // end of new line
-                else { // resolve corner of new line
-                    if(a && a0) { // neither segment is vertical
-                        x=(b-b0)/(a0-a);
-                        y=a*x+b;
+                    if(i<1) {
+                        pts[0].x=p.x;
+                        pts[0].y=p.y;
                     }
-                    else if(a) y=a*x0+b; // resolve from second segment...
-                    else y=a0*x+b0; // ...or first segment function
-                    console.log('CORNER at '+x+','+y);
-                    graph.points+=Math.round(x)+' '+Math.round(y)+' ';
+                    else { // fix previous point
+                        if(a0='v') pts[i].y=a*pts[i].x+b; // previous segment was vertical - x already set
+                        else if(a0=='h') pts[i].x=(pts[i].y-b)/a; // previous segment was horizontal - y set
+                        else { // previous segment was sloping
+                            pts[i].x=(b-b0)/(a0-a);
+                            pts[i].y=a*p.x+b;
+                        }
+                    }
                 }
-                a0=a; // parameters for previous line segment
+                a0=a; // remember function values for segment
                 b0=b;
-                x0=x; // start of next line sector
-                pt++;
+                i++;
             }
-            // LAST POINT NEEDS TO OFFSET AT 90 DEGREES
-            x=points[pt].x; // end point of original line
-            y=points[pt].y;
-            if(dx==0) {
-                if(dy<0) x+=val;
-                else x-=val;
+            // end point...
+            console.log('end point is point '+i+' '+p1.x+','+p1.y);
+            if(a0=='h') { // last segment horizontal
+                pts[i].x=p1.x;
+                pts[i].y=p1.y+d;  // OR - ?
             }
-            else if(dy>=0) { // offset orthogonally
-                x-=val*Math.cos(angle);
-                y+=val*Math.sin(angle);
+            else if(a0=='v') { // last segment vertical
+                pts[i].x=p1.x+d; // OR - ?
+                pts[i].y=p1.y;
             }
-            else {
-                x+=val*Math.cos(angle);
-                y-=val*Math.sin(angle);
+            else { // last segment sloping
+                if(p1.y>=p.y) {
+                    p1.x-=d*Math.cos(n);
+                    p1.y+=d*Math.sin(n);
+                }
+                else {
+                    p1.x+=d*Math.cos(n);
+                    p1.y-=d*Math.sin(n);
+                }
+                pts[i].x=p1.x;
+                pts[i].y=p1.y;
             }
-            graph.points+=Math.round(x)+' '+Math.round(y); // end of new line
+            graph.points='';
+            for(i=0;i<count;i++) {
+                console.log('point '+i+': '+pts[i].x+','+pts[i].y);
+                graph.points+=pts[i].x+','+pts[i].y+' ';
+            }
             graph.spin=element.getAttribute('spin');
             break;
         case 'shape':
@@ -1328,26 +1353,26 @@ id('confirmDouble').addEventListener('click',function() {
             y=parseInt(element.getAttribute('y'));
             w=parseInt(element.getAttribute('width'));
             h=parseInt(element.getAttribute('height'));
-            if((val<0)&&((w+2*val<1)||(h+2*val<1))) {
+            if((d<0)&&((w+2*d<1)||(h+2*d<1))) {
                 alert('cannot fit inside');
                 return;
             }
             graph.spin=element.getAttribute('spin'); // IF HAS SPIN NEED TO SPIN AROUND ORIGINAL BOX ORIGIN
             if(graph.spin!=0) { // spin around orignal box anchor
-                var r=Math.sqrt(2)*val;
+                var r=Math.sqrt(2)*d;
                 var s=(45-graph.spin)*Math.PI/180; // radians
                 graph.x=x-(r*Math.sin(s));
                 graph.y=y-(r*Math.cos(s));
             }
             else {
-                graph.x=x-val;
-                graph.y=y-val;
+                graph.x=x-d;
+                graph.y=y-d;
             }
-            graph.width=w+2*val;
-            graph.height=h+2*val;
+            graph.width=w+2*d;
+            graph.height=h+2*d;
             var n=parseInt(element.getAttribute('rx'));
             console.log('corner radius: '+n);
-            if(n!=0) n+=val;
+            if(n!=0) n+=d;
             if(n<0) n=0;
             graph.radius=n;
             console.log('double as '+n);
@@ -1358,20 +1383,20 @@ id('confirmDouble').addEventListener('click',function() {
             y=parseInt(element.getAttribute('cy'));
             var rx=parseInt(element.getAttribute('rx'));
             var ry=parseInt(element.getAttribute('ry'));
-            if((val<0)&&((rx+val)<1)||((ry+val)<1)) {
+            if((d<0)&&((rx+d)<1)||((ry+d)<1)) {
                 alert('cannot fit inside');
                 return;
             }
             graph.cx=x;
             graph.cy=y;
-            graph.rx=rx+val;
-            graph.ry=ry+val;
+            graph.rx=rx+d;
+            graph.ry=ry+d;
             graph.spin=element.getAttribute('spin');
             break;
         case 'arc':
             var d=element.getAttribute('d');
             getArc(d);
-            var r=arc.r+val; // new arc radius
+            var r=arc.r+d; // new arc radius
             if(r<0) {
                 alert('cannot fit inside');
                 return;
@@ -3486,7 +3511,6 @@ function initialise() {
     dwg.w=(aspect=='landscape')?297:210;
     dwg.h=(aspect=='landscape')?210:297;
     if(((dwg.w/scaleF)>scr.w)||((dwg.h/scaleF)>scr.h)) scaleF*=2; // ensure drawing fits screen at zoom 1
-    console.log()
     var gridSizes=id('gridSize').options;
     console.log('set '+gridSizes.length+' grid size options for scale '+scale);
     gridSizes[0].disabled=(scale>2);
@@ -3502,9 +3526,11 @@ function initialise() {
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
     console.log('viewbox: '+w+'x'+h);
-    report('viewbox: '+w+'x'+h);
+    report(' SVG viewbox: '+w+'x'+h+'; scaleF: '+scaleF);
     id('background').setAttribute('width',w);
     id('background').setAttribute('height',h);
+    id('svg').setAttribute('width',(w+'mm'));
+    id('svg').setAttribute('height',(h+'mm'));
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
     /* draw dashed drawing outline in 'ref' layer
