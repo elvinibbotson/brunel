@@ -1252,11 +1252,11 @@ id('confirmDouble').addEventListener('click',function() {
                         pts[0].y=p.y;
                     }
                     else { // fix previous point
-                        if(a0='v') pts[i].y=a*pts[i].x+b; // previous segment was vertical - x already set
+                        if(a0=='v') pts[i].y=a*pts[i].x+b; // previous segment was vertical - x already set
                         else if(a0=='h') pts[i].x=(pts[i].y-b)/a; // previous segment was horizontal - y set
                         else { // previous segment was sloping
                             pts[i].x=(b-b0)/(a0-a);
-                            pts[i].y=a*p.x+b;
+                            pts[i].y=a*pts[i].x+b;
                         }
                     }
                 }
@@ -1296,6 +1296,87 @@ id('confirmDouble').addEventListener('click',function() {
         case 'shape':
             var points=element.points;
             var count=points.length; // eg. 3-point shape (triangle) has 3 sides
+            var pts=[count]; // points in new line
+            var i=0; // counter
+            for(i=0;i<count;i++) {
+                pts[i]=new Point();
+                console.log('pt '+i+': '+pts[i].x+','+pts[i].y); // JUST CHECKING
+            }
+            var p=new Point(); // current point
+            var p1=new Point(); // next point
+            var a=null; // slope of current and...
+            var a0=null; // ...previous side
+            var b=null; // y-offset for current and...
+            var b0=null; // ...previous side
+            var n=null; // normal to current line side
+            i=0;
+            while(i<=count) {
+                a=b=null;
+                console.log(' point '+i+' ie: '+i%count);
+                p.x=points[i%count].x;
+                p.y=points[i%count].y;
+                p1.x=points[(i+1)%count].x;
+                p1.y=points[(i+1)%count].y;
+                console.log('side '+i+' '+p.x+','+p.y+' to '+p1.x+','+p1.y);
+                if(p.x==p1.x) { // vertical
+                    a='v';
+                    if(p1.y>p.y) pts[i%count].x=pts[(i+1)%count].x=p.x-d;
+                    else pts[i%count].x=pts[(i+1)%count].x=p.x+d;
+                    if(i>0) {
+                        if(a0=='v') pts[i%count].y=p.y; // continues previous segment
+                        else if(a0=='h') pts[i%count].y=pts[(i-1)%count].y; // previous side was horizontal
+                        else pts[i%count].y=a0*pts[i%count].x+b0; // previous side was sloping
+                    }
+                }
+                else if(p.y==p1.y) { // horizontal
+                    a='h';
+                    if(p1.x>p.x) pts[i%count].y=pts[(i+1)%count].y=p.y+d;
+                    else pts[i%count].y=pts[(i+1)%count].y=p.y-d;
+                    if(i>0) {
+                        if(a0=='h') pts[i%count].x=p.x; // continues previous segment
+                        else if(a0=='v') pts[i%count].x=pts[(i-1)%count].x; // previous segment was vertical
+                        else pts[i%count].x=(pts[i%count].y-b0)/a0; // previous side was sloping
+                    }
+                }
+                else { // sloping
+                    a=((p1.y-p.y)/(p1.x-p.x)); // slope of line (dy/dx)
+                    n=Math.atan((p1.x-p.x)/(p1.y-p.y)); // angle of normal to line
+                    console.log('line slope: '+a+'; normal: '+(180*n/Math.PI));
+                    if(p1.y>=p.y) {
+                        p.x-=d*Math.cos(n);
+                        p.y+=d*Math.sin(n);
+                    }
+                    else {
+                        p.x+=d*Math.cos(n);
+                        p.y-=d*Math.sin(n);
+                    }
+                    b=p.y-a*p.x;
+                    console.log('new segment function: y='+a+'.x+'+b);
+                    if(i>0) { // fix previous point
+                        console.log('fix previous point - a0 is '+a0);
+                        if(a0=='v') pts[i%count].y=a*pts[i%count].x+b; // previous side was vertical - x already set
+                        else if(a0=='h') pts[i%count].x=(pts[i%count].y-b)/a; // previous side was horizontal - y set
+                        else if(a0==a) { // continues slope of previous segment
+                            pts[i%count].x=p.x;
+                            pts[i%count].y=p.y;
+                        }
+                        else { // previous side was sloping
+                            console.log('fix point '+i+' a:'+a+' a0:'+a0+' b:'+b+' b0:'+b0);
+                            pts[i%count].x=(b-b0)/(a0-a);
+                            pts[i%count].y=a*pts[i%count].x+b;
+                        }
+                    }
+                }
+                a0=a; // remember function values for segment
+                b0=b;
+                i++;
+            }
+            graph.points='';
+            for(i=0;i<count;i++) {
+                console.log('point '+i+': '+pts[i].x+','+pts[i].y);
+                graph.points+=pts[i].x+','+pts[i].y+' ';
+            }
+            /* OLD CODE
             var pt=0; // point counter
             var a=null; // for line function y=ax+b
             var a0=null;
@@ -1346,6 +1427,7 @@ id('confirmDouble').addEventListener('click',function() {
                 x0=x; // start of next side
                 pt++;
             }
+            */
             graph.spin=element.getAttribute('spin');
             break;
         case 'box':
@@ -1944,7 +2026,7 @@ id('graphic').addEventListener('pointerdown',function() {
             id('guides').style.display='block';
         }
         else if(handle instanceof SVGRectElement) {
-            val=val.substr(6);
+            val=Number(val.substr(6));
             if(mode=='addPoint') {
                 console.log('add point after point '+val);
                 var points=element.points;
@@ -1962,11 +2044,11 @@ id('graphic').addEventListener('pointerdown',function() {
                     pts+=x+','+y;
                 }
                 else { // insert point midway between selected point and next point
-                    x=Math.round((Number(points[val].x)+Number(points[val+1].x))/2);
-                    y=Math.round((Number(points[val].y)+Number(points[val+1].y))/2);
+                    console.log('add between points '+val+'('+points[val].x+','+points[val].y+') and '+(val+1));
+                    x=Math.round((points[val].x+points[val+1].x)/2);
+                    y=Math.round((points[val].y+points[val+1].y)/2);
                     var i=0;
                     while(i<points.length) {
-                        // if(i<val) pts+=points[i].x+','+points[i].y+' ';
                         if(i==val) pts+=points[i].x+','+points[i].y+' '+x+','+y+' ';
                         else pts+=points[i].x+','+points[i].y+' ';
                         console.log('i: '+i+' pts: '+pts);
