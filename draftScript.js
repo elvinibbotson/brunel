@@ -3592,7 +3592,11 @@ function initialise() {
     snapD=2*scale;
     dwg.w=(aspect=='landscape')?297:210;
     dwg.h=(aspect=='landscape')?210:297;
-    if(((dwg.w/scaleF)>scr.w)||((dwg.h/scaleF)>scr.h)) scaleF*=2; // ensure drawing fits screen at zoom 1
+    if(((dwg.w/scaleF)>scr.w)||((dwg.h/scaleF)>scr.h)) {
+        w*=2;
+        h*=2;
+        scaleF*=2; // ensure drawing fits screen at zoom 1
+    }
     var gridSizes=id('gridSize').options;
     console.log('set '+gridSizes.length+' grid size options for scale '+scale);
     gridSizes[0].disabled=(scale>2);
