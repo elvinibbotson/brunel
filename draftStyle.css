@@ -164,6 +164,9 @@ button {
 #helpButton {
     background: url(svg/help.svg) center center no-repeat;
 }
+#spin {
+    width: 2em;
+}
 #prompt {
     position: fixed;
     left: 48px;

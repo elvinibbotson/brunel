@@ -50,7 +50,7 @@ var opacity='1';
 var textSize=5; // default text size
 var textStyle='fine'; // normal text
 var currentDialog=null;
-
+var zoomLimit=2; // controls minimum zoom - setting of 2 for minimum zoom of 1
 var reports=[];
 var timer=null;
 
@@ -126,7 +126,7 @@ id('helpButton').addEventListener('click',function() {
 });
 id('new').addEventListener('click',function() {
     alert('You may want to save your work before starting a new drawing');
-    console.log("show newDrawingDialog");
+    console.log("show newDrawingDialog - screen size: "+scr.w+'x'+scr.h);
     // showDialog('fileMenu',false);
     aspect=(scr.w>scr.h)?'landscape':'portrait';
     id('aspect').innerHTML=aspect;
@@ -143,7 +143,7 @@ id('createNewDrawing').addEventListener('click',function() {
     elID=0;
     // CLEAR DRAWING IN HTML & DATABASE
     id('dwg').innerHTML=''; // clear drawing
-    id('ref').innerHTML="<rect id='background' x='0' y='0' width='297' height='210' stroke='none' fill='white'/>"; // clear reference layer
+    id('ref').innerHTML="<rect id='background' x='0' y='0' width='"+dwg.w+"' height='"+dwg.h+"' stroke='none' fill='white'/>"; // clear reference layer
     id('handles').innerHTML=''; // clear any edit handles
     drawOrder();
     var request=db.transaction('graphs','readwrite').objectStore('graphs').clear(); // clear graphs database
@@ -185,7 +185,7 @@ id('fileChooser').addEventListener('change',function() {
 		    name=name.substr(0,n);
 		    window.localStorage.setItem('name',name);
 		    id('dwg').innerHTML=''; // clear drawing
-            id('ref').innerHTML="<rect id='background' x='0' y='0' width='297' height='210' stroke='none' fill='white'/>"; // clear reference layer
+            id('ref').innerHTML="<rect id='background' x='0' y='0' width='"+dwg.w+"' height='"+dwg.h+"' stroke='none' fill='white'/>"; // clear reference layer
             id('handles').innerHTML=''; // clear any edit handles
 		    graphStore.clear();
 		    combiStore.clear();
@@ -319,7 +319,7 @@ id('zoomInButton').addEventListener('click',function() {
 });
 id('zoomOutButton').addEventListener('click',function() {
     // prompt('ZOOM OUT');
-    if(zoom<2) return;
+    if(zoom<zoomLimit) return;
     zoom/=2;
     // console.log('zoom out to '+zoom);
     w=Math.round(dwg.w*scale/zoom);
@@ -2026,8 +2026,9 @@ id('graphic').addEventListener('pointerdown',function() {
             id('guides').style.display='block';
         }
         else if(handle instanceof SVGRectElement) {
-            val=Number(val.substr(6));
+            val=val.substr(6);
             if(mode=='addPoint') {
+                val=Number(val);
                 console.log('add point after point '+val);
                 var points=element.points;
                 console.log('point '+val+': '+points[val].x+','+points[val].y);
@@ -2059,15 +2060,10 @@ id('graphic').addEventListener('pointerdown',function() {
                 updateGraph(elID,['points',pts]);
                 refreshNodes(element);
                 cancel();
-                /*
-                element=elID=null;
-                id('handles').innerHTML='';
-                selection=[];
-                mode='select';
-                */
                 return;
             }
             else if(mode=='removePoint') {
+                val=Number(val);
                 console.log('remove point '+val);
                 var points=element.points;
                 console.log('point '+val+': '+points[val].x+','+points[val].y);
@@ -2181,11 +2177,13 @@ id('graphic').addEventListener('pointerdown',function() {
     }
     console.log('mode: '+mode);
     switch(mode) {
+        /*
         case 'pan':
             // console.log('start pan at '+x0+','+y0);
             var view=id('svg').getAttribute('viewBox');
             // console.log('view: '+view+' - dwg.x,y: '+dwg.x+','+dwg.y);
             break;
+        */
         case 'line':
             blueline=id('bluePolyline');
             var point=id('svg').createSVGPoint();
@@ -3592,11 +3590,6 @@ function initialise() {
     snapD=2*scale;
     dwg.w=(aspect=='landscape')?297:210;
     dwg.h=(aspect=='landscape')?210:297;
-    if(((dwg.w/scaleF)>scr.w)||((dwg.h/scaleF)>scr.h)) {
-        w*=2;
-        h*=2;
-        scaleF*=2; // ensure drawing fits screen at zoom 1
-    }
     var gridSizes=id('gridSize').options;
     console.log('set '+gridSizes.length+' grid size options for scale '+scale);
     gridSizes[0].disabled=(scale>2);
@@ -3611,6 +3604,12 @@ function initialise() {
     id('selectionBox').setAttribute('stroke-dasharray',(scale+' '+scale+' '));
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
+    if(((dwg.w/scaleF)>scr.w)||((dwg.h/scaleF)>scr.h)) {
+        console.log('ALLOW SMALLER ZOOM');
+        zoomLimit/=2;
+        // w/=2;
+        // h/=2;
+    }
     console.log('viewbox: '+w+'x'+h);
     report(' SVG viewbox: '+w+'x'+h+'; scaleF: '+scaleF);
     id('background').setAttribute('width',w);
@@ -3618,28 +3617,17 @@ function initialise() {
     id('svg').setAttribute('width',(w+'mm'));
     id('svg').setAttribute('height',(h+'mm'));
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
+    id('ref').setAttribute('width',(w+'mm'));
+    id('ref').setAttribute('height',(h+'mm'));
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
-    /* draw dashed drawing outline in 'ref' layer
-    var html="<rect x='0' y='0' width='"+w+"' height='"+h+"' stroke='gray' stroke-width='"+(2*scale)+"' stroke-opacity='0.25' fill='none'/>";
-    id('ref').innerHTML+=html;
-    */
     id('datum').setAttribute('transform','scale('+scale+')');
-    /* 
-    datum.x1=datum.x2=datum.y1=datum.y2=0;
-    id('datum1').setAttribute('x',datum.x1);
-    id('datum1').setAttribute('y',datum.y1);
-    id('datum2').setAttribute('x',datum.x2);
-    id('datum2').setAttribute('y',datum.y2);
-    */
     html="<rect x='0' y='0' width='"+w+"' height='"+h+"'/>"; // clip to drawing edges
-    // console.log('clipPath: '+html);
     id('clipper').innerHTML=html;
     // console.log('drawing scale size: '+w+'x'+h+'mm; scaleF: '+scaleF+'; snapD: '+snapD);
     setLayout();
     for(var i=0;i<10;i++) nodes.push({'x':0,'y':0,'n':i}); // 10 nodes for blueline
     for(var i=0;i<10;i++) console.log('node '+i+': '+nodes[i].n+' at '+nodes[i].x+','+nodes[i].y);
     id('countH').value=id('countV').value=1;
-    // drawOrder();
     cancel(); // set select mode
     report('screen size: '+scr.w+'x'+scr.h+' aspect: '+aspect+' drawing size: '+dwg.w+'x'+dwg.h+' scale: '+scale+' scaleF: '+scaleF);
 }
@@ -3932,16 +3920,19 @@ function setSizes(mode,spin,p1,p2,p3,p4) {
         id('second').value=Math.round(p2); // angle of arc
         id('after').innerHTML='&deg;';
     }
+    id('spin').value=spin;
+    /*
     if((!spin)||(spin==0)) {
-        id('sizes').style.height='32px';
+        // id('sizes').style.height='32px';
         id('spinPanel').style.display='none';
     }
     else { // spin
         id('spin').value=spin;
-        id('sizes').style.height='72px';
+        // id('sizes').style.height='72px';
         id('spinPanel').style.display='block';
         console.log('show spin');
     }
+    */
 }
 function getAngle(x0,y0,x1,y1) {
     var dx=x1-x0;
