@@ -153,6 +153,7 @@ id('createNewDrawing').addEventListener('click',function() {
 	request.onerror=function(event) {
 		console.log("error clearing database");
 	};
+	window.localStorage.setItem('order','');
     showDialog('newDrawingDialog',false);
     window.localStorage.setItem('name',name);
     initialise();
@@ -191,6 +192,7 @@ id('fileChooser').addEventListener('change',function() {
 		    combiStore.clear();
 		    nodes=[];
 		    dims=[];
+		    window.localStorage.setItem('order','');
 		    aspect=json.aspect;
 		    window.localStorage.setItem('aspect',aspect);
 		    scale=json.scale;
@@ -219,6 +221,7 @@ id('fileChooser').addEventListener('change',function() {
 		            if(json.graphs[i].type=='dim') continue; // skip dimensions
 		            json.graphs[i].stroke='blue'; // reference layer in blue...
 		            json.graphs[i].fill='none'; // ...with no fill
+		            console.log('graph '+i+' set as blue outline'); 
 		        }
 		        var request=graphStore.add(json.graphs[i]);
 		    }
@@ -229,7 +232,6 @@ id('fileChooser').addEventListener('change',function() {
 		}
 		transaction.oncomplete=function() {
 		    console.log('drawing imported - load & draw');
-		    // initialise();
             if(method!='combi') load();
 		}
     });
@@ -652,58 +654,31 @@ id('confirmSpin').addEventListener('click',function() {
         console.log('change spin from '+netSpin);
         netSpin+=spin;
         console.log('to '+netSpin);
-        /* USE setTransform()
-        var t='rotate('+netSpin+','+ox+','+oy+')';
-        console.log('transform is: '+t);
-        // NEW - SPIN ELEMENT BEFORE MOVING?
-        element.setAttribute('transform',t);
-        element.setAttribute('spin',netSpin);
-        */
         element.setAttribute('spin',netSpin);
         updateGraph(elID,['spin',netSpin]);
         setTransform(element);
         //
         if(axis) { // reposition elements, spinning around axis
+            console.log('spin element '+elID+' around anchor at '+axis.x+','+axis.y);
+            dx=axis.x-ox;
+            dy=axis.y-oy;
+            var d=Math.sqrt(dx*dx+dy*dy);
+            var a=Math.atan(dy/dx);
+            a+=(spin*Math.PI/180);
+            dx+=(d*Math.cos(a));
+            dy+=(d*Math.sin(a));
+            /* DIDN'T WORK
             dx=ox-axis.x;
             dy=oy-axis.y;
             var d=Math.sqrt(dx*dx+dy*dy);
             var a=Math.atan(dy/dx);
             a+=(spin*Math.PI/180);
+            console.log('distance: '+d+' spin by '+a+' degrees');
             dx=Math.round(d*Math.sin(a));
             dy=Math.round(d*Math.cos(a));
-            // NEW - USE move() TO MOVE SPIN ELEMENTS AROUND AXIS
-            move(element,dx,dy);
-            /*
-            ox=axis.x+dx;
-            oy=axis.y+dy;
-            switch(type(element)) {
-                case 'line':
-                case 'shape':
-                    console.log('move all points by '+dx+','+dy);
-                    for(var i=0;i<element.points.length;i++) {
-                        element.points[i].x+=dx;
-                        element.points[i].y+=dy;
-                    }
-                    console.log(element.points.length+' points adjusted');
-                    element.setAttribute('transform',t);
-                    updateGraph(el.id,['points',element.getAttribute('points'),'spin',spin]);
-                    break;
-                case 'box':
-                case 'text':
-                case 'combi':
-                    element.setAttribute('x',ox);
-                    element.setAttribute('y',oy);
-                    element.setAttribute('transform',t);
-                    updateGraph(elID,['x',ox,'y',oy,'spin',spin]);
-                    break;
-                case 'oval':
-                case 'arc':
-                    element.setAttribute('cx',ox);
-                    element.setAttribute('cy',oy);
-                    element.setAttribute('transform',t);
-                    updateGraph(elID,['cx',ox,'cy',oy,'spin',spin]);
-            }
             */
+            console.log('shift '+dx+','+dy);
+            move(element,dx,dy);
         }
         else refreshNodes(element); // if not already done after move() or setTransform()
     }
@@ -3588,6 +3563,7 @@ function initialise() {
     scaleF=25.4*scale/96; // 96px/inch
     handleR=2*scale;
     snapD=2*scale;
+    console.log('scaleF: '+scaleF+' handleR=snapD='+snapD);
     dwg.w=(aspect=='landscape')?297:210;
     dwg.h=(aspect=='landscape')?210:297;
     var gridSizes=id('gridSize').options;
@@ -3614,11 +3590,11 @@ function initialise() {
     report(' SVG viewbox: '+w+'x'+h+'; scaleF: '+scaleF);
     id('background').setAttribute('width',w);
     id('background').setAttribute('height',h);
-    id('svg').setAttribute('width',(w+'mm'));
-    id('svg').setAttribute('height',(h+'mm'));
+    // id('svg').setAttribute('width',(w+'mm'));
+    // id('svg').setAttribute('height',(h+'mm'));
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
-    id('ref').setAttribute('width',(w+'mm'));
-    id('ref').setAttribute('height',(h+'mm'));
+    // id('ref').setAttribute('width',(w+'mm'));
+    // id('ref').setAttribute('height',(h+'mm'));
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
     id('datum').setAttribute('transform','scale('+scale+')');
     html="<rect x='0' y='0' width='"+w+"' height='"+h+"'/>"; // clip to drawing edges
@@ -3764,28 +3740,17 @@ function setStyle(el) {
         id('opacity').value=opacity;
     }
     else { // show styles for element el
-        /*
-        var val=el.getAttribute('stroke-dasharray');
-        if(!val) {
-            id('lineType').value='solid';
-            id('line').style.borderStyle='solid';
-        }
-        else {
-            if(parseInt(val)==scaleF) {
-                id('lineType').value='dotted';
-                id('line').style.borderStyle='dotted';
-            }
-            else {
-                id('lineType').value='dashed';
-                id('line').style.borderStyle='dashed';
-            }
-        }
-        */
         val=getLineStyle(el);
         id('lineType').value=val;
         id('line').style.borderStyle=val;
         val=el.getAttribute('stroke-width');
-        if(val) id('line').style.borderWidth=(val/scaleF)+'px';
+        if(val) {
+            id('line').style.borderWidth=(val/scaleF)+'px';
+            val=Math.floor(val/4);
+            if(val>3) val=3;
+            console.log('select option '+val);
+            id('penSelect').options[val].selected=true;;
+        }
         val=el.getAttribute('stroke');
         if(val) {
             id('lineShade').style.backgroundColor=val;
@@ -3921,18 +3886,6 @@ function setSizes(mode,spin,p1,p2,p3,p4) {
         id('after').innerHTML='&deg;';
     }
     id('spin').value=spin;
-    /*
-    if((!spin)||(spin==0)) {
-        // id('sizes').style.height='32px';
-        id('spinPanel').style.display='none';
-    }
-    else { // spin
-        id('spin').value=spin;
-        // id('sizes').style.height='72px';
-        id('spinPanel').style.display='block';
-        console.log('show spin');
-    }
-    */
 }
 function getAngle(x0,y0,x1,y1) {
     var dx=x1-x0;
@@ -4419,9 +4372,11 @@ function download(content,fileName,contentType) {
 	alert('file '+fileName+" saved to downloads folder");
 }
 function load() {
-    var order=window.localStorage.getItem('order').split(',');
+    var order=window.localStorage.getItem('order');
+    if(order) order=order.split(',');
+    else order=[];
     console.log('order has '+order.length+' items');
-    var elements=[];
+    var elements=[order.length];
     var request=db.transaction('graphs').objectStore('graphs').openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
@@ -4431,14 +4386,14 @@ function load() {
             var index=order.indexOf(String(graph.id));
             console.log('order index: '+index);
             var el=makeElement(graph);
-            if(index<0) id('dwg').appendChild(el);
-            else if(index>=0) elements[index]=el;
-            else id('ref').appendChild(el);
+            if(index>=0) elements[index]=el; // elements added in draw order
+            else if(graph.stroke=='blue') id('ref').appendChild(el); // blue items go into <ref>
+            else elements.push(el); // new elements appended
 	    	cursor.continue();  
         }
 	    else {
 		    console.log("No more entries - "+elements.length+' nodes still to be drawn');
-		    if(elements.length>0) for(var i=0;i<elements.length;i++) {
+		    if(elements.length>0) for(var i=1;i<elements.length;i++) { // no elements[0]
 		        console.log('add element '+i+' - id: '+elements[i].id);
 		        id('dwg').appendChild(elements[i]);
 		    }
