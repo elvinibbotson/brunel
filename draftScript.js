@@ -145,7 +145,7 @@ id('createNewDrawing').addEventListener('click',function() {
     id('dwg').innerHTML=''; // clear drawing
     id('ref').innerHTML="<rect id='background' x='0' y='0' width='"+dwg.w+"' height='"+dwg.h+"' stroke='none' fill='white'/>"; // clear reference layer
     id('handles').innerHTML=''; // clear any edit handles
-    drawOrder();
+    // drawOrder();
     var request=db.transaction('graphs','readwrite').objectStore('graphs').clear(); // clear graphs database
 	request.onsuccess=function(event) {
 		console.log("database cleared");
@@ -153,7 +153,7 @@ id('createNewDrawing').addEventListener('click',function() {
 	request.onerror=function(event) {
 		console.log("error clearing database");
 	};
-	window.localStorage.setItem('order','');
+	// window.localStorage.setItem('order','');
     showDialog('newDrawingDialog',false);
     window.localStorage.setItem('name',name);
     initialise();
@@ -192,7 +192,7 @@ id('fileChooser').addEventListener('change',function() {
 		    combiStore.clear();
 		    nodes=[];
 		    dims=[];
-		    window.localStorage.setItem('order','');
+		    // window.localStorage.setItem('order','');
 		    aspect=json.aspect;
 		    window.localStorage.setItem('aspect',aspect);
 		    scale=json.scale;
@@ -257,17 +257,18 @@ id('confirmSave').addEventListener('click',function() {
     data.scale=scale;
     data.graphs=[];
     data.combis=[];
-    var order=drawOrder();
+    // var order=drawOrder();
     var transaction=db.transaction(['graphs','combis']);
     var request=transaction.objectStore('graphs').openCursor();
     request.onsuccess=function(event) {
         var cursor=event.target.result;
         if(cursor) {
             // console.log('graph: '+cursor.value.id);
-            var index=order.indexOf(Number(cursor.value.id)); // save graphs in drawing order
+            // var index=order.indexOf(Number(cursor.value.id)); // save graphs in drawing order
             // console.log('index: '+index);
-            delete cursor.value.id; 
-            data.graphs[index]=cursor.value;
+            delete cursor.value.id;
+            data.graphs.push(cursor.value);
+            // data.graphs[index]=cursor.value;
             cursor.continue();
         }
         else {
@@ -528,30 +529,28 @@ id('confirmRemove').addEventListener('click',function() { // complete deletion
 	*/
 });
 id('backButton').addEventListener('click',function() {
-    /* SHOULDN'T HAPPEN
-    if(selection.length>1) {
-        prompt('OOPS');
+    var previousElement=element.previousSibling;
+    if(previousElement===null) {
+        prompt('already at back');
         return;
     }
-    */
-    // prompt('PUSH BACK');
-    var previousElement=element.previousSibling;
-    if(previousElement===null) alert('already at back');
-    else id('dwg').insertBefore(element,previousElement);
-    drawOrder(); // update drawing order
+    else prompt('PUSH BACK');
+    var previousID=previousElement.getAttribute('id');
+    id('dwg').insertBefore(element,previousElement); // move back in drawing...
+    swopGraphs(previousID,elID); // ...and in database
+    // drawOrder(); // update drawing order
 });
 id('forwardButton').addEventListener('click',function() {
-    /* SHOULDN'T HAPPEN
-    if(selection.length>1) {
-        prompt('OOPS');
+    var nextElement=element.nextSibling;
+    if(nextElement===null) {
+        prompt('already at front');
         return;
     }
-    */
-    // prompt('PULL FORWARD');
-    var nextElement=element.nextSibling;
-    if(nextElement===null) alert('already at front');
-    else id('dwg').insertBefore(nextElement,element);
-    drawOrder(); // update drawing order
+    else prompt('PULL FORWARD');
+    var nextID=nextElement.getAttribut('id');
+    id('dwg').insertBefore(nextElement,element); // bring forward in drawing.
+    swopGraphs(elID,previousID); // ...and in database
+    // drawOrder(); // update drawing order
 });
 id('moveButton').addEventListener('click',function() {
     console.log('move '+type(element));
@@ -1876,7 +1875,7 @@ id('shadeMenu').addEventListener('click',function() {
                     element.setAttribute('fill','none'); // ...and no fill
                     id('ref').appendChild(element); // move to <ref> layer
                     remove(elID,true); // remove from database keeping nodes for snap
-                    drawOrder(); // remove element from drawing order...
+                    // drawOrder(); // remove element from drawing order...
                     for(var i=0;i<dims.length;i++) { // ...and remove any linked dimensions
                         if((Math.floor(dims[i].n1/10)==Number(el.id))||(Math.floor(dims[i].n2/10)==Number(el.id))) {
                             remove(dims[i].dim);
@@ -1941,7 +1940,8 @@ id('graphic').addEventListener('pointerdown',function() {
         mode='move';
         prompt('drag to MOVE selection');
     }
-    else if(val.startsWith('handle')) { // edit using handle
+    else if(holder=='handles') { // handle
+    // else if(val.startsWith('handle')) { // edit using handle
         console.log('HANDLE '+val);
         var handle=id(val);
         var bounds=getBounds(element);
@@ -2059,7 +2059,7 @@ id('graphic').addEventListener('pointerdown',function() {
                 */
                 return;
             }
-            // else prompt('drag to SIZE');
+            else prompt('drag to SIZE');
             console.log('size handle '+val);
             switch(val) {
                 /*
@@ -2072,6 +2072,7 @@ id('graphic').addEventListener('pointerdown',function() {
                     y0=parseInt(element.getAttribute('y'));
                     break;
                 */
+                // ADD NW, NE & SW HANDLES FOR BOX AND N,E,S,W FOR OVAL
                 case 'SE':
                     mode='boxSize';
                     x0=parseInt(element.getAttribute('x'));
@@ -2609,11 +2610,19 @@ id('graphic').addEventListener('pointerup',function() {
             break;
         case 'boxSize':
             console.log('pointer up - box size: '+dx+'x'+dy);
+            // NEW
+            if((Math.abs(dx)<snapD)&&(Math.abs(dy)<snapD)) { // node tapped - add mover
+                console.log('TAP - add mover');
+                var html="<circle id='mover' cx='"+x+"' cy='"+y+"' r='"+handleR+"' stroke='blue' stroke-width='"+scale+"' fill='#FFFFFF80'/>";
+                id('handles').innerHTML=html;
+                mode='edit';
+                return;
+            }
+            //
             id('handles').innerHTML='';
             element.setAttribute('width',dx);
             updateGraph(elID,['width',dx,'height',dy]);
             element.setAttribute('height',dy);
-            // updateGraph(elID,'height',dy);
             id('blueBox').setAttribute('width',0);
             id('blueBox').setAttribute('height',0);
             refreshNodes(element);
@@ -3925,6 +3934,7 @@ function getArc(d) {
     arc.y2=parseInt(d.substr(from));
     console.log('arc centre: '+arc.cx+','+arc.cy+' start: '+arc.x1+','+arc.y1+'; radius: '+arc.r+'; major: '+arc.major+'; sweep: '+arc.sweep+'; end: '+arc.x2+','+arc.y2);
 } 
+/* NO LONGER NEEDED
 function drawOrder() { // saves drawing order
     var items=id('dwg').childNodes;
     // console.log('order '+items.length+' elements');
@@ -3939,6 +3949,7 @@ function drawOrder() { // saves drawing order
     window.localStorage.setItem('order',order);
     return order;
 }
+*/
 function remove(elID,keepNodes) {
     console.log('remove element '+elID);
     var linkedDims=[]; // first check for any linked dimensions
@@ -3959,7 +3970,7 @@ function remove(elID,keepNodes) {
         }
         console.log((n-nodes.length)+' nodes deleted');
 	    id('dwg').removeChild(el); // remove element from SVG...
-	    drawOrder(); // ...and from drawing order
+	    // drawOrder(); // ...and from drawing order
 	}
 	request.onerror=function(event) {
 	    console.log("error deleting element "+el.id);
@@ -4326,6 +4337,46 @@ function updateGraph(id,parameters) {
 	}
 	request.onerror=function(event) {console.log('error updating '+id);};
 }
+function swopGraphs(g1,g2) {
+    console.log('swop graphs '+g1+' and '+g2);
+    g1=Number(g1);
+    g2=Number(g2);
+    var graph1={};
+    var graph2={};
+    var transaction=db.transaction('graphs','readwrite');
+    var graphs=transaction.objectStore('graphs');
+    var request=graphs.get(g1);
+    request.onsuccess=function(event) {
+        graph1=request.result;
+        console.log('got graph: '+graph1.id);
+        request=graphs.get(g2);
+        request.onsuccess=function(event) {
+            graph2=request.result;
+            console.log('got graph: '+graph2.id);
+            var tempID=graph1.id;
+            graph1.id=graph2.id;
+            graph2.id=tempID;
+            console.log('IDs swopped');
+            request=graphs.put(graph1);
+            request.onsuccess=function(event) {
+                console.log('g1 saved');
+                request=graphs.put(graph2);
+                request.onsuccess=function(event) {
+                    console.log('g2 saved');
+                }
+            }
+        }
+        request.onerror=function(event) {
+            console.log('error getting graph2 to swop');
+        }
+    }
+    request.onerror=function(event) {
+        console.log('error getting graph1 to swop');
+    }
+    transaction.oncomplete=function(event) {
+        console.log('swop complete');
+    }
+}
 function addGraph(el) {
     console.log('add '+el.type+' element - spin: '+el.spin);
     var request=db.transaction('graphs','readwrite').objectStore('graphs').add(el);
@@ -4335,7 +4386,7 @@ function addGraph(el) {
         console.log('graph added - id: '+el.id+' - draw');
         // drawElement(el);
         id('dwg').appendChild(makeElement(el));
-        drawOrder();
+        // drawOrder();
     }
     request.onerror=function(event) {
         console.log('add copy failed');
@@ -4372,32 +4423,36 @@ function download(content,fileName,contentType) {
 	alert('file '+fileName+" saved to downloads folder");
 }
 function load() {
-    var order=window.localStorage.getItem('order');
-    if(order) order=order.split(',');
-    else order=[];
-    console.log('order has '+order.length+' items');
-    var elements=[order.length];
+    // var order=window.localStorage.getItem('order');
+    // if(order) order=order.split(',');
+    // else order=[];
+    // console.log('order has '+order.length+' items');
+    // var elements=[order.length];
     var request=db.transaction('graphs').objectStore('graphs').openCursor();
     request.onsuccess = function(event) {  
 	    var cursor=event.target.result;  
         if(cursor) {
             var graph=cursor.value;
             console.log('load '+graph.type+' id: '+graph.id);
-            var index=order.indexOf(String(graph.id));
-            console.log('order index: '+index);
+            // var index=order.indexOf(String(graph.id));
+            // console.log('order index: '+index);
             var el=makeElement(graph);
-            if(index>=0) elements[index]=el; // elements added in draw order
-            else if(graph.stroke=='blue') id('ref').appendChild(el); // blue items go into <ref>
-            else elements.push(el); // new elements appended
+            // if(index>=0) elements[index]=el; // elements added in draw order
+            if(graph.stroke=='blue') id('ref').appendChild(el); // blue items go into <ref>
+            // else elements.push(el); // new elements appended
+            else id('dwg').appendChild(el);
 	    	cursor.continue();  
         }
 	    else {
+	        console.log('all graphs added');
+	        /*
 		    console.log("No more entries - "+elements.length+' nodes still to be drawn');
 		    if(elements.length>0) for(var i=1;i<elements.length;i++) { // no elements[0]
 		        console.log('add element '+i+' - id: '+elements[i].id);
 		        id('dwg').appendChild(elements[i]);
 		    }
 		    drawOrder(); // initialise drawing order
+		    */
 	    }
     };
     console.log('all graphs loaded');
