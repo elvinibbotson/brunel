@@ -40,6 +40,12 @@
 		        <g id='datum'>
 		            <polygon id='datumCross' points='-0.2,-0.2 -0.2,-80 0.2,-80 0.2,-0.2 80,-0.2 80,0.2 0.2,0.2 0.2,80 -0.2,80 -0.2,0.2 -80,0.2 -80,-0.2' stroke='none' fill='url(#fade)'/>
 		        </g>
+		        <g id='mover'>
+		            <circle id='moveCircle' cx='0' cy='0' r='1' stroke='blue' stroke-width='1' fill='#FFFFFF88'/>  
+		        </g>
+		        <g id='sizer'>
+		            <circle id='sizeDisc' cx='0' cy='0' r='1' stroke='none' fill='#0000FF88'/>
+		        </g>
 		        <radialGradient id="fade" r="50%" spreadMethod="pad">
                     <stop offset='0%' stop-color='blue' stop-opacity="0.25"/>
                     <stop offset='100%' stop-color='blue' stop-opacity="0"/>
@@ -104,7 +110,6 @@
         <input id='first' type='number'/> <span id='between'>x</span>
         <input id='second' type='number'/><span id='after'>mm</span>
         <input id='spin' type='number'/>&deg;
-        <!--span id='spinPanel'>spin: <input id='spin' type='number'/>&deg;</span-->
     </div>
     <div id='prompt'></div>
     <div id='checks'></div>
@@ -274,10 +279,6 @@
     </div>
     <div id='textDialog' class='dialog'>
         text: <input id='text' type='text' size='50'/>
-    </div>
-    <div id='diagnostics'>
-        <p><input type='checkbox' id='nodeswitch'>show nodes</p>
-        <div id='reports'></div>
     </div>
 	<script src="draftScript.js" async></script>
 </body>
