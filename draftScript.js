@@ -3206,6 +3206,12 @@ function initialise() {
     id('moveCircle').style.strokeWidth=scale;
     id('sizeDisc').setAttribute('r',handleR);
     id('selectionBox').setAttribute('stroke-dasharray',(scale+' '+scale+' '));
+    id('ref').setAttribute('width',(dwg.w+'mm'));
+    id('ref').setAttribute('height',(dwg.h+'mm'));
+    id('background').setAttribute('width',dwg.w);
+    id('background').setAttribute('height',dwg.h);
+    id('svg').setAttribute('width',(dwg.w+'mm'));
+    id('svg').setAttribute('height',(dwg.h+'mm'));
     w=dwg.w*scale; // viewBox is to scale
     h=dwg.h*scale;
     if(((dwg.w/scaleF)>scr.w)||((dwg.h/scaleF)>scr.h)) {
@@ -3215,15 +3221,8 @@ function initialise() {
         // h/=2;
     }
     console.log('viewbox: '+w+'x'+h);
-    // report(' SVG viewbox: '+w+'x'+h+'; scaleF: '+scaleF);
-    id('background').setAttribute('width',w);
-    id('background').setAttribute('height',h);
-    // id('svg').setAttribute('width',(w+'mm'));
-    // id('svg').setAttribute('height',(h+'mm'));
-    id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
-    // id('ref').setAttribute('width',(w+'mm'));
-    // id('ref').setAttribute('height',(h+'mm'));
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
+    id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
     id('datum').setAttribute('transform','scale('+scale+')');
     html="<rect x='0' y='0' width='"+w+"' height='"+h+"'/>"; // clip to drawing edges
     id('clipper').innerHTML=html;
