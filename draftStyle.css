@@ -98,11 +98,6 @@ button {
 #lineButton {
     background: url(svg/line.svg) center center no-repeat;
 }
-/*
-#shapeButton {
-    background: url(svg/shape.svg) center center no-repeat;
-}
-*/
 #boxButton {
     background: url(svg/box.svg) center center no-repeat;
 }
@@ -176,7 +171,7 @@ button {
     opacity: 0.5;
     padding: 4px;
     font-size: 1em;
-    display: none;
+    display: block;
     z-index: 13;
 }
 #lineShade {

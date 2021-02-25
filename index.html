@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Draft: digital drawing</title>
+    <meta name="description" content="2D scale drawings | simple CAD app | installable PWA">
+    <meta name="robots" content="index nofollow">
+    <meta name="keywords" content="CAD, drawing, design, scale drawing, technical drawing, PWA, app">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Draft</title>
 	<link rel="stylesheet" type="text/css" href="draftStyle.css">
@@ -11,6 +15,13 @@
   	<meta name="msapplication-square70x70logo" content="icons/icon75.png">
 </head>
 <body>
+    <div id='prompt'>
+        <p><b>Draft:</b> digital drawings<br>
+        2D scale-drawing app for technical drafting<br>
+        A4-format (landscape or portrait) drawings<br>
+        Installs on your device as an app.</p>
+        <p>For <b>user guide</b> tap <i>document</i> button.</p>
+    </div>
     <div id='graphic'>
         <svg id='ref' xmlns='http://www.w3.org/2000/svg' width='297mm' height='210mm' viewBox='0 0 297 210'>
             <rect id='background' x='0' y='0' width='297' height='297' stroke='none' fill='white'/>
@@ -111,7 +122,6 @@
         <input id='second' type='number'/><span id='after'>mm</span>
         <input id='spin' type='number'/>&deg;
     </div>
-    <div id='prompt'></div>
     <div id='checks'></div>
     <div id='fill'></div>
     <div id='line'></div>

@@ -88,6 +88,7 @@ if(!aspect) {
     showDialog('newDrawingDialog',true);
 }
 else initialise();
+setTimeout(function(){id('prompt').style.display='none'},15000);
 // disable annoying pop-up menu
 document.addEventListener('contextmenu', event => event.preventDefault());
 // TOOLS
@@ -3208,8 +3209,8 @@ function initialise() {
     id('selectionBox').setAttribute('stroke-dasharray',(scale+' '+scale+' '));
     id('ref').setAttribute('width',(dwg.w+'mm'));
     id('ref').setAttribute('height',(dwg.h+'mm'));
-    id('background').setAttribute('width',dwg.w);
-    id('background').setAttribute('height',dwg.h);
+    // id('background').setAttribute('width',dwg.w);
+    // id('background').setAttribute('height',dwg.h);
     id('svg').setAttribute('width',(dwg.w+'mm'));
     id('svg').setAttribute('height',(dwg.h+'mm'));
     w=dwg.w*scale; // viewBox is to scale
@@ -3222,6 +3223,8 @@ function initialise() {
     }
     console.log('viewbox: '+w+'x'+h);
     id('ref').setAttribute('viewBox',"0 0 "+w+" "+h);
+    id('background').setAttribute('width',w);
+    id('background').setAttribute('height',h);
     id('svg').setAttribute('viewBox',"0 0 "+w+" "+h);
     id('datum').setAttribute('transform','scale('+scale+')');
     html="<rect x='0' y='0' width='"+w+"' height='"+h+"'/>"; // clip to drawing edges
