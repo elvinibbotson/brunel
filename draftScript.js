@@ -3421,10 +3421,10 @@ function makeElement(g) {
                 a=Math.atan(dy/dx); // oblique dimension - angle in radians
             }
             console.log('dimension length: '+d+'; angle: '+a+' rad; nodes: '+g.n1+' '+g.n2);
-            var x1=g.x1; // start point/anchor of dimension line
-            var y1=g.y1;
+            var x1=Number(g.x1); // start point/anchor of dimension line
+            var y1=Number(g.y1);
             var o=parseInt(g.offset);
-            if(a==0) y1+=o;
+            if(a==0) y1+=Number(o);
             else if(a==Math.PI/2) x1+=o;
             else {
                 x1-=o*Math.sin(a);
