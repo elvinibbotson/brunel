@@ -689,7 +689,7 @@ id('flipOptions').addEventListener('click',function() {
                     }
                     else {
                         dy=points[i].y-axis.y;
-                        if(copy) pts+=points[i].x+' '+(axis.y-dy)+' ';
+                        if(copy) pts+=Number(points[i].x)+','+(Number(axis.y)-dy)+' ';
                         else points[i].y=axis.y-dy;
                     }
                 }
@@ -698,7 +698,7 @@ id('flipOptions').addEventListener('click',function() {
                     var g={}; // new graph for copy/copies
                     g.type=type(el); // line or shape
                     g.points=pts;
-                    // AVOID DATABASE OPERATIONS
+                    g.spin=0;
                     g.stroke=el.getAttribute('stroke');
                     g.lineW=el.getAttribute('stroke-width');
                     g.lineStyle=getLineStyle(el);
@@ -980,10 +980,6 @@ id('flipOptions').addEventListener('click',function() {
         }
     }
     cancel();
-    // selection=[];
-    // element=elID=null;
-    // id('handles').innerHTML='';
-    // id('selection').innerHTML='';
     if(anchor) {
         id('blue').removeChild(id('anchor'));
         anchor=false;
