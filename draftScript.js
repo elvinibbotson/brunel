@@ -353,29 +353,29 @@ id('panButton').addEventListener('click',function() {
 console.log('zoom; '+zoom+' w: '+w+' h: '+h);
 // DRAWING TOOLS
 id('lineButton').addEventListener('click',function() {
-    id('tools').style.display='none';
+    // id('tools').style.display='none';
     mode='line';
     showSizes(true,'LINE: drag from start');
 });
 id('boxButton').addEventListener('click',function() {
     mode='box';
     rad=0;
-    id('tools').style.display='none';
+    // id('tools').style.display='none';
     showSizes(true,'BOX: drag from corner');
 });
 id('ovalButton').addEventListener('click',function() { // OVAL/CIRCLE
     mode='oval';
-    id('tools').style.display='none';
+    // id('tools').style.display='none';
     showSizes(true,'OVAL: drag to size');
 })
 id('arcButton').addEventListener('click', function() {
    mode='arc';
-   id('tools').style.display='none';
+   // id('tools').style.display='none';
    showSizes(true,'ARC: drag from start');
 });
 id('textButton').addEventListener('click',function() {
     mode='text';
-    id('tools').style.display='none';
+    // id('tools').style.display='none';
     prompt('TEXT: tap at start');
 });
 id('text').addEventListener('change',function() {
@@ -404,7 +404,7 @@ id('text').addEventListener('change',function() {
 });
 id('dimButton').addEventListener('click',function() {
    mode='dimStart';
-   id('tools').style.display='none';
+   // id('tools').style.display='none';
    prompt('DIMENSION: tap start node');
 });
 id('confirmDim').addEventListener('click',function() {
@@ -420,7 +420,7 @@ id('confirmDim').addEventListener('click',function() {
     mode='dimPlace';
 });
 id('combiButton').addEventListener('click',function() {
-    id('tools').style.display='none';
+    // id('tools').style.display='none';
     showDialog('combiDialog',true);
 });
 id('combiList').addEventListener('change',function() {
@@ -459,7 +459,7 @@ id('deleteButton').addEventListener('click',function() {
         else { // remove individual point
             var n=points.length;
             if(((t=='line')&&(n>2))||((t=='shape')&&(n>3))) { // if minimum number of nodes, just remove element
-                prompt('REMOVE: tap (round) start-point to remove element or a (square) point to remove it');
+                prompt('REMOVE: tap circle) handle to remove element or a disc handle to remove a node');
                 mode='removePoint'; // remove whole element or one point
                 return;
             }
@@ -2625,7 +2625,7 @@ id('graphic').addEventListener('pointerup',function() {
                 prompt('DIMENSION: tap end node');
             break;
             }
-            else prompt('Tap on a node to start dimension')
+            else prompt('DIMENSION: tap start node')
             break;
         case 'dimEnd':
             if(snap) {
@@ -3409,11 +3409,11 @@ function makeElement(g) {
             var d=0; // dimension length
             var a=0; // dimension angle
             if(g.dir=='h') {
-                    d=dx;
+                    d=Math.abs(dx);
                     a=0;
                 }
             else if(g.dir=='v') {
-                    d=dy;
+                    d=Math.abs(dy);
                     a=Math.PI/2;
                 }
             else {
@@ -3895,9 +3895,8 @@ function select(el) {
             var spin=el.getAttribute('transform');
             console.log('dim from '+x1+','+y1+' to '+x2+','+y2);
             // draw handle
-            var html="<use id='mover0' href='#mover' x='"+((x1+x2)/2)+"' y='"+((y1+y2)/2)+"'/>"; 
-            html+="transform='"+spin+"' stroke='none' fill='#0000FF88'/>";
-            // console.log('handle: '+html);
+            var html="<use id='mover0' href='#mover' x='"+((x1+x2)/2)+"' y='"+((y1+y2)/2)+"' "; 
+            html+="transform='"+spin+"'/>";
             id('handles').innerHTML+=html;
             prompt('DIMENSION');
             mode='edit';
