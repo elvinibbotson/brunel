@@ -2265,7 +2265,7 @@ id('graphic').addEventListener('pointerup',function() {
         element.points[node].x=x;
         element.points[node].y=y;
         if((Math.abs(x-x0)<snapD)&&(Math.abs(y-y0)<snapD)) { // no drag - swop to mover
-            console.log('TAP - add mover at node '+node);
+            console.log('TAP - add mover at node '+node); // node becomes new element 'anchor'
             var html="<use id='mover"+node+"' href='#mover' x='"+x+"' y='"+y+"'/>";
             id('handles').innerHTML=html;
             mode='edit';
@@ -2888,14 +2888,14 @@ id('first').addEventListener('change',function() {
                 element.points[n-1]=pt1;
             }
             else { // width of completed (poly)line
-                // console.log('completed polyline - adjust overall width');
                 var bounds=element.getBBox();
                 w=bounds.width;
                 var ratio=val/w;
                 var points=element.points;
-                for(i=1;i<points.length;i++) { // points[0] is start - not affected
-                    points[i].x=points[0].x+(points[i].x-points[0].x)*ratio;
-                    console.log('point '+i+' adjusted');
+                console.log('adjust from node '+node);
+                for(i=0;i<points.length;i++) {
+                    dx=points[i].x-points[node].x;
+                    points[i].x=points[node].x+dx*ratio;
                 }
                 var pts=[];
 	            for(var i=0;i<points.length;i++) {
@@ -2912,8 +2912,20 @@ id('first').addEventListener('change',function() {
             console.log('change width of element '+elID);
             var elX=parseInt(element.getAttribute('x'));
             var elW=parseInt(element.getAttribute('width'));
+            switch(node) {
+                case 0: // size from centre
+                    elX+=elW/2; // centre x
+                    elX-=(val/2); // new x
+                    break;
+                case 2: // size from right
+                case 4:
+                    elX+=elW; // right x
+                    elX-=val; // new x
+                    break;
+            }
+            element.setAttribute('x',elX);
             element.setAttribute('width',val);
-            updateGraph(elID,['width',val]);
+            updateGraph(elID,['x',elX,'width',val]);
             refreshNodes(element);
             id('handles').innerHTML='';
             mode='select';
@@ -3001,13 +3013,14 @@ id('second').addEventListener('change',function() {
                 element.points[n-1]=pt1;
             }
             else { // height of completed (poly)line
-                // console.log('completed polyline - adjust overall height');
                 var bounds=element.getBBox();
                 h=bounds.height;
                 var ratio=val/h;
                 var points=element.points;
-                for(i=1;i<points.length;i++) { // points[0] is start - not affected
-                    points[i].y=points[0].y+(points[i].y-points[0].y)*ratio;
+                console.log('adjust from node '+node);
+                for(i=0;i<points.length;i++) {
+                    dy=points[i].y-points[node].y;
+                    points[i].y=points[node].y+dy*ratio;
                 }
                 var pts=[];
 	            for(var i=0;i<points.length;i++) {
@@ -3021,19 +3034,27 @@ id('second').addEventListener('change',function() {
             }
             break;
         case 'box':
-            // console.log('box height is '+element.getAttribute('height'));
-            // console.log('set to '+val);
             var elY=parseInt(element.getAttribute('y'));
             var elH=parseInt(element.getAttribute('height'));
+            switch(node) {
+                case 0: // size from centre
+                    elY+=elH/2; // centre y
+                    elY-=(val/2); // new y
+                    break;
+                case 3: // size from bottom
+                case 4:
+                    elY+=elH; // bottom y
+                    elY-=val; // new y
+                    break;
+            }
+            element.setAttribute('y',elY);
             element.setAttribute('height',val);
-            updateGraph(elID,['height',val]);
+            updateGraph(elID,['y',elY,'height',val]);
             refreshNodes(element);
-            // console.log('lower handles.y: '+(elY+val-handleR));
             id('handles').innerHTML='';
             mode='select';
             break;
         case 'oval':
-            // console.log('change oval height');
             element.setAttribute('ry',val/2);
             updateGraph(elID,['ry',val/2]);
             var elY=parseInt(element.getAttribute('cy'));
@@ -3796,6 +3817,7 @@ function select(el) {
             id('guides').style.display='block';
             showSizes(true,'LINE');
             if(mode=='shape') prompt('SHAPE');
+            node=0; // default anchor node
             mode='pointEdit';
             break;
         case 'box':
@@ -3818,6 +3840,7 @@ function select(el) {
             id('handles').innerHTML+=html;
             setSizes('box',el.getAttribute('spin'),w,h);
             showSizes(true,(w==h)?'SQUARE':'BOX');
+            node=0; // default anchor node
             mode='edit';
             break;
         case 'oval':
@@ -3840,6 +3863,7 @@ function select(el) {
             id('handles').innerHTML+=html;
             setSizes('box',el.getAttribute('spin'),w,h);
             showSizes(true,(w==h)?'CIRCLE':'OVAL');
+            node=0; // default anchor node
             mode='edit';
             break;
         case 'arc':
