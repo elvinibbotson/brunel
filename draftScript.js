@@ -663,8 +663,8 @@ id('flipOptions').addEventListener('click',function() {
     }
     console.log('overall box '+minX+'-'+maxX+'x'+minY+'-'+maxY);
     if(anchor) { // flip around anchor
-        axis.x=parseInt(id('anchor').getAttribute('cx'));
-        axis.y=parseInt(id('anchor').getAttribute('cy'));
+        axis.x=parseInt(id('anchor').getAttribute('x'));
+        axis.y=parseInt(id('anchor').getAttribute('y'));
     }
     else { // flip in-situ around mid-point
         copy=false;
@@ -693,6 +693,7 @@ id('flipOptions').addEventListener('click',function() {
                         else points[i].y=axis.y-dy;
                     }
                 }
+                console.log('pts: '+pts);
                 if(copy) {
                     console.log('create copy of element '+elID);
                     var g={}; // new graph for copy/copies
