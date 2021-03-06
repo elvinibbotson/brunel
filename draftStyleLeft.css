@@ -1,7 +1,6 @@
 #tools {
     position: fixed;
     left: 6px;
-    /* WHEN TESTED MOVE TOOLS, STYLE BOX & EDIT TOOLS TO RH EDGE right: 6px;*/
     top: 48px;
     width: 32px;
     border: none;
@@ -25,8 +24,6 @@
     position: fixed;
     top: 4px;
     left: 48px;
-    /*width: 50%; */
-    height: 32px;
     padding: 4px;
     border-radius: 3px;
     color: white;
@@ -71,6 +68,14 @@
     border-color: black;
     background: none;
     z-index: 12;
+}
+#undoButton {
+    position: fixed;
+    left:6px;
+    top: 4px;
+    background: url(svg/undo.svg) center center no-repeat;
+    z-index: 12;
+    display: none;
 }
 .dialog {
 	position: fixed;

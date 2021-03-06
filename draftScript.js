@@ -39,6 +39,7 @@ var nodes=[]; // array of nodes each with x,y coordinates and element ID
 var dims=[]; // array of links between elements and dimensions
 var element=null; // current element
 var elID=null; // id of current element
+var memory=[]; // holds element states to allow undo
 var node=0; // node number (0-9) within selected element
 var blueline=null; // bluePolyline
 var combi=null; // current combi
@@ -88,7 +89,7 @@ if(!aspect) {
     showDialog('newDrawingDialog',true);
 }
 else initialise();
-setTimeout(function(){id('prompt').style.display='none'},15000);
+setTimeout(function(){id('prompt').style.display='none'},10000);
 // disable annoying pop-up menu
 document.addEventListener('contextmenu', event => event.preventDefault());
 // TOOLS
@@ -528,6 +529,8 @@ id('confirmMove').addEventListener('click',function() {
         moveY=moveD*Math.sin(moveA);
     }
     if(selection.length<1) selection.push(elID);
+    // REMEMBER POSITIONS/POINTS/SPINS/FLIPS FOR ALL SELECTED ELEMENTS
+    re('member');
     if(selectedPoints.length>0) { // move all selected points in a line or shape...
         var points=element.points;
         while(selectedPoints.length>0) {
@@ -542,7 +545,7 @@ id('confirmMove').addEventListener('click',function() {
         move(element,moveX,moveY);
     }
     showDialog('moveDialog',false);
-    
+    // DONE BY re-member - id('undoButton').style.display='block';
     cancel();
 });
 id('spinButton').addEventListener('click',function() {
@@ -553,6 +556,7 @@ id('confirmSpin').addEventListener('click',function() {
     var spin=Number(id('spinAngle').value);
     if(selection.length<1) selection.push(elID);
     console.log('spin '+selection.length+' elements by '+spin+' degrees');
+    re('member');
     var axis=null;
     if(anchor) { // spin around an anchor
         axis={};
@@ -672,6 +676,7 @@ id('flipOptions').addEventListener('click',function() {
         axis.y=(minY+maxY)/2;
     }
     console.log('axis: '+axis.x+','+axis.y);
+    re('member');
     while(selection.length>0) { // for each selected item...
         elID=selection.shift();
         el=id(elID);
@@ -1018,6 +1023,7 @@ id('alignOptions').addEventListener('click',function() {
     var midX=(minX+maxX)/2;
     var midY=(minY+maxY)/2;
     console.log('overall box '+minX+'-'+maxX+'x'+minY+'-'+maxY);
+    re('member');
     for(i=0;i<selection.length;i++) {
         el=id(selection[i]);
         box=getBounds(el);
@@ -1428,6 +1434,7 @@ id('filletButton').addEventListener('click',function() {
     showDialog('filletDialog',true);
 });
 id('confirmFillet').addEventListener('click',function() {
+    re('member');
     var r=parseInt(id('filletR').value);
     element.setAttribute('rx',r);
     updateGraph(elID,['radius',r]);
@@ -1688,6 +1695,7 @@ id('shadeMenu').addEventListener('click',function() {
 // POINTER DOWN
 id('graphic').addEventListener('pointerdown',function() {
     console.log('pointer down - mode is '+mode);
+    re('wind'); // WAS id('undoButton').style.display='none';
     event.preventDefault();
     if(currentDialog) showDialog(currentDialog,false); // clicking drawing removes any dialogs/menus
     id('shadeMenu').style.display='none';
@@ -1701,6 +1709,7 @@ id('graphic').addEventListener('pointerdown',function() {
     if(val=='anchor')  { // move selected elements using anchor
         mode='move';
         prompt('drag ANCHOR to MOVE selection');
+        re('member');
     }
     var holder=event.target.parentNode.id;
     // console.log('holder is '+holder);
@@ -1708,6 +1717,7 @@ id('graphic').addEventListener('pointerdown',function() {
         console.log('move group selection');
         mode='move';
         prompt('drag to MOVE selection');
+        re('member');
     }
     else if(holder=='handles') { // handle
         console.log('HANDLE '+val);
@@ -1719,6 +1729,7 @@ id('graphic').addEventListener('pointerdown',function() {
         id('blueBox').setAttribute('width',bounds.width);
         id('blueBox').setAttribute('height',bounds.height);
         id('guides').style.display='block';
+        re('member');
         if(val.startsWith('mover')) {
             node=parseInt(val.substr(5)); // COULD GO AT START OF HANDLES SECTION
             if(mode=='addPoint') { // add point after start-point
@@ -2037,7 +2048,7 @@ function drag(event) {
             else { // drag  single element
                 id('blueBox').setAttribute('x',Number(x)+Number(offset.x));
                 id('blueBox').setAttribute('y',Number(y)+Number(offset.y));
-                console.log('dragged to '+x+','+y);
+                // console.log('dragged to '+x+','+y);
             }
             if(anchor) {
                 id('anchor').setAttribute('x',x);
@@ -2865,6 +2876,8 @@ id('first').addEventListener('change',function() {
     var val=parseInt(id('first').value);
     // console.log('element '+elID+' value changed to '+val);
     element=id(elID);
+    selection=[elID];
+    re('member');
     switch(type(element)) {
         case 'line':
         case 'shape':
@@ -2972,6 +2985,8 @@ id('first').addEventListener('change',function() {
 id('second').addEventListener('change',function() {
     var val=parseInt(id('second').value);
     element=id(elID);
+    selection=[elID];
+    re('member');
     // console.log('element '+element+' type: '+type(element)+' value changed to '+val);
     switch(type(element)) {
         case 'line':
@@ -3084,12 +3099,17 @@ id('second').addEventListener('change',function() {
     }
 });
 id('spin').addEventListener('change',function() {
+    selection=[elID];
+    re('member');
     var val=parseInt(id('spin').value);
     console.log('set spin to '+val+' degrees');
     element.setAttribute('spin',val);
     updateGraph(elID,['spin',val]);
     setTransform(element);
     refreshNodes(element);
+});
+id('undoButton').addEventListener('click',function() {
+    re('call'); // recall & reinstate previous positions/points/sizes/spins/flips
 });
 // UTILITY FUNCTIONS
 function addGraph(el) {
@@ -3504,10 +3524,13 @@ function move(el,dx,dy) {
         case 'line':
         case 'shape':
             console.log('move all points by '+dx+','+dy);
+            var pts='';
             for(var i=0;i<el.points.length;i++) {
                 el.points[i].x+=dx;
                 el.points[i].y+=dy;
+                pts+=el.points[i].x+','+el.points[i].y+' ';
             }
+            el.setAttribute('points',pts);
             console.log(element.points.length+' points adjusted');
             updateGraph(el.id,['points',el.getAttribute('points')]);
             break;
@@ -3554,9 +3577,113 @@ function move(el,dx,dy) {
 }
 function prompt(text) {
     console.log('PROMPT '+text);
+    // re('wind'); // WAS id('undoButton').style.display='none';
     id('prompt').innerHTML=text; //display text for 3 secs
     id('prompt').style.display='block';
     setTimeout(function(){id('prompt').style.display='none'},5000);
+}
+function re(op) { // op is 're-member' (memorise and show undo), 're-call' (reinstate and hide undo) or 're-wind' (hide undo)
+    console.log('re'+op+'; '+selection.length+' selected items; '+memory.length+' memory items');
+    if(op=='member') {
+        memory=[];
+        console.log('REMEMBER');
+        for(var i=0;i<selection.length;i++) {
+            elID=selection[i];
+            var el=id(elID);
+            var props={};
+            props.id=elID; // all elements have an id
+            switch(type(el)) {
+                case 'line':
+                case 'shape':
+                    props.points=el.points;
+                    break;
+                case 'box':
+                    console.log('remember box '+elID);
+                    props.x=el.getAttribute('x');
+                    props.y=el.getAttribute('y');
+                    props.width=el.getAttribute('width');
+                    props.height=el.getAttribute('height');
+                    props.rx=el.getAttribute('rx');
+                    break;
+                case 'oval':
+                    props.cx=el.getAttribute('cx');
+                    props.cy=el.getAttribute('cy');
+                    props.rx=el.getAttribute('rx');
+                    props.ry=el.getAttribute('ry');
+                    break;
+                case 'arc':
+                    props.d=el.getAttribute('d');
+                case 'text':
+                case 'combi':
+                    props.x=el.getAttribute('x');
+                    props.y=el.getAttribute('y');
+                    props.flip=el.getAttribute('flip');
+            }
+            props.spin=el.getAttribute('spin'); // any element can have spin
+            if(props.spin!=0) props.transform=el.getAttribute('transform');
+            memory.push(props);
+            console.log('selection['+i+']: '+props.id);
+        }
+        id('line').style.display='none';
+        id('undoButton').style.display='block';
+        return;
+    }
+    else if(op=='call') for(var i=0;i<memory.length;i++) { // reinstate from memory
+        var item=memory[i];
+        console.log('reinstate item '+item.id);
+        prompt('UNDO');
+        elID=item.id;
+        var el=id(elID);
+        console.log('reinstate '+elID);
+        switch(type(el)) {
+            case 'line':
+            case 'shape':
+                console.log(item.points.length+' points');
+                var pts='';
+                for(var j=0;j<item.points.length;j++) pts+=item.points[j].x+','+item.points[j].y+' ';
+                el.setAttribute('points',pts);
+                updateGraph(elID,['points',pts,'spin',item.spin]);
+                refreshNodes(el);
+                break;
+            case 'box':
+                console.log('reinstate box element');
+                el.setAttribute('x',item.x);
+                el.setAttribute('y',item.y);
+                el.setAttribute('width',item.width);
+                el.setAttribute('height',item.height);
+                el.setAttribute('rx',item.rx);
+                el.setAttribute('spin',item.spin);
+                updateGraph(elID,['x',item.x,'y',item.y,'spin',item.spin,'flip',item.flip]);
+                refreshNodes(el);
+                break;
+            case 'text':
+            case 'combi':
+                el.setAttribute('x',item.x);
+                el.setAttribute('y',item.y);
+                el.setAttribute('flip',item.flip);
+                updateGraph(elID,['x',item.x,'y',item.y,'spin',item.spin,'flip',item.flip]);
+                refreshNodes(el);
+                break;
+            case 'oval':
+                el.setAttribute('cx',item.cx);
+                el.setAttribute('cy',item.cy);
+                el.setAttribute('rx',item.rx);
+                el.setAttribute('ry',item.ry);
+                updateGraph (elID,['cx',item.cx,'cy',item.cy,'rx',item.rx,'ry',item.ry,'spin',item.spin]);
+                refreshNodes(el);
+                break;
+            case 'arc':
+                el.setAttribute('d',item.d);
+                getArc(item.d);
+                updateGraph(elID,['cx',arc.cx,'cy',arc.cy,'r',arc.r,'x1',arc.x1,'y1',arc.y1,'x2',arc.x2,'y2',arc.y2,'spin',item.spin]);
+                refreshNodes(el);
+        }
+        el.setAttribute('spin',item.spin);
+        if(item.transform) el.setAttribute('transform',item.transform)
+        else el.setAttribute('transform','rotate(0)');
+    }
+    id('undoButton').style.display='none';
+    id('line').style.display='block';
 }
 function redrawDim(d) {
     var request=db.transaction('graphs','readwrite').objectStore('graphs').put(d);
@@ -3762,18 +3889,7 @@ function remove(elID,keepNodes) {
     }
     var el=id(elID);
     var request=db.transaction('graphs','readwrite').objectStore('graphs').delete(Number(elID));
-	request.onsuccess=function(event) {
-	    console.log('graph '+elID+' deleted from database');
-	    if(keepNodes) return; // applies if element has been shifted to <ref> layer
-	    var n=nodes.length;
-        for(var i=0;i<nodes.length;i++) { // remove element's nodes
-            if(Math.floor(nodes[i].n/10)==elID) nodes.splice(i,1);
-        }
-        console.log((n-nodes.length)+' nodes deleted');
-	    id('dwg').removeChild(el); // remove element from SVG...
-	    // drawOrder(); // ...and from drawing order
-	}
-	request.onerror=function(event) {
+ 	request.onerror=function(event) {
 	    console.log("error deleting element "+el.id);
 	};
 	while(linkedDims.length>0) remove(linkedDims.pop()); // remove any linked dimensions
