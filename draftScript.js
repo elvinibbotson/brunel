@@ -89,7 +89,7 @@ if(!aspect) {
     showDialog('newDrawingDialog',true);
 }
 else initialise();
-setTimeout(function(){id('prompt').style.display='none'},10000);
+setTimeout(function(){id('prompt').style.display='none'},5000);
 // disable annoying pop-up menu
 document.addEventListener('contextmenu', event => event.preventDefault());
 // TOOLS
@@ -3595,7 +3595,9 @@ function re(op) { // op is 're-member' (memorise and show undo), 're-call' (rein
             switch(type(el)) {
                 case 'line':
                 case 'shape':
-                    props.points=el.points;
+                    var pts='';
+                    for(var j=0;j<el.points.length;j++) pts+=el.points[j].x+','+el.points[j].y+' ';
+                    props.points=pts;
                     break;
                 case 'box':
                     console.log('remember box '+elID);
@@ -3638,11 +3640,16 @@ function re(op) { // op is 're-member' (memorise and show undo), 're-call' (rein
         switch(type(el)) {
             case 'line':
             case 'shape':
-                console.log(item.points.length+' points');
-                var pts='';
-                for(var j=0;j<item.points.length;j++) pts+=item.points[j].x+','+item.points[j].y+' ';
-                el.setAttribute('points',pts);
-                updateGraph(elID,['points',pts,'spin',item.spin]);
+                console.log(item.points.length+' points - from '+item.points[0].x+','+item.points[0].y);
+                /*
+                for(var j=0;j<item.points.length;j++) {
+                    el.points[j].x=item.points[j].x;
+                    el.points[j].y=item.points[j].y;
+                }
+                */
+                el.setAttribute('points',item.points);
+                // el.setAttribute('points',el.getAttribute('points'));
+                updateGraph(elID,['points',el.getAttribute('points'),'spin',item.spin]);
                 refreshNodes(el);
                 break;
             case 'box':
