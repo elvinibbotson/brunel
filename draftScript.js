@@ -3896,6 +3896,10 @@ function remove(elID,keepNodes) {
     }
     var el=id(elID);
     var request=db.transaction('graphs','readwrite').objectStore('graphs').delete(Number(elID));
+    request.onsuccess=function(event) {
+        el.remove();
+        console.log('element removed');
+    }
  	request.onerror=function(event) {
 	    console.log("error deleting element "+el.id);
 	};
