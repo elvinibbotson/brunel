@@ -2310,9 +2310,26 @@ id('graphic').addEventListener('pointerup',function() {
                     dx=x-x0+w/2+offset.x;
                     dy=y-y0+h/2+offset.y;
                     break;
-                // OTHER TYPES
+                case 'arc':
+                    console.log('moved arc - node is '+node);
+                    dx=x-x0;
+                    dy=y-y0;
+                    //
+                    if(node==1) {
+                        dx+=(arc.cx-arc.x1);
+                        dy+=(arc.cy-arc.y1);
+                    }
+                    else if(node==2) {
+                        dx+=(arc.cx-arc.x2);
+                        dy+=(arc.cy-arc.y2);
+                    }
+                    //
+                    break;
+                default:
+                    dx=x-x0;
+                    dy=y-y0;
             }
-            console.log('move '+selection.length+' elements');
+            console.log('move '+selection.length+' elements by '+dx+','+dy);
             if(anchor && (selection.length>1)) { // dispose of anchor after use
                 id('blue').removeChild(id('anchor'));
                 anchor=false;
@@ -2374,6 +2391,13 @@ id('graphic').addEventListener('pointerup',function() {
             cancel();
             break;
         case 'arcSize':
+            if((Math.abs(dx)<snapD)&&(Math.abs(dy)<snapD)) { // node tapped - add mover
+                console.log('TAP - add mover at node '+node);
+                var html="<use id='mover"+node+"' href='#mover' x='"+x+"' y='"+y+"'/>";
+                id('handles').innerHTML=html;
+                mode='edit';
+                return;
+            }
             dx=x-x0;
             dy=y-y0;
             r=Math.sqrt((dx*dx)+(dy*dy));
