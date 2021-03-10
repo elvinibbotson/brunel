@@ -297,6 +297,7 @@ id('confirmSave').addEventListener('click',function() {
 });
 id('print').addEventListener('click',function() {
     // showDialog('fileMenu',false);
+    reset();
     id('printName').value='';
     showDialog('printDialog',true);
 });
@@ -336,15 +337,8 @@ id('zoomOutButton').addEventListener('click',function() {
     id('zoom').innerHTML=zoom;
 });
 id('extentsButton').addEventListener('click',function() {
-    // prompt('ZOOM ALL');
-    // console.log('zoom out to full drawing');
-    zoom=1;
-    dwg.x=0;
-    dwg.y=0;
-    console.log('new viewBox: '+dwg.x+','+dwg.y+' '+dwg.w+'x'+dwg.h);
-    id('svg').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+(dwg.w*scale)+' '+(dwg.h*scale));
-    id('ref').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+(dwg.w*scale)+' '+(dwg.h*scale));
-    id('zoom').innerHTML=zoom;
+    prompt('ZOOM ALL');
+    reset();
 });
 id('panButton').addEventListener('click',function() {
     // console.log('pan mode');
@@ -3928,6 +3922,15 @@ function remove(elID,keepNodes) {
 	    console.log("error deleting element "+el.id);
 	};
 	while(linkedDims.length>0) remove(linkedDims.pop()); // remove any linked dimensions
+}
+function reset() {
+    zoom=1;
+    dwg.x=0;
+    dwg.y=0;
+    console.log('new viewBox: '+dwg.x+','+dwg.y+' '+dwg.w+'x'+dwg.h);
+    id('svg').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+(dwg.w*scale)+' '+(dwg.h*scale));
+    id('ref').setAttribute('viewBox',dwg.x+' '+dwg.y+' '+(dwg.w*scale)+' '+(dwg.h*scale));
+    id('zoom').innerHTML=zoom;
 }
 function saveSVG() {
     id('datumSet').style.display='none';
