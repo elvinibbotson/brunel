@@ -11,7 +11,12 @@ body {
 	background-color: silver;
 	pointer-events: auto;
 	touch-action: none;
+	-webkit-touch-action: none;
 	mouse-events: none;
+	-webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 #ref {
     position: absolute;
