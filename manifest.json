@@ -1,22 +1,16 @@
 {
-  "name": "Draft PWA",
-  "short_name": "Draft",
+  "name": "ren PWA",
+  "short_name": "ren",
   "version": 3,
   "icons": [
 	{
-		"src": "icons/icon192px.png",
+		"src": "icon192px.png",
 		"sizes": "192x192",
 		"type": "image/png",
 		"purpose": "any maskable"
 	},
-	{
-		"src": "icons/icon512px.png",
-		"sizes": "512x512",
-		"type": "image/png",
-		"purpose": "any maskable"
-	}
   ],
-  "start_url": "/draft/",
+  "start_url": "/ren/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#333333",

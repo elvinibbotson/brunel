@@ -1,0 +1,92 @@
+#tools {
+    position: fixed;
+    left: 6px;
+    top: 48px;
+    width: 32px;
+    border: none;
+    border-radius: 3px;
+    background-color: black;
+    display: block;
+    z-index: 10;
+}
+#editTools {
+    position: fixed;
+    left: 6px;
+    top: 48px;
+    width: 32px;
+    border: none;
+    border-radius: 3px;
+    background-color: black;
+    display: none;
+    z-index: 11;
+}
+#sizes {
+    position: fixed;
+    top: 4px;
+    left: 48px;
+    padding: 4px;
+    border-radius: 3px;
+    color: white;
+    background-color: black;
+    z-index: 10;
+    display: none;
+}
+#spinPanel {
+    display: none;
+}
+#checks {
+    position: fixed;
+    left: 6px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    border-radius: 3px;
+    background-image: url('svg/checks.svg');
+    z-index: 10;
+}
+#fill {
+    position: fixed;
+    left: 6px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    border-radius: 3px;
+    background: gray;
+    opacity: 0.5;
+    border: none;
+    z-index: 11;
+}
+#line {
+   position: fixed;
+    left: 6px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    border-radius: 3px;
+    border-style: solid;
+    border-width: 0.25mm;
+    border-color: black;
+    background: none;
+    z-index: 12;
+}
+#undoButton {
+    position: fixed;
+    left:6px;
+    top: 4px;
+    background: url(svg/undo.svg) center center no-repeat;
+    z-index: 12;
+    display: none;
+}
+.dialog {
+	position: fixed;
+	left: 48px;
+	right: null;
+	top: 48px;
+	padding: 5px;
+	border: none;
+	border-radius: 3px;
+	display: none;
+	color: white;
+	background-color: black;
+	z-index: 10;
+}
