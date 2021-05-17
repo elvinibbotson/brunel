@@ -1547,7 +1547,7 @@ id('lineType').addEventListener('change',function() {
         lineType=type;
         // console.log('line type is '+type);
     }
-    id('line').style.borderStyle=type;
+    id('line').style..borderBottomStyle=type;
 });
 id('penSelect').addEventListener('change',function() {
     var val=event.target.value;
@@ -4182,7 +4182,7 @@ function setSizes(mode,spin,p1,p2,p3,p4) {
 function setStyle(el) {
     if(!el ||(type(el)=='combi')||(type(el)=='dim')) { // no element/combi/dimension - show default styles
         id('lineType').value=lineType;
-        id('line').style.borderStyle=lineType;
+        id('line').style..borderBottomStyle=lineType;
         id('line').style.borderWidth=pen+'mm';
         id('lineShade').style.backgroundColor=lineShade;
         id('line').style.borderColor=lineShade;
@@ -4193,7 +4193,7 @@ function setStyle(el) {
     else { // show styles for element el
         val=getLineStyle(el);
         id('lineType').value=val;
-        id('line').style.borderStyle=val;
+        id('line').style..borderBottomStyle=val;
         val=el.getAttribute('stroke-width');
         if(val) {
             id('line').style.borderWidth=(val/scaleF)+'px';
