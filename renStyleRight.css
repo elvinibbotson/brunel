@@ -5,7 +5,7 @@
     width: 32px;
     border: none;
     border-radius: 3px;
-    background-color: black;
+    background-color: #ffffff80;
     display: block;
     z-index: 10;
 }
@@ -16,7 +16,7 @@
     width: 32px;
     border: none;
     border-radius: 3px;
-    background-color: black;
+    background-color: #ffffff80;
     display: none;
     z-index: 11;
 }
@@ -25,8 +25,8 @@
     top: 4px;
     right: 48px;
     padding: 4px;
-    color: white;
-    background-color: black;
+    color: black;
+    background-color: #ffffff80;
     z-index: 10;
     display: none;
 }
@@ -79,10 +79,10 @@
 	right: null;
 	top: 48px;
 	padding: 5px;
-	border: none;
+	border: 1px solid gray;
 	border-radius: 3px;
 	display: none;
-	color: white;
-	background-color: black;
+	color: black;
+	background-color: #ffffff80;
 	z-index: 10;
 }
