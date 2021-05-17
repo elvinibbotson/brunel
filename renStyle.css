@@ -29,7 +29,6 @@ body {
     position: absolute;
 	left: 0;
 	top: 0;
-	/* background-color: white; */
     z-index: 2;
 }
 #guides {
@@ -41,8 +40,8 @@ body {
 input {
     width: 64px;
 	height: 24px;
-	color: white;
-	background-color: dimgray;
+	color: black;
+	background-color: white;
 	border: 1px solid #CCCCCC;
 	/*border-radius: 3px;*/
 	font-size: 1.2em;
@@ -54,24 +53,24 @@ img {
     vertical-align: bottom;
 }
 select {
-    color: white;
-    background-color: dimgray;
+    color: black;
+    background-color: white;
     height: 32px;
     border: 1px solid #CCCCCC;
     font-size: 1.2em;
 }
 button {
-    color: white;
+    color: black;
     font-size: 1em;
-    background-color: black;
+    background-color: white;
     border: solid #CCCCCC 1px;
 }
 .iconButton {
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: 3px;
-    color: white;
+    /* border-radius: 3px;
+    color: white;*/
 }
 .iconButton:disabled {
     opacity: 0.5;
