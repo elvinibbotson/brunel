@@ -1,16 +1,16 @@
 {
-  "name": "ren PWA",
-  "short_name": "ren",
+  "name": "wren PWA",
+  "short_name": "wren",
   "version": 3,
   "icons": [
 	{
-		"src": "icon192px.png",
+		"src": "wren.png",
 		"sizes": "192x192",
 		"type": "image/png",
 		"purpose": "any maskable"
 	}
   ],
-  "start_url": "/ren/",
+  "start_url": "/wren/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#333333",
