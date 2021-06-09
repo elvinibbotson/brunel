@@ -4,8 +4,8 @@
   "version": 3,
   "icons": [
 	{
-		"src": "wren.png",
-		"sizes": "192x192",
+		"src": "wren512.png",
+		"sizes": "512x512",
 		"type": "image/png",
 		"purpose": "any maskable"
 	}
@@ -13,6 +13,6 @@
   "start_url": "/wren/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#333333",
-  "theme_color": "#333333"
+  "background_color": "white",
+  "theme_color": "white"
 }
