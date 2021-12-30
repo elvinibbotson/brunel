@@ -1521,11 +1521,40 @@ id('confirmCombine').addEventListener('click',function() {
 });
 // STYLES
 id('line').addEventListener('click',function() {
+	// setStyle(); // NEW
     showDialog('stylesDialog',true);
 });
 id('lineType').addEventListener('change',function() {
     var type=event.target.value;
     // console.log('line type: '+type);
+    // NEW CODE...
+    if(selection.length>0) {
+    	for (var i=0;i<selection.length;i++) {
+    		console.log('change line width for selected element '+i);
+    		var el=id(selection[i]);
+    		w=parseInt(el.getAttribute('stroke-width'));
+    		var val=null;
+        	switch(type) {
+            	case 'none':
+            	case 'solid':
+                	// var val=null;
+                	break;
+            	case 'dashed':
+                	val=(4*w)+' '+(4*w);
+                	break;
+            	case 'dotted':
+                	val=w+' '+w;
+        	}
+        	console.log('set element '+el.id+' line style to '+type);
+        	el.setAttribute('stroke-dasharray',val);
+        	val=el.getAttribute('stroke');
+        	el.setAttribute('stroke',(type=='none')?'none':val);
+        	// el.setAttribute('stroke',(type=='none')?'none':lineCol);
+        	updateGraph(el.id,['lineStyle',type]);
+        	updateGraph(el.id,['stroke',(type=='none')?'none':lineCol]);
+    	}
+    }
+    /* OLD CODE
     if(elID) { // change selected element
         element=id(elID);
         w=parseInt(element.getAttribute('stroke-width'));
@@ -1542,7 +1571,8 @@ id('lineType').addEventListener('change',function() {
         console.log('set element '+element.id+' line style to '+type);
         element.setAttribute('stroke-dasharray',val);
         updateGraph(elID,['lineStyle',type]);
-    }
+    } 
+    */
     else { // change default line type
         lineType=type;
         // console.log('line type is '+type);
@@ -1551,6 +1581,17 @@ id('lineType').addEventListener('change',function() {
 });
 id('penSelect').addEventListener('change',function() {
     var val=event.target.value;
+    // NEW CODE...
+    if(selection.length>0) {
+    	for(var i=0;i<selection.length;i++) {
+    		var el=id(selection[i]);
+    		var lineW=val*scale;
+        	el.setAttribute('stroke-width',lineW);
+        	if(el.getAttribute('stroke-dasharray')) el.setAttribute('stroke-dasharray',lineW+' '+lineW);
+        	updateGraph(el.id,['lineW',lineW]);
+    	}
+    }
+    /* OLD CODE
     if(elID) { // change selected element
         element=id(elID);
         var lineW=val*scale;
@@ -1559,6 +1600,7 @@ id('penSelect').addEventListener('change',function() {
         // console.log('set element '+element.id+' pen to '+val);
         updateGraph(element.id,['lineW',lineW]);
     }
+    */
     else { // change default pen width
         pen=val;
         // console.log('pen is '+pen);
@@ -1567,6 +1609,18 @@ id('penSelect').addEventListener('change',function() {
 });
 id('textSize').addEventListener('change',function() {
     var val=event.target.value;
+    console.log('set text size for '+selection.length+' items');
+    // NEW CODE...
+    if(selection.length>0) {
+    	for(var i=0;i<selection.length;i++) {
+    		var el=id(selection[i]);
+    		if(type(el)=='text') {
+            	el.setAttribute('font-size',val*scale);
+            	updateGraph(el.id,['textSize',val]);
+        	}
+    	}
+    }
+    /* OLD CODE
     if(elID) { // change selected text element
         element=id(elID);
         if(type(element)=='text') {
@@ -1575,12 +1629,36 @@ id('textSize').addEventListener('change',function() {
             updateGraph(element.id,['textSize',val]);
         }
     }
+    */
     else { // change default pen width
         textSize=val;
     }
 });
 id('textStyle').addEventListener('change',function() {
     var val=event.target.value;
+    // NEW CODE...
+    if(selection.length>0) {
+    	for(var i=0;i<selection.length;i++) {
+    		var el=id(selection[i]);
+    		 if(type(el)=='text') {
+            	switch(val) {
+                	case 'fine':
+                    	el.setAttribute('font-style','normal');
+                    	el.setAttribute('font-weight','normal');
+                    	break;
+                	case 'bold':
+                    	el.setAttribute('font-style','normal');
+                    	el.setAttribute('font-weight','bold');
+                    	break;
+                	case 'italic':
+                    	el.setAttribute('font-style','italic');
+                    	el.setAttribute('font-weight','normal');
+            	}
+            	updateGraph(el.id,['textStyle',val]);
+        	}
+    	}
+    }
+    /* OLD CODE
     if(elID) { // change selected text element
         element=id(elID);
         if(type(element)=='text') {
@@ -1600,6 +1678,7 @@ id('textStyle').addEventListener('change',function() {
             updateGraph(element.id,['textStyle',val]);
         }
     }
+    */
     else { // change default pen width
         textStyle=val;
     }
@@ -1616,12 +1695,21 @@ id('fillShade').addEventListener('click',function() {
 });
 id('opacity').addEventListener('change',function() {
     var val=event.target.value;
-    // console.log('opacity: '+val);
+    // NEW CODE...
+    if(selection.length>0) {
+    	for(var i=0;i<selection.length;i++) {
+    		var el=id(selection[i]);
+    		el.setAttribute('fill-opacity',val);
+        	updateGraph(el.id,['opacity',val]);
+    	}
+    }
+    /* OLD CODE
     if(elID) { // change selected element
         element=id(elID);
         element.setAttribute('fill-opacity',val);
         updateGraph(elID,['opacity',val]);
     }
+    */
     else opacity=val; // change default opacity
     id('fill').style.opacity=val;
 });
@@ -1636,6 +1724,35 @@ id('shadeMenu').addEventListener('click',function() {
     console.log('set '+id('shadeMenu').mode+' shade to '+val);
     if(id('shadeMenu').mode=='line') { // line shade
         if(val=='white') val='blue';
+        // NEW CODE...
+        if(selection.length>0) { // change line shade of selected elements
+        	for(var i=0;i<selection.length;i++) {
+        		var el=id(selection[i]);
+        		if(type(el)=='text') {
+        			el.setAttribute('fill',val);
+        			updateGraph(el.id,['fill',val]);
+        		}
+        		else {
+        			el.setAttribute('stroke',val);
+                	updateGraph(el.id,['stroke',val]);
+                	if(val=='blue') { // move element into <ref> layer...
+                    	console.log('blue line - shift to <ref>');
+                    	el.setAttribute('stroke-width',0.25*scale); // ...with thin lines...
+                    	el.setAttribute('fill','none'); // ...and no fill
+                    	id('ref').appendChild(el); // move to <ref> layer
+                    	remove(el.id,true); // remove from database keeping nodes for snap
+                    	for(var j=0;j<dims.length;j++) { // ...and remove any linked dimensions
+                        	if((Math.floor(dims[j].n1/10)==Number(el.id))||(Math.floor(dims[j].n2/10)==Number(el.id))) {
+                            	remove(dims[j].dim);
+                            	dims.splice(j,1);
+                        	}
+                    	}
+                    	cancel();
+                	}
+        		}
+        	}
+        }
+        /* OLD CODE
         if(elID) { // change selected element
             element=id(elID);
             if(type(element)=='text') { // text is filled not stroked
@@ -1663,6 +1780,7 @@ id('shadeMenu').addEventListener('click',function() {
                 }
             }
         }
+        */
         else { // change default line shade
             // console.log('line shade: '+val);
             if(val=='blue') val='black'; // cannot have blue <ref> choice as default
@@ -1672,12 +1790,23 @@ id('shadeMenu').addEventListener('click',function() {
         id('lineShade').style.backgroundColor=val;
     }
     else { // fill shade
+    	// NEW CODE...
+    	if(selection.length>0) { // change line shade of selected elements
+    		for(var i=0;i<selection.length;i++) {
+        		var el=id(selection[i]);
+        		console.log('element '+el.id+' is '+type(el));
+            	el.setAttribute('fill',val);
+            	updateGraph(el.id,['fill',val]);
+    		}
+    	}
+    	/* OLD CODE
         if(elID) { // change selected element
             element=id(elID);
             console.log('element '+elID+' is '+type(element));
             element.setAttribute('fill',val);
             updateGraph(element.id,['fill',val]);
         }
+        */
         else { // change default fill shade
             // console.log('fill shade: '+val);
             fillShade=val;
@@ -2812,6 +2941,17 @@ id('graphic').addEventListener('pointerup',function() {
                     mode='edit';
                     showEditTools(true);
                     console.log(selection.length+' elements selected');
+                    // NEW CODE...
+                    if(selection.length<2) {
+                        console.log('only one selection');
+                        id('selection').innerHTML=''; // no blue box
+                        element=id(selection[0]);
+                        // elID=selection[0];
+                        // element=id(elID);
+                        select(element); // add handles etc
+                        // setStyle(element);
+                    }
+                    /* OLD CODE
                     if(selection.length<2) {
                         console.log('only one selection');
                         id('selection').innerHTML=''; // no blue box
@@ -2820,6 +2960,7 @@ id('graphic').addEventListener('pointerup',function() {
                         select(element); // add handles etc
                         // setStyle(element);
                     }
+                    */
                     return;
                 }
             }
@@ -2856,12 +2997,26 @@ id('graphic').addEventListener('pointerup',function() {
                 if(selection.indexOf(hit)<0) { // add to selection
                     selection.push(hit);
                     if(selection.length<2) { // only item selected
+                    	// NEW CODE...
+                    	// elID=hit;
+                        element=id(hit);
+                        select(element,false);
+                        /* OLD CODE
                         elID=hit;
                         element=id(elID);
                         select(element);
+                        */
                     }
                     else { // multiple selection
                         console.log('add '+type(el)+' '+el.id+' to multiple selection');
+                        // NEW CODE...
+                        if(selection.length<3) {
+                            console.log('SECOND SELECTED ITEM');
+                            id('handles').innerHTML='';
+                            select(id(selection[0]),true); // highlight first selected item
+                        }
+                        select(el,true);
+                        /* OLD CODE
                         var box=getBounds(el);
                         var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
                         html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+hit+"'/>";
@@ -2877,8 +3032,9 @@ id('graphic').addEventListener('pointerup',function() {
                             id('selection').innerHTML+=html; // blue block for first element
                         }
                         showSizes(false);
-                        setStyle(); // SET STYLES TO DEFAULTS
+                        */
                     }
+                    setStyle();
                     setButtons();
                 } // else ignore clicks on items already selected
                 showEditTools(true);
@@ -3939,159 +4095,170 @@ function saveSVG() {
     download(svg,fileName,'data:image/svg+xml');
 	id('datumSet').style.display='block';
 }
-function select(el) {
-    setStyle(el); // set style to suit selected element
-    // add node markers, boxes and handles to single selected item
-    id('handles').innerHTML=''; // clear any handles then add handles for selected element 
-    // first draw node markers?
-    for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
+function select(el,multiple) {
+	// NEW CODE...
+	if(multiple) { // one of multiple selection - highlight in blue
+		console.log('select element '+el.id+' of multiple selection');
+		var box=getBounds(el);
+		var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
+		html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+el.id+"'/>";
+		console.log('box html: '+html);
+		id('selection').innerHTML+=html; // blue block for this element
+	}
+	else {
+		// setStyle(el); // set style to suit selected element
+    	// add node markers, boxes and handles to single selected item
+    	id('handles').innerHTML=''; // clear any handles then add handles for selected element 
+    	// first draw node markers?
+    	for(var i=0;i<nodes.length;i++) { // draw tiny circle at each node
         if(Math.floor(nodes[i].n/10)!=elID) continue;
         var html="<circle cx='"+nodes[i].x+"' cy='"+nodes[i].y+"' r='"+scale+"'/>";
         console.log('node at '+nodes[i].x+','+nodes[i].y);
         id('handles').innerHTML+=html;
     }
-    switch(type(el)) {
-        case 'line':
-        case 'shape':
-            var bounds=el.getBBox();
-            w=bounds.width;
-            h=bounds.height;
-            var points=el.points;
-            var n=points.length;
-            console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
-            setSizes('box',el.getAttribute('spin'),w,h); // size of bounding box
-            // draw handles
-            var html="<use id='mover0' href='#mover' x='"+points[0].x+"' y='"+points[0].y+"'/>";
-            id('handles').innerHTML+=html; // circle handle moves whole element
-            for(var i=1;i<n;i++) {
+    	switch(type(el)) {
+        	case 'line':
+        	case 'shape':
+            	var bounds=el.getBBox();
+            	w=bounds.width;
+            	h=bounds.height;
+            	var points=el.points;
+            	var n=points.length;
+            	console.log('bounds: '+w+'x'+h+'mm; '+n+' points');
+            	setSizes('box',el.getAttribute('spin'),w,h); // size of bounding box
+            	// draw handles
+            	var html="<use id='mover0' href='#mover' x='"+points[0].x+"' y='"+points[0].y+"'/>";
+            	id('handles').innerHTML+=html; // circle handle moves whole element
+            	for(var i=1;i<n;i++) {
                 html="<use id='sizer"+i+"' href='#sizer' x='"+points[i].x+"' y='"+points[i].y+"'/>";
                 id('handles').innerHTML+=html; // disc handles move remaining nodes
             }
-            id('bluePolyline').setAttribute('points',el.getAttribute('points'));
-            id('guides').style.display='block';
-            showSizes(true,'LINE');
-            if(mode=='shape') prompt('SHAPE');
-            node=0; // default anchor node
-            mode='pointEdit';
-            break;
-        case 'box':
-            x=parseFloat(el.getAttribute('x'));
-            y=parseFloat(el.getAttribute('y'));
-            w=parseFloat(el.getAttribute('width'));
-            h=parseFloat(el.getAttribute('height'));
-            // draw blueBox for sizing
-            id('blueBox').setAttribute('x',x); // SET blueBox TO MATCH BOX (WITHOUT SPIN)
-            id('blueBox').setAttribute('y',y);
-            id('blueBox').setAttribute('width',w);
-            id('blueBox').setAttribute('height',h);
-            id('guides').style.display='block';
-            // draw handles
-            var html="<use id='mover0' href='#mover' x='"+(x+w/2)+"' y='"+(y+h/2)+"'/>"; // center
-            html+="<use id='sizer1' href='#sizer' x='"+x+"' y='"+y+"'/>"; // top/left
-            html+="<use id='sizer2' href='#sizer' x='"+(x+w)+"' y='"+y+"'/>"; // top/right
-            html+="<use id='sizer3' href='#sizer' x='"+x+"' y='"+(y+h)+"'/>"; // bottom/left
-            html+="<use id='sizer4' href='#sizer' x='"+(x+w)+"' y='"+(y+h)+"'/>"; // bottom/right
-            id('handles').innerHTML+=html;
-            setSizes('box',el.getAttribute('spin'),w,h);
-            showSizes(true,(w==h)?'SQUARE':'BOX');
-            node=0; // default anchor node
-            mode='edit';
-            break;
-        case 'oval':
-            x=parseFloat(el.getAttribute('cx'));
-            y=parseFloat(el.getAttribute('cy'));
-            w=parseFloat(el.getAttribute('rx'))*2;
-            h=parseFloat(el.getAttribute('ry'))*2;
-            // draw blueBox for sizing
-            id('blueBox').setAttribute('x',(x-w/2)); // SET blueBox TO MATCH OVAL (WITHOUT SPIN)
-            id('blueBox').setAttribute('y',(y-h/2));
-            id('blueBox').setAttribute('width',w);
-            id('blueBox').setAttribute('height',h);
-            id('guides').style.display='block';
-            // draw handles
-            var html="<use id='mover0' href='#mover' x='"+x+"' y='"+y+"'/>"; // center
-            html+="<use id='sizer1' href='#sizer' x='"+(x-w/2)+"' y='"+(y-h/2)+"'/>"; // top/left
-            html+="<use id='sizer2' href='#sizer' x='"+(x+w/2)+"' y='"+(y-h/2)+"'/>"; // top/right
-            html+="<use id='sizer3' href='#sizer' x='"+(x-w/2)+"' y='"+(y+h/2)+"'/>"; // bottom/left
-            html+="<use id='sizer4' href='#sizer' x='"+(x+w/2)+"' y='"+(y+h/2)+"'/>"; // bottom/right
-            id('handles').innerHTML+=html;
-            setSizes('box',el.getAttribute('spin'),w,h);
-            showSizes(true,(w==h)?'CIRCLE':'OVAL');
-            node=0; // default anchor node
-            mode='edit';
-            break;
-        case 'arc':
-            var d=el.getAttribute('d');
-            console.log('select arc - d: '+d);
-            getArc(d); // derive arc geometry from d
-            // draw handles
-            var html="<use id='mover0' href='#mover' x='"+arc.cx+"' y='"+arc.cy+"'/>"; // mover at centre
-            html+="<use id='sizer1' href='#sizer' x='"+arc.x1+"' y='"+arc.y1+"'/>"; // sizers at start...
-            html+="<use id='sizer2' href='#sizer' x='"+arc.x2+"' y='"+arc.y2+"'/>"; // ...and end or arc
-            id('handles').innerHTML+=html;
-            var a1=Math.atan((arc.y1-arc.cy)/(arc.x1-arc.cx));
-            if(arc.x1<arc.cx) a1+=Math.PI;
-            var a=Math.atan((arc.y2-arc.cy)/(arc.x2-arc.cx));
-            console.log('end angle: '+a);
-            if(arc.x2<arc.cx) a+=Math.PI;
-            x0=arc.cx; // centre
-            y0=arc.cy;
-            x=x0+arc.r*Math.cos(a); // end point
-            y=y0+arc.r*Math.sin(a);
-            a=Math.abs(a-a1); // swept angle - radians
-            a*=180/Math.PI; // degrees
-            a=Math.round(a);
-            if(arc.major>0) a=360-a;
-            setSizes('arc',el.getAttribute('spin'),arc.r,a);
-            showSizes(true,'ARC');
-            mode='edit';
-            break;
-        case 'text':
-            var bounds=el.getBBox();
-            w=Math.round(bounds.width);
-            h=Math.round(bounds.height);
-            // draw handle
-            var html="<use id='mover0' href='#mover' x='"+bounds.x+"' y='"+(bounds.y+h)+"'/>";
-            // var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
-            id('handles').innerHTML+=html; // circle handle moves text
-            // show text edit dialog
-            id('textDialog').style.left='48px';
-            id('textDialog').style.top='4px';
-            id('text').value=element.innerHTML;
-            id('textDialog').style.display='block';
-            mode='edit';
-            break;
-        case 'dim':
-            var line=el.firstChild;
-            var x1=parseInt(line.getAttribute('x1'));
-            var y1=parseInt(line.getAttribute('y1'));
-            var x2=parseInt(line.getAttribute('x2'));
-            var y2=parseInt(line.getAttribute('y2'));
-            var spin=el.getAttribute('transform');
-            console.log('dim from '+x1+','+y1+' to '+x2+','+y2);
-            // draw handle
-            var html="<use id='mover0' href='#mover' x='"+((x1+x2)/2)+"' y='"+((y1+y2)/2)+"' "; 
-            html+="transform='"+spin+"'/>";
-            id('handles').innerHTML+=html;
-            prompt('DIMENSION');
-            mode='edit';
-            break;
-        case 'combi':
-            var bounds=getBounds(el);
-            x=Number(el.getAttribute('x'));
-            y=Number(el.getAttribute('y'));
-            w=Number(bounds.width);
-            h=Number(bounds.height);
-            // s=Number(el.getAttribute('scale'));
-            // draw handle
-            var html="<use id='mover0' href='#mover' x='"+x+"' y='"+y+"'/>";
-            // var html="<circle id='handle' cx='"+x+"' cy='"+y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
-            id('handles').innerHTML=html;
-            setSizes('box',el.getAttribute('spin'),w,h);
-            showSizes(true,'COMBI');
-            mode='edit';
-            break;
-    };
+            	id('bluePolyline').setAttribute('points',el.getAttribute('points'));
+            	id('guides').style.display='block';
+            	showSizes(true,'LINE');
+            	if(mode=='shape') prompt('SHAPE');
+            	node=0; // default anchor node
+            	mode='pointEdit';
+            	break;
+        	case 'box':
+            	x=parseFloat(el.getAttribute('x'));
+            	y=parseFloat(el.getAttribute('y'));
+            	w=parseFloat(el.getAttribute('width'));
+            	h=parseFloat(el.getAttribute('height'));
+            	// draw blueBox for sizing
+            	id('blueBox').setAttribute('x',x); // SET blueBox TO MATCH BOX (WITHOUT SPIN)
+            	id('blueBox').setAttribute('y',y);
+            	id('blueBox').setAttribute('width',w);
+            	id('blueBox').setAttribute('height',h);
+            	id('guides').style.display='block';
+            	// draw handles
+            	var html="<use id='mover0' href='#mover' x='"+(x+w/2)+"' y='"+(y+h/2)+"'/>"; // center
+            	html+="<use id='sizer1' href='#sizer' x='"+x+"' y='"+y+"'/>"; // top/left
+            	html+="<use id='sizer2' href='#sizer' x='"+(x+w)+"' y='"+y+"'/>"; // top/right
+            	html+="<use id='sizer3' href='#sizer' x='"+x+"' y='"+(y+h)+"'/>"; // bottom/left
+            	html+="<use id='sizer4' href='#sizer' x='"+(x+w)+"' y='"+(y+h)+"'/>"; // bottom/right
+            	id('handles').innerHTML+=html;
+            	setSizes('box',el.getAttribute('spin'),w,h);
+            	showSizes(true,(w==h)?'SQUARE':'BOX');
+            	node=0; // default anchor node
+            	mode='edit';
+            	break;
+        	case 'oval':
+            	x=parseFloat(el.getAttribute('cx'));
+            	y=parseFloat(el.getAttribute('cy'));
+            	w=parseFloat(el.getAttribute('rx'))*2;
+            	h=parseFloat(el.getAttribute('ry'))*2;
+            	// draw blueBox for sizing
+            	id('blueBox').setAttribute('x',(x-w/2)); // SET blueBox TO MATCH OVAL (WITHOUT SPIN)
+            	id('blueBox').setAttribute('y',(y-h/2));
+            	id('blueBox').setAttribute('width',w);
+            	id('blueBox').setAttribute('height',h);
+            	id('guides').style.display='block';
+            	// draw handles
+            	var html="<use id='mover0' href='#mover' x='"+x+"' y='"+y+"'/>"; // center
+            	html+="<use id='sizer1' href='#sizer' x='"+(x-w/2)+"' y='"+(y-h/2)+"'/>"; // top/left
+            	html+="<use id='sizer2' href='#sizer' x='"+(x+w/2)+"' y='"+(y-h/2)+"'/>"; // top/right
+            	html+="<use id='sizer3' href='#sizer' x='"+(x-w/2)+"' y='"+(y+h/2)+"'/>"; // bottom/left
+            	html+="<use id='sizer4' href='#sizer' x='"+(x+w/2)+"' y='"+(y+h/2)+"'/>"; // bottom/right
+            	id('handles').innerHTML+=html;
+            	setSizes('box',el.getAttribute('spin'),w,h);
+            	showSizes(true,(w==h)?'CIRCLE':'OVAL');
+            	node=0; // default anchor node
+            	mode='edit';
+            	break;
+        	case 'arc':
+            	var d=el.getAttribute('d');
+            	console.log('select arc - d: '+d);
+            	getArc(d); // derive arc geometry from d
+            	// draw handles
+            	var html="<use id='mover0' href='#mover' x='"+arc.cx+"' y='"+arc.cy+"'/>"; // mover at centre
+            	html+="<use id='sizer1' href='#sizer' x='"+arc.x1+"' y='"+arc.y1+"'/>"; // sizers at start...
+            	html+="<use id='sizer2' href='#sizer' x='"+arc.x2+"' y='"+arc.y2+"'/>"; // ...and end or arc
+            	id('handles').innerHTML+=html;
+            	var a1=Math.atan((arc.y1-arc.cy)/(arc.x1-arc.cx));
+            	if(arc.x1<arc.cx) a1+=Math.PI;
+            	var a=Math.atan((arc.y2-arc.cy)/(arc.x2-arc.cx));
+            	console.log('end angle: '+a);
+            	if(arc.x2<arc.cx) a+=Math.PI;
+            	x0=arc.cx; // centre
+            	y0=arc.cy;
+            	x=x0+arc.r*Math.cos(a); // end point
+	            	y=y0+arc.r*Math.sin(a);
+    	        a=Math.abs(a-a1); // swept angle - radians
+        	    a*=180/Math.PI; // degrees
+            	a=Math.round(a);
+	            if(arc.major>0) a=360-a;
+    	        setSizes('arc',el.getAttribute('spin'),arc.r,a);
+        	    showSizes(true,'ARC');
+            	mode='edit';
+	            break;
+    	    case 'text':
+        	    var bounds=el.getBBox();
+            	w=Math.round(bounds.width);
+	            h=Math.round(bounds.height);
+    	        // draw handle
+        	    var html="<use id='mover0' href='#mover' x='"+bounds.x+"' y='"+(bounds.y+h)+"'/>";
+            	// var html="<circle id='handle' cx="+bounds.x+" cy="+(bounds.y+bounds.height)+" r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+	            id('handles').innerHTML+=html; // circle handle moves text
+    	        // show text edit dialog
+        	    id('textDialog').style.left='48px';
+            	id('textDialog').style.top='4px';
+	            id('text').value=element.innerHTML;
+    	        id('textDialog').style.display='block';
+        	    mode='edit';
+            	break;
+	        case 'dim':
+    	        var line=el.firstChild;
+        	    var x1=parseInt(line.getAttribute('x1'));
+            	var y1=parseInt(line.getAttribute('y1'));
+	            var x2=parseInt(line.getAttribute('x2'));
+    	        var y2=parseInt(line.getAttribute('y2'));
+        	    var spin=el.getAttribute('transform');
+            	console.log('dim from '+x1+','+y1+' to '+x2+','+y2);
+	            // draw handle
+    	        var html="<use id='mover0' href='#mover' x='"+((x1+x2)/2)+"' y='"+((y1+y2)/2)+"' "; 
+        	    html+="transform='"+spin+"'/>";
+            	id('handles').innerHTML+=html;
+	            prompt('DIMENSION');
+    	        mode='edit';
+        	    break;
+	        case 'combi':
+    	        var bounds=getBounds(el);
+        	    x=Number(el.getAttribute('x'));
+            	y=Number(el.getAttribute('y'));
+	            w=Number(bounds.width);
+    	        h=Number(bounds.height);
+        	    // s=Number(el.getAttribute('scale'));
+            	// draw handle
+	            var html="<use id='mover0' href='#mover' x='"+x+"' y='"+y+"'/>";
+	            // var html="<circle id='handle' cx='"+x+"' cy='"+y+"' r='"+handleR+"' stroke='none' fill='#0000FF88'/>";
+    	        id('handles').innerHTML=html;
+        	    setSizes('box',el.getAttribute('spin'),w,h);
+            	showSizes(true,'COMBI');
+	            mode='edit';
+    	        break;
+    	};
+	}
 }
 function setButtons() {
     var n=selection.length;
@@ -4179,7 +4346,9 @@ function setSizes(mode,spin,p1,p2,p3,p4) {
     }
     id('spin').value=spin;
 }
-function setStyle(el) {
+function setStyle() {
+	console.log('setStyle: '+selection.length+' items selected');
+	var el=(selection.length>0)?id(selection[0]):null;
     if(!el ||(type(el)=='combi')||(type(el)=='dim')) { // no element/combi/dimension - show default styles
         id('lineType').value=lineType;
         id('line').style.borderBottomStyle=lineType;
@@ -4191,6 +4360,7 @@ function setStyle(el) {
         id('opacity').value=opacity;
     }
     else { // show styles for element el
+    	console.log('set style for element '+el.id);
         val=getLineStyle(el);
         id('lineType').value=val;
         id('line').style.borderBottomStyle=val;
@@ -4208,13 +4378,14 @@ function setStyle(el) {
             id('line').style.borderColor=val;
         }
         val=el.getAttribute('fill');
+        console.log('fill: '+val);
         if(val=='none') {
             id('fill').style.background='#00000000';
             id('fillShade').style.backgroundColor='white';
             id('opacity').value=0;
         }
         else {
-            if(type(element)=='text') {
+            if(type(el)=='text') {
                 id('lineShade').style.backgroundColor=val;
             }
             else {
@@ -4227,8 +4398,9 @@ function setStyle(el) {
             id('opacity').value=val;
             id('fill').style.opacity=val;
         }
-        if(type(element)=='text') {
-            val=el.getAttribute('font-size');
+        if(type(el)=='text') {
+            val=el.getAttribute('font-size')/scale;
+            console.log('text size: '+val);
             id('textSize').value=val;
             id('textStyle').value='fine';
             val=el.getAttribute('font-style');
