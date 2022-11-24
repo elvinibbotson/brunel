@@ -1333,6 +1333,7 @@ id('confirmDouble').addEventListener('click',function() {
 });
 id('repeatButton').addEventListener('click',function() {
     if(type(element)=='dim') return; // cannot move dimensions
+    if(selection.length!=1) return; // can only repeat single elements
     showDialog('textDialog',false);
     id('countH').value=id('countV').value=1;
     id('distH').value=id('distV').value=0;
@@ -1343,8 +1344,10 @@ id('confirmRepeat').addEventListener('click',function() {
     var nV=parseInt(id('countV').value);
     var dH=parseInt(id('distH').value);
     var dV=parseInt(id('distV').value);
-    console.log(nH+' copies across at '+dH+'mm; '+nV+' copie down at '+dV+'mm');
-    element=id(elID);
+    console.log('repeat '+type(element));
+    console.log(nH+' copies across at '+dH+'mm; '+nV+' copies down at '+dV+'mm');
+    // element=id(elID);
+    console.log(element.type+' stroke: '+element.stroke);
     for(var i=0;i<nH;i++) {
         for(var j=0;j<nV;j++) {
             if(i<1 && j<1) continue; // skip in-place duplicate
