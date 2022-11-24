@@ -61,19 +61,33 @@ select {
 }
 button {
     color: black;
-    font-size: 1em;
-    background-color: white;
-    border: solid #CCCCCC 1px;
+    font-size: 1.2em;
+    font-weight: bold;
+    background-color: #DDD;
+    border: solid #666 2px;
+    border-radius: 5px;
 }
 .iconButton {
     width: 32px;
     height: 32px;
     border: none;
-    /* border-radius: 3px;
-    color: white;*/
+    color: white;
 }
 .iconButton:disabled {
     opacity: 0.5;
+}
+.dialog {
+	position: fixed;
+	left: 48px;
+	right: null;
+	top: 48px;
+	padding: 5px;
+	border: 3px solid #666;
+	border-radius: 8px;
+	display: none;
+	color: black;
+	background-color: white;
+	z-index: 10;
 }
 .spin90 {
     transform: rotate(90deg);

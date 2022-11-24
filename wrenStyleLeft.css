@@ -74,16 +74,3 @@
     z-index: 12;
     display: none;
 }
-.dialog {
-	position: fixed;
-	left: 48px;
-	right: null;
-	top: 48px;
-	padding: 5px;
-	border: 1px solid gray;
-	border-radius: 3px;
-	display: none;
-	color: black;
-	background-color: white;
-	z-index: 10;
-}

@@ -77,11 +77,4 @@
 	right: 48px;
 	right: null;
 	top: 48px;
-	padding: 5px;
-	border: 1px solid gray;
-	border-radius: 3px;
-	display: none;
-	color: black;
-	background-color: #ffffff80;
-	z-index: 10;
 }
