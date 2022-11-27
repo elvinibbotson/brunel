@@ -1,0 +1,76 @@
+#tools {
+    position: fixed;
+    left: 6px;
+    top: 48px;
+    width: 32px;
+    border: none;
+    border-radius: 3px;
+    background-color: #ffffff80;
+    display: block;
+    z-index: 10;
+}
+#editTools {
+    position: fixed;
+    left: 6px;
+    top: 48px;
+    width: 32px;
+    border: none;
+    border-radius: 3px;
+    background-color: #ffffff80;
+    display: none;
+    z-index: 11;
+}
+#sizes {
+    position: fixed;
+    top: 4px;
+    left: 48px;
+    padding: 4px;
+    border-radius: 3px;
+    color: black;
+    background-color: #ffffff80;
+    z-index: 10;
+    display: none;
+}
+#spinPanel {
+    display: none;
+}
+#checks {
+    position: fixed;
+    left: 6px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    background-image: url('svg/checks.svg');
+    z-index: 10;
+}
+#fill {
+    position: fixed;
+    left: 6px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    background: gray;
+    opacity: 0.5;
+    border: none;
+    z-index: 11;
+}
+#line {
+	position: fixed;
+    left: 6px;
+    top: 4px;
+    width: 32px;
+    height: 32px;
+    border-bottom-style: solid;
+    border-width: 0.25mm;
+    border-color: black;
+    background: none;
+    z-index: 12;
+}
+#undoButton {
+    position: fixed;
+    left:6px;
+    top: 4px;
+    background: url(svg/undo.svg) center center no-repeat;
+    z-index: 12;
+    display: none;
+}

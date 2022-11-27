@@ -1,10 +1,10 @@
 {
-  "name": "wren PWA",
-  "short_name": "wren",
+  "name": "brunel PWA",
+  "short_name": "brunel",
   "version": 3,
   "icons": [
 	{
-		"src": "wren512.png",
+		"src": "brunel512.png",
 		"sizes": "512x512",
 		"type": "image/png",
 		"purpose": "any maskable"

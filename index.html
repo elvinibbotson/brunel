@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>wren: digital drawing</title>
+    <title>brunel: digital drawing</title>
     <meta name="description" content="2D scale drawings | simple CAD app | installable PWA">
     <meta name="robots" content="index nofollow">
     <meta name="keywords" content="CAD, drawing, design, scale drawing, technical drawing, PWA, app">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="theme-color" content="#333333">
-	<title>wren</title>
-	<link rel="stylesheet" type="text/css" href="wrenStyle.css">
-	<link rel="stylesheet" id='swop' type="text/css" href="wrenStyleLeft.css">
+	<title>brunel</title>
+	<link rel="stylesheet" type="text/css" href="brunelStyle.css">
+	<link rel="stylesheet" id='swop' type="text/css" href="brunelStyleLeft.css">
   	<link rel="manifest" href="manifest.json">
   	<!--link rel="apple-touch-icon" href="/icons/AppleIcon.png"/-->
-  	<meta name="application-name" content="wren">
+  	<meta name="application-name" content="brunel">
   	<!--meta name="msapplication-square150x150logo" content="icons/icon150.png">
   	<meta name="msapplication-square70x70logo" content="icons/icon75.png"-->
 </head>
 <body>
     <div id='prompt'>
-        <p><b>wren:</b> digital drawings<br>
+        <p><b>brunel:</b> digital drawings<br>
         2D scale-drawing app for technical drafting<br>
         A4-format (landscape or portrait) drawings<br>
         Installs on your device as an app.</p>
@@ -250,7 +250,7 @@
         <p>clockwise <input type='number' id='spinAngle'/>&deg;</p>
     </div>
     <div id='flipDialog' class='dialog'>
-        <p>FLIP</p>
+        <p><b>FLIP</b></p>
         <label for='copy' id='copyLabel'>copy</label><input type='checkbox' id='copy'/>
         <div id='flipOptions'>
             <img src='svg/flip.svg'/><img src='svg/flip.svg' class='spin90'/>   
@@ -293,6 +293,6 @@
     <div id='textDialog' class='dialog'>
         text: <input id='text' type='text' size='50'/>
     </div>
-	<script src="wrenScript.js" async></script>
+	<script src="brunelScript.js" async></script>
 </body>
 </html>
