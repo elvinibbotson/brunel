@@ -10,7 +10,7 @@
 		"purpose": "any maskable"
 	}
   ],
-  "start_url": "/wren/",
+  "start_url": "/brunel/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "white",
