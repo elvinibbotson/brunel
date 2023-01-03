@@ -2255,7 +2255,6 @@ function drag(event) {
             id('ref').setAttribute('viewBox',dx+' '+dy+' '+(dwg.w*scale/zoom)+' '+(dwg.h*scale/zoom));
             break;
         case 'line':
-        // case 'shape':
             if(Math.abs(x-x0)<snapD) x=x0; // snap to vertical
             if(Math.abs(y-y0)<snapD) y=y0; // snap to horizontal
             var n=blueline.points.length;
@@ -3019,24 +3018,8 @@ id('graphic').addEventListener('pointerup',function() {
                             select(id(selection[0]),true); // highlight first selected item
                         }
                         select(el,true);
-                        /* OLD CODE
-                        var box=getBounds(el);
-                        var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
-                        html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+hit+"'/>";
-                        console.log('box html: '+html);
-                        id('selection').innerHTML+=html; // blue block for this element
-                        if(selection.length<3) {
-                            console.log('SECOND SELECTED ITEM');
-                            id('handles').innerHTML='';
-                            el=id(selection[0]);
-                            box=getBounds(el);
-                            var html="<rect x='"+box.x+"' y='"+box.y+"' width='"+box.width+"' height='"+box.height+"' ";
-                            html+="stroke='none' fill='blue' fill-opacity='0.25' el='"+hit+"'/>";
-                            id('selection').innerHTML+=html; // blue block for first element
-                        }
-                        showSizes(false);
-                        */
                     }
+                    console.log('selected item: '+selection[0]);
                     setStyle();
                     setButtons();
                 } // else ignore clicks on items already selected
@@ -3051,9 +3034,6 @@ id('graphic').addEventListener('pointerup',function() {
 // ADJUST ELEMENT SIZES
 id('first').addEventListener('change',function() {
     var val=parseInt(id('first').value);
-    // console.log('element '+elID+' value changed to '+val);
-    element=id(elID);
-    selection=[elID];
     re('member');
     switch(type(element)) {
         case 'line':
@@ -3161,10 +3141,7 @@ id('first').addEventListener('change',function() {
 });
 id('second').addEventListener('change',function() {
     var val=parseInt(id('second').value);
-    element=id(elID);
-    selection=[elID];
     re('member');
-    // console.log('element '+element+' type: '+type(element)+' value changed to '+val);
     switch(type(element)) {
         case 'line':
         case 'shape':
@@ -3276,7 +3253,6 @@ id('second').addEventListener('change',function() {
     }
 });
 id('spin').addEventListener('change',function() {
-    selection=[elID];
     re('member');
     var val=parseInt(id('spin').value);
     console.log('set spin to '+val+' degrees');
@@ -3761,14 +3737,17 @@ function prompt(text) {
 }
 function re(op) { // op is 're-member' (memorise and show undo), 're-call' (reinstate and hide undo) or 're-wind' (hide undo)
     console.log('re'+op+'; '+selection.length+' selected items; '+memory.length+' memory items');
+    console.log('item 1: '+selection[0]);
     if(op=='member') {
         memory=[];
         console.log('REMEMBER');
         for(var i=0;i<selection.length;i++) {
             elID=selection[i];
+            console.log('selected item '+i+': '+elID);
             var el=id(elID);
             var props={};
             props.id=elID; // all elements have an id
+            console.log('element '+elID+' - '+type(el));
             switch(type(el)) {
                 case 'line':
                 case 'shape':
@@ -4292,6 +4271,7 @@ function setButtons() {
             active.push(23);
         } 
     }
+    id('sizes').style.display=(n>1)?'none':'block';
     var set='';
     for(i=0;i<active.length;i++) set+=active[i]+' ';
     // console.log(active.length+' edit tools active: '+set);
