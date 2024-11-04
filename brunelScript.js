@@ -375,7 +375,7 @@ id('textButton').addEventListener('click',function() {
 });
 id('text').addEventListener('change',function() {
     var text=event.target.value;
-    if(elID) { // change selected text
+    if(elID)  { // change selected text
         element=id(elID);
         element.innerHTML=text;
         updateGraph(elID,['text',text]);
@@ -3000,7 +3000,7 @@ id('graphic').addEventListener('pointerup',function() {
                     selection.push(hit);
                     if(selection.length<2) { // only item selected
                     	// NEW CODE...
-                    	// elID=hit;
+                    	elID=hit;
                         element=id(hit);
                         select(element,false);
                         /* OLD CODE
@@ -3019,7 +3019,7 @@ id('graphic').addEventListener('pointerup',function() {
                         }
                         select(el,true);
                     }
-                    console.log('selected item: '+selection[0]);
+                    console.log('selected item: '+selection[0]+' elID is '+elID);
                     setStyle();
                     setButtons();
                 } // else ignore clicks on items already selected
